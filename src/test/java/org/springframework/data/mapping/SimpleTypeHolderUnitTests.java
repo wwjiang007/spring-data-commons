@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 by the original author(s).
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,34 +18,39 @@ package org.springframework.data.mapping;
 import static org.assertj.core.api.Assertions.*;
 
 import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.UUID;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.data.mapping.model.SimpleTypeHolder;
 
 /**
  * Unit tests for {@link SimpleTypeHolder}.
- * 
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
 public class SimpleTypeHolderUnitTests {
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void rejectsNullCustomTypes() {
-		new SimpleTypeHolder(null, false);
+		assertThatIllegalArgumentException().isThrownBy(() -> new SimpleTypeHolder(null, false));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void rejectsNullOriginal() {
-		new SimpleTypeHolder(new HashSet<>(), null);
+		assertThatIllegalArgumentException().isThrownBy(() -> new SimpleTypeHolder(new HashSet<>(), null));
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-31
+	@Test // DATACMNS-31
 	public void rejectsNullTypeForIsSimpleTypeCall() {
+
 		SimpleTypeHolder holder = SimpleTypeHolder.DEFAULT;
-		holder.isSimpleType(null);
+
+		assertThatIllegalArgumentException().isThrownBy(() -> holder.isSimpleType(null));
 	}
 
 	@Test
@@ -113,6 +118,40 @@ public class SimpleTypeHolderUnitTests {
 		assertThat(holder.isSimpleType(Type.class)).isTrue();
 	}
 
+	@Test // DATACMNS-1294
+	public void considersJavaTimeTypesSimple() {
+
+		SimpleTypeHolder holder = SimpleTypeHolder.DEFAULT;
+
+		assertThat(holder.isSimpleType(Instant.class)).isTrue();
+	}
+
+	@Test // DATACMNS-1101
+	public void considersExtendedTypeAsSimple() {
+
+		SimpleTypeHolder holder = SimpleTypeHolder.DEFAULT;
+
+		assertThat(holder.isSimpleType(ExtendedPerson.class)).isFalse();
+	}
+
+	@Test // DATACMNS-1101
+	public void considersExtendedTypeAsSimpleSeenBaseClassBefore() {
+
+		SimpleTypeHolder holder = SimpleTypeHolder.DEFAULT;
+
+		assertThat(holder.isSimpleType(Person.class)).isFalse();
+		assertThat(holder.isSimpleType(ExtendedPerson.class)).isFalse();
+	}
+
+	@Test // DATACMNS-1278
+	public void alwaysConsidersEnumsSimple() {
+
+		SimpleTypeHolder holder = SimpleTypeHolder.DEFAULT;
+
+		assertThat(holder.isSimpleType(SomeInterface.class)).isFalse();
+		assertThat(holder.isSimpleType(InterfacedEnum.class)).isTrue();
+	}
+
 	enum SimpleEnum {
 
 		FOO;
@@ -129,4 +168,16 @@ public class SimpleTypeHolderUnitTests {
 
 		abstract boolean method();
 	}
+
+	static class Person {
+
+	}
+
+	static class ExtendedPerson extends Person {
+
+	}
+
+	interface SomeInterface {}
+
+	enum InterfacedEnum implements SomeInterface {}
 }

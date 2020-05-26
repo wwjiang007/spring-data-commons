@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-2017 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,8 @@ public class ClassGeneratingPropertyAccessorPublicType {
 	protected String protectedField;
 	public String publicField;
 	private String backing;
+	private final String immutable = "";
+	private final String wither;
 	private Integer aa;
 	private int bb;
 
@@ -40,6 +42,14 @@ public class ClassGeneratingPropertyAccessorPublicType {
 	@AccessType(Type.PROPERTY) private String protectedProperty;
 
 	@AccessType(Type.PROPERTY) private String publicProperty;
+
+	public ClassGeneratingPropertyAccessorPublicType() {
+		this.wither = "";
+	}
+
+	private ClassGeneratingPropertyAccessorPublicType(String wither) {
+		this.wither = wither;
+	}
 
 	private String getPrivateProperty() {
 		return privateProperty;
@@ -80,6 +90,14 @@ public class ClassGeneratingPropertyAccessorPublicType {
 
 	public void setSyntheticProperty(String syntheticProperty) {
 		backing = syntheticProperty;
+	}
+
+	public String getWither() {
+		return wither;
+	}
+
+	public ClassGeneratingPropertyAccessorPublicType withWither(String wither) {
+		return new ClassGeneratingPropertyAccessorPublicType(wither);
 	}
 
 	public Object set(Object e) {

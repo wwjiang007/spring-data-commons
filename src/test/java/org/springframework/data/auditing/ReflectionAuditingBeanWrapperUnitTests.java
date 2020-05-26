@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,8 +21,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import org.joda.time.DateTime;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.auditing.DefaultAuditableBeanWrapperFactory.ReflectionAuditingBeanWrapper;
@@ -30,41 +31,42 @@ import org.springframework.data.convert.Jsr310Converters.LocalDateTimeToDateConv
 
 /**
  * Unit tests for {@link ReflectionAuditingBeanWrapper}.
- * 
+ *
  * @author Oliver Gierke
+ * @author Pavel Horal
  * @since 1.5
  */
-public class ReflectionAuditingBeanWrapperUnitTests {
+class ReflectionAuditingBeanWrapperUnitTests {
 
-	AnnotationAuditingMetadata metadata;
+	ConversionService conversionService;
 	AnnotatedUser user;
-	AuditableBeanWrapper wrapper;
+	AuditableBeanWrapper<?> wrapper;
 
 	LocalDateTime time = LocalDateTime.now();
 
-	@Before
-	public void setUp() {
-
+	@BeforeEach
+	void setUp() {
+		this.conversionService = new DefaultAuditableBeanWrapperFactory().getConversionService();
 		this.user = new AnnotatedUser();
-		this.wrapper = new ReflectionAuditingBeanWrapper(user);
+		this.wrapper = new ReflectionAuditingBeanWrapper<>(conversionService, user);
 	}
 
 	@Test
-	public void setsDateTimeFieldCorrectly() {
+	void setsDateTimeFieldCorrectly() {
 
 		wrapper.setCreatedDate(time);
 		assertThat(user.createdDate).isEqualTo(new DateTime(LocalDateTimeToDateConverter.INSTANCE.convert(time)));
 	}
 
 	@Test
-	public void setsDateFieldCorrectly() {
+	void setsDateFieldCorrectly() {
 
 		wrapper.setLastModifiedDate(time);
 		assertThat(user.lastModifiedDate).isEqualTo(LocalDateTimeToDateConverter.INSTANCE.convert(time));
 	}
 
 	@Test
-	public void setsLongFieldCorrectly() {
+	void setsLongFieldCorrectly() {
 
 		class Sample {
 
@@ -74,7 +76,7 @@ public class ReflectionAuditingBeanWrapperUnitTests {
 		}
 
 		Sample sample = new Sample();
-		AuditableBeanWrapper wrapper = new ReflectionAuditingBeanWrapper(sample);
+		AuditableBeanWrapper<Sample> wrapper = new ReflectionAuditingBeanWrapper<>(conversionService, sample);
 
 		wrapper.setCreatedDate(time);
 		assertThat(sample.createdDate).isEqualTo(time.atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli());
@@ -84,7 +86,7 @@ public class ReflectionAuditingBeanWrapperUnitTests {
 	}
 
 	@Test
-	public void setsAuditorFieldsCorrectly() {
+	void setsAuditorFieldsCorrectly() {
 
 		Object object = new Object();
 

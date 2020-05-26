@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2010 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@ package org.springframework.data.repository.query;
 
 /**
  * Exception to be thrown if a query cannot be created from a {@link QueryMethod}.
- * 
+ *
  * @author Oliver Gierke
  */
 public final class QueryCreationException extends RuntimeException {
@@ -27,7 +27,7 @@ public final class QueryCreationException extends RuntimeException {
 
 	/**
 	 * Creates a new {@link QueryCreationException}.
-	 * 
+	 *
 	 * @param method
 	 */
 	private QueryCreationException(String message) {
@@ -37,7 +37,7 @@ public final class QueryCreationException extends RuntimeException {
 
 	/**
 	 * Rejects the given domain class property.
-	 * 
+	 *
 	 * @param method
 	 * @param propertyName
 	 * @return
@@ -50,7 +50,7 @@ public final class QueryCreationException extends RuntimeException {
 
 	/**
 	 * Creates a new {@link QueryCreationException}.
-	 * 
+	 *
 	 * @param method
 	 * @param message
 	 * @return
@@ -62,7 +62,7 @@ public final class QueryCreationException extends RuntimeException {
 
 	/**
 	 * Creates a new {@link QueryCreationException} for the given {@link QueryMethod} and {@link Throwable} as cause.
-	 * 
+	 *
 	 * @param method
 	 * @param cause
 	 * @return

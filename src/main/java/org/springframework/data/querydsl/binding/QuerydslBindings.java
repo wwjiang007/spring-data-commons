@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 package org.springframework.data.querydsl.binding;
-
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -32,7 +28,9 @@ import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.Optionals;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import com.querydsl.core.types.Path;
@@ -234,11 +232,12 @@ public class QuerydslBindings {
 
 	/**
 	 * Returns the {@link PathInformation} for the given path and {@link TypeInformation}.
-	 * 
+	 *
 	 * @param path must not be {@literal null}.
 	 * @param type must not be {@literal null}.
 	 * @return
 	 */
+	@Nullable
 	PathInformation getPropertyPath(String path, TypeInformation<?> type) {
 
 		Assert.notNull(path, "Path must not be null!");
@@ -316,8 +315,18 @@ public class QuerydslBindings {
 	 * @return
 	 */
 	private static String toDotPath(Optional<Path<?>> path) {
-		return path.map(it -> it.toString().substring(it.getMetadata().getRootPath().getMetadata().getName().length() + 1))
-				.orElse("");
+		return path.map(QuerydslBindings::fromRootPath).orElse("");
+	}
+
+	private static String fromRootPath(Path<?> path) {
+
+		Path<?> rootPath = path.getMetadata().getRootPath();
+
+		if (rootPath == null) {
+			throw new IllegalStateException(String.format("Couldn't find root path on path %s!", path));
+		}
+
+		return path.toString().substring(rootPath.getMetadata().getName().length() + 1);
 	}
 
 	/**
@@ -386,7 +395,7 @@ public class QuerydslBindings {
 	 */
 	public class AliasingPathBinder<P extends Path<? extends T>, T> extends PathBinder<P, T> {
 
-		private final String alias;
+		private final @Nullable String alias;
 		private final P path;
 
 		/**
@@ -404,7 +413,7 @@ public class QuerydslBindings {
 		 * @param alias can be {@literal null}.
 		 * @param path must not be {@literal null}.
 		 */
-		private AliasingPathBinder(String alias, P path) {
+		private AliasingPathBinder(@Nullable String alias, P path) {
 
 			super(path);
 
@@ -457,10 +466,13 @@ public class QuerydslBindings {
 	 *
 	 * @author Oliver Gierke
 	 */
-	@RequiredArgsConstructor
 	public final class TypeBinder<T> {
 
-		private final @NonNull Class<T> type;
+		private final Class<T> type;
+
+		public TypeBinder(Class<T> type) {
+			this.type = type;
+		}
 
 		/**
 		 * Configures the given {@link SingleValueBinding} to be used for the current type.
@@ -499,11 +511,15 @@ public class QuerydslBindings {
 	 * @author Oliver Gierke
 	 * @since 1.11
 	 */
-	@Value
-	private static class PathAndBinding<P extends Path<? extends T>, T> {
+	private static final class PathAndBinding<P extends Path<? extends T>, T> {
 
-		@NonNull Optional<Path<?>> path;
-		@NonNull Optional<MultiValueBinding<P, T>> binding;
+		private final Optional<Path<?>> path;
+		private final Optional<MultiValueBinding<P, T>> binding;
+
+		PathAndBinding(Optional<Path<?>> path, Optional<MultiValueBinding<P, T>> binding) {
+			this.path = path;
+			this.binding = binding;
+		}
 
 		public static <T, P extends Path<? extends T>> PathAndBinding<P, T> withPath(P path) {
 			return new PathAndBinding<>(Optional.of(path), Optional.empty());
@@ -515,6 +531,53 @@ public class QuerydslBindings {
 
 		public PathAndBinding<P, T> with(MultiValueBinding<P, T> binding) {
 			return new PathAndBinding<>(path, Optional.of(binding));
+		}
+
+		public Optional<Path<?>> getPath() {
+			return this.path;
+		}
+
+		public Optional<MultiValueBinding<P, T>> getBinding() {
+			return this.binding;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) {
+				return true;
+			}
+			if (!(o instanceof PathAndBinding)) {
+				return false;
+			}
+			PathAndBinding<?, ?> that = (PathAndBinding<?, ?>) o;
+			if (!ObjectUtils.nullSafeEquals(path, that.path)) {
+				return false;
+			}
+			return ObjectUtils.nullSafeEquals(binding, that.binding);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			int result = ObjectUtils.nullSafeHashCode(path);
+			result = 31 * result + ObjectUtils.nullSafeHashCode(binding);
+			return result;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			return "QuerydslBindings.PathAndBinding(path=" + this.getPath() + ", binding=" + this.getBinding() + ")";
 		}
 	}
 }

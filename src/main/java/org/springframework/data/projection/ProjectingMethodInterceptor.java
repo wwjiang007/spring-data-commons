@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2016 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,13 +23,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.annotation.Nonnull;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
@@ -37,8 +40,9 @@ import org.springframework.util.ObjectUtils;
 /**
  * {@link MethodInterceptor} to delegate the invocation to a different {@link MethodInterceptor} but creating a
  * projecting proxy in case the returned value is not of the return type of the invoked method.
- * 
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  * @since 1.10
  */
 class ProjectingMethodInterceptor implements MethodInterceptor {
@@ -47,30 +51,21 @@ class ProjectingMethodInterceptor implements MethodInterceptor {
 	private final MethodInterceptor delegate;
 	private final ConversionService conversionService;
 
-	/**
-	 * Creates a new {@link ProjectingMethodInterceptor} using the given {@link ProjectionFactory} and delegate
-	 * {@link MethodInterceptor}.
-	 * 
-	 * @param factory the {@link ProjectionFactory} to use to create projections if types do not match, must not be
-	 *          {@literal null}..
-	 * @param delegate the {@link MethodInterceptor} to trigger to create the source value, must not be {@literal null}..
-	 */
-	public ProjectingMethodInterceptor(ProjectionFactory factory, MethodInterceptor delegate) {
-
-		Assert.notNull(factory, "ProjectionFactory must not be null!");
-		Assert.notNull(delegate, "Delegate MethodInterceptor must not be null!");
+	ProjectingMethodInterceptor(ProjectionFactory factory, MethodInterceptor delegate,
+			ConversionService conversionService) {
 
 		this.factory = factory;
 		this.delegate = delegate;
-		this.conversionService = new DefaultConversionService();
+		this.conversionService = conversionService;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.aopalliance.intercept.MethodInterceptor#invoke(org.aopalliance.intercept.MethodInvocation)
 	 */
+	@Nullable
 	@Override
-	public Object invoke(MethodInvocation invocation) throws Throwable {
+	public Object invoke(@SuppressWarnings("null") @Nonnull MethodInvocation invocation) throws Throwable {
 
 		Object result = delegate.invoke(invocation);
 
@@ -95,7 +90,7 @@ class ProjectingMethodInterceptor implements MethodInterceptor {
 	/**
 	 * Creates projections of the given {@link Collection}'s elements if necessary and returns a new collection containing
 	 * the projection results.
-	 * 
+	 *
 	 * @param sources must not be {@literal null}.
 	 * @param type must not be {@literal null}.
 	 * @return
@@ -103,8 +98,9 @@ class ProjectingMethodInterceptor implements MethodInterceptor {
 	private Object projectCollectionElements(Collection<?> sources, TypeInformation<?> type) {
 
 		Class<?> rawType = type.getType();
+		TypeInformation<?> componentType = type.getComponentType();
 		Collection<Object> result = CollectionFactory.createCollection(rawType.isArray() ? List.class : rawType,
-				sources.size());
+				componentType != null ? componentType.getType() : null, sources.size());
 
 		for (Object source : sources) {
 			result.add(getProjection(source, type.getRequiredComponentType().getType()));
@@ -120,7 +116,7 @@ class ProjectingMethodInterceptor implements MethodInterceptor {
 	/**
 	 * Creates projections of the given {@link Map}'s values if necessary and returns an new {@link Map} with the handled
 	 * values.
-	 * 
+	 *
 	 * @param sources must not be {@literal null}.
 	 * @param type must not be {@literal null}.
 	 * @return
@@ -136,6 +132,7 @@ class ProjectingMethodInterceptor implements MethodInterceptor {
 		return result;
 	}
 
+	@Nullable
 	private Object getProjection(Object result, Class<?> returnType) {
 		return result == null || ClassUtils.isAssignable(returnType, result.getClass()) ? result
 				: factory.createProjection(returnType, result);
@@ -144,7 +141,7 @@ class ProjectingMethodInterceptor implements MethodInterceptor {
 	/**
 	 * Returns whether the source object needs to be converted to the given target type and whether we can convert it at
 	 * all.
-	 * 
+	 *
 	 * @param source can be {@literal null}.
 	 * @param targetType must not be {@literal null}.
 	 * @return
@@ -161,7 +158,7 @@ class ProjectingMethodInterceptor implements MethodInterceptor {
 	/**
 	 * Turns the given value into a {@link Collection}. Will turn an array into a collection an wrap all other values into
 	 * a single-element collection.
-	 * 
+	 *
 	 * @param source must not be {@literal null}.
 	 * @return
 	 */

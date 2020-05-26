@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2014 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
  */
 package org.springframework.data.geo;
 
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,11 +24,12 @@ import java.util.List;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /**
  * Simple value object to represent a {@link Polygon}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @since 1.8
@@ -40,7 +42,7 @@ public class Polygon implements Iterable<Point>, Shape {
 
 	/**
 	 * Creates a new {@link Polygon} for the given Points.
-	 * 
+	 *
 	 * @param x must not be {@literal null}.
 	 * @param y must not be {@literal null}.
 	 * @param z must not be {@literal null}.
@@ -62,7 +64,7 @@ public class Polygon implements Iterable<Point>, Shape {
 
 	/**
 	 * Creates a new {@link Polygon} for the given Points.
-	 * 
+	 *
 	 * @param points must not be {@literal null}.
 	 */
 	@PersistenceConstructor
@@ -83,7 +85,7 @@ public class Polygon implements Iterable<Point>, Shape {
 
 	/**
 	 * Returns all {@link Point}s the {@link Polygon} is made of.
-	 * 
+	 *
 	 * @return
 	 */
 	public List<Point> getPoints() {
@@ -103,19 +105,18 @@ public class Polygon implements Iterable<Point>, Shape {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(Object o) {
 
-		if (this == obj) {
+		if (this == o) {
 			return true;
 		}
 
-		if (!(obj instanceof Polygon)) {
+		if (!(o instanceof Polygon)) {
 			return false;
 		}
 
-		Polygon that = (Polygon) obj;
-
-		return this.points.equals(that.points);
+		Polygon that = (Polygon) o;
+		return ObjectUtils.nullSafeEquals(points, that.points);
 	}
 
 	/*
@@ -124,7 +125,7 @@ public class Polygon implements Iterable<Point>, Shape {
 	 */
 	@Override
 	public int hashCode() {
-		return points.hashCode();
+		return ObjectUtils.nullSafeHashCode(points);
 	}
 
 	/*

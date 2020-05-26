@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 
 import java.io.Serializable;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.context.SampleMappingContext;
@@ -28,13 +28,13 @@ import org.springframework.data.repository.core.EntityInformation;
 
 /**
  * Unit tests for {@link PersistentEntityInformation}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class PersistentEntityInformationUnitTests {
+class PersistentEntityInformationUnitTests {
 
 	@Test // DATACMNS-480
-	public void obtainsIdAndIdTypeInformationFromPersistentEntity() {
+	void obtainsIdAndIdTypeInformationFromPersistentEntity() {
 
 		SampleMappingContext context = new SampleMappingContext();
 		PersistentEntity<Object, SamplePersistentProperty> entity = context.getRequiredPersistentEntity(Sample.class);
@@ -45,11 +45,11 @@ public class PersistentEntityInformationUnitTests {
 		Sample sample = new Sample();
 		sample.id = 5L;
 
-		assertThat(information.getId(sample)).hasValue(5L);
+		assertThat(information.getId(sample)).isEqualTo(5L);
 	}
 
 	@Test // DATACMNS-596
-	public void returnsNullIfNoIdPropertyPresent() {
+	void returnsNullIfNoIdPropertyPresent() {
 
 		SampleMappingContext context = new SampleMappingContext();
 		PersistentEntity<Object, SamplePersistentProperty> entity = context
@@ -57,7 +57,7 @@ public class PersistentEntityInformationUnitTests {
 
 		PersistentEntityInformation<Object, Serializable> information = new PersistentEntityInformation<>(
 				entity);
-		assertThat(information.getId(new EntityWithoutId())).isNotPresent();
+		assertThat(information.getId(new EntityWithoutId())).isNull();
 	}
 
 	static class Sample {

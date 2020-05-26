@@ -1,12 +1,12 @@
 /*
- * Copyright 2008-2017 the original author or authors.
- * 
+ * Copyright 2008-2020 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -16,16 +16,17 @@
 package org.springframework.data.repository.core.support;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.data.repository.Repository;
@@ -38,48 +39,50 @@ import org.springframework.transaction.interceptor.TransactionInterceptor;
 
 /**
  * Unit test for {@link TransactionalRepositoryProxyPostProcessor}.
- * 
+ *
  * @author Oliver Gierke
  */
-@RunWith(MockitoJUnitRunner.class)
-public class TransactionRepositoryProxyPostProcessorUnitTests {
+@ExtendWith(MockitoExtension.class)
+class TransactionRepositoryProxyPostProcessorUnitTests {
 
 	@Mock ListableBeanFactory beanFactory;
 	@Mock ProxyFactory proxyFactory;
 	@Mock RepositoryInformation repositoryInformation;
 
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNullBeanFactory() throws Exception {
-		new TransactionalRepositoryProxyPostProcessor(null, "transactionManager", true);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNullTxManagerName() throws Exception {
-		new TransactionalRepositoryProxyPostProcessor(beanFactory, null, true);
+	@Test
+	void rejectsNullBeanFactory() {
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> new TransactionalRepositoryProxyPostProcessor(null, "transactionManager", true));
 	}
 
 	@Test
-	public void setsUpBasicInstance() throws Exception {
+	void rejectsNullTxManagerName() {
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> new TransactionalRepositoryProxyPostProcessor(beanFactory, null, true));
+	}
+
+	@Test
+	void setsUpBasicInstance() throws Exception {
 
 		RepositoryProxyPostProcessor postProcessor = new TransactionalRepositoryProxyPostProcessor(beanFactory, "txManager",
 				true);
 		postProcessor.postProcess(proxyFactory, repositoryInformation);
 
-		verify(proxyFactory).addAdvice(Mockito.any(TransactionInterceptor.class));
+		verify(proxyFactory).addAdvice(any(TransactionInterceptor.class));
 	}
 
 	@Test // DATACMNS-464
-	public void fallsBackToTargetMethodTransactionSettings() throws Exception {
+	void fallsBackToTargetMethodTransactionSettings() throws Exception {
 		assertTransactionAttributeFor(SampleImplementation.class);
 	}
 
 	@Test // DATACMNS-464
-	public void fallsBackToTargetClassTransactionSettings() throws Exception {
+	void fallsBackToTargetClassTransactionSettings() throws Exception {
 		assertTransactionAttributeFor(SampleImplementationWithClassAnnotation.class);
 	}
 
 	@Test // DATACMNS-732
-	public void considersJtaTransactional() throws Exception {
+	void considersJtaTransactional() throws Exception {
 
 		Method method = SampleRepository.class.getMethod("methodWithJtaOneDotTwoAtTransactional");
 

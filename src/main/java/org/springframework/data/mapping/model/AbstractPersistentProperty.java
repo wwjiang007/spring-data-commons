@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,50 +15,56 @@
  */
 package org.springframework.data.mapping.model;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 import org.springframework.data.annotation.Reference;
 import org.springframework.data.mapping.Association;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
-import org.springframework.data.mapping.PropertyPath;
 import org.springframework.data.util.Lazy;
+import org.springframework.data.util.ReflectionUtils;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.ReflectionUtils;
 
 /**
- * Simple impementation of {@link PersistentProperty}.
- * 
+ * Simple implementation of {@link PersistentProperty}.
+ *
  * @author Jon Brisbin
  * @author Oliver Gierke
  * @author Christoph Strobl
+ * @author Mark Paluch
  */
 public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>> implements PersistentProperty<P> {
 
 	private static final Field CAUSE_FIELD;
 
 	static {
-		CAUSE_FIELD = ReflectionUtils.findField(Throwable.class, "cause");
+		CAUSE_FIELD = ReflectionUtils.findRequiredField(Throwable.class, "cause");
 	}
 
 	private final String name;
 	private final TypeInformation<?> information;
 	private final Class<?> rawType;
-	private final Lazy<Optional<Association<P>>> association;
-	private final @Getter PersistentEntity<?, P> owner;
-	private final @Getter(AccessLevel.PROTECTED) Property property;
+	private final Lazy<Association<P>> association;
+	private final PersistentEntity<?, P> owner;
+
+	@SuppressWarnings("null") //
+	private final Property property;
 	private final Lazy<Integer> hashCode;
 	private final Lazy<Boolean> usePropertyAccess;
 	private final Lazy<Optional<? extends TypeInformation<?>>> entityTypeInformation;
+
+	private final Method getter;
+	private final Method setter;
+	private final Field field;
+	private final Method wither;
+	private final boolean immutable;
 
 	public AbstractPersistentProperty(Property property, PersistentEntity<?, P> owner,
 			SimpleTypeHolder simpleTypeHolder) {
@@ -67,23 +73,42 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 		Assert.notNull(owner, "Owner entity must not be null!");
 
 		this.name = property.getName();
-		this.rawType = property.getType();
-		this.information = PropertyPath.from(Pattern.quote(property.getName()), owner.getTypeInformation())
-				.getTypeInformation();
+		this.information = owner.getTypeInformation().getRequiredProperty(getName());
+		this.rawType = this.information.getType();
 		this.property = property;
-		this.association = Lazy.of(() -> isAssociation() ? Optional.of(createAssociation()) : Optional.empty());
+		this.association = Lazy.of(() -> isAssociation() ? createAssociation() : null);
 		this.owner = owner;
 
 		this.hashCode = Lazy.of(property::hashCode);
-		this.usePropertyAccess = Lazy
-				.of(() -> owner.getType().isInterface() || getField().map(it -> it.equals(CAUSE_FIELD)).orElse(false));
+		this.usePropertyAccess = Lazy.of(() -> owner.getType().isInterface() || CAUSE_FIELD.equals(getField()));
+
 		this.entityTypeInformation = Lazy.of(() -> Optional.ofNullable(information.getActualType())//
 				.filter(it -> !simpleTypeHolder.isSimpleType(it.getType()))//
 				.filter(it -> !it.isCollectionLike())//
 				.filter(it -> !it.isMap()));
+
+		this.getter = property.getGetter().orElse(null);
+		this.setter = property.getSetter().orElse(null);
+		this.field = property.getField().orElse(null);
+		this.wither = property.getWither().orElse(null);
+
+		if (setter == null && (field == null || Modifier.isFinal(field.getModifiers()))) {
+			this.immutable = true;
+		} else {
+			this.immutable = false;
+		}
 	}
 
 	protected abstract Association<P> createAssociation();
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.PersistentProperty#getOwner()
+	 */
+	@Override
+	public PersistentEntity<?, P> getOwner() {
+		return this.owner;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -121,47 +146,56 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 		return information;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.PersistentProperty#getPersistentEntityType()
+	 * @see org.springframework.data.mapping.PersistentProperty#getPersistentEntityTypes()
 	 */
 	@Override
-	public Iterable<? extends TypeInformation<?>> getPersistentEntityType() {
+	public Iterable<? extends TypeInformation<?>> getPersistentEntityTypes() {
 
 		if (!isEntity()) {
 			return Collections.emptySet();
 		}
 
 		return entityTypeInformation.get()//
-				.map(it -> Collections.singleton(it))//
-				.orElseGet(() -> Collections.emptySet());
+				.map(Collections::singleton)//
+				.orElseGet(Collections::emptySet);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#getGetter()
 	 */
 	@Override
-	public Optional<Method> getGetter() {
-		return property.getGetter();
+	public Method getGetter() {
+		return this.getter;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#getSetter()
 	 */
 	@Override
-	public Optional<Method> getSetter() {
-		return property.getSetter();
+	public Method getSetter() {
+		return this.setter;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.PersistentProperty#getWither()
+	 */
+	@Override
+	public Method getWither() {
+		return this.wither;
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#getField()
 	 */
-	@Override
-	public Optional<Field> getField() {
-		return property.getField();
+	@Nullable
+	public Field getField() {
+		return this.field;
 	}
 
 	/*
@@ -169,8 +203,9 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 	 * @see org.springframework.data.mapping.PersistentProperty#getSpelExpression()
 	 */
 	@Override
-	public Optional<String> getSpelExpression() {
-		return Optional.empty();
+	@Nullable
+	public String getSpelExpression() {
+		return null;
 	}
 
 	/*
@@ -193,6 +228,15 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 
 	/*
 	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.PersistentProperty#isImmutable()
+	 */
+	@Override
+	public boolean isImmutable() {
+		return immutable;
+	}
+
+	/*
+	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#isAssociation()
 	 */
 	@Override
@@ -204,9 +248,10 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#getAssociation()
 	 */
+	@Nullable
 	@Override
-	public Optional<Association<P>> getAssociation() {
-		return association.get();
+	public Association<P> getAssociation() {
+		return association.orElse(null);
 	}
 
 	/*
@@ -249,35 +294,41 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#getComponentType()
 	 */
+	@Nullable
 	@Override
-	public Optional<Class<?>> getComponentType() {
-
-		if (!isMap() && !isCollectionLike()) {
-			return Optional.empty();
-		}
-
-		return Optional.of(information.getRequiredComponentType().getType());
+	public Class<?> getComponentType() {
+		return isMap() || isCollectionLike() ? information.getRequiredComponentType().getType() : null;
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#getMapValueType()
 	 */
+	@Nullable
 	@Override
-	public Optional<Class<?>> getMapValueType() {
-		return isMap() ? information.getMapValueType().map(TypeInformation::getType) : Optional.empty();
+	public Class<?> getMapValueType() {
+
+		if (isMap()) {
+
+			TypeInformation<?> mapValueType = information.getMapValueType();
+			if (mapValueType != null) {
+				return mapValueType.getType();
+			}
+		}
+
+		return null;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#getActualType()
 	 */
 	@Override
 	public Class<?> getActualType() {
-		return information.getActualType().getType();
+		return information.getRequiredActualType().getType();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mongodb.core.mapping.MongoPersistentProperty#usePropertyAccess()
 	 */
@@ -285,12 +336,17 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 		return usePropertyAccess.get();
 	}
 
-	/* 
+	@SuppressWarnings("null")
+	protected Property getProperty() {
+		return this.property;
+	}
+
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 
 		if (this == obj) {
 			return true;
@@ -305,7 +361,7 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 		return this.property.equals(that.property);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -314,7 +370,7 @@ public abstract class AbstractPersistentProperty<P extends PersistentProperty<P>
 		return this.hashCode.get();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */

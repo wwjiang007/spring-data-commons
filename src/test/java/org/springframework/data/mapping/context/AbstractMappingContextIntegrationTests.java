@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 by the original author(s).
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
@@ -33,13 +33,13 @@ import org.springframework.data.util.TypeInformation;
 
 /**
  * Integration tests for {@link AbstractMappingContext}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class AbstractMappingContextIntegrationTests<T extends PersistentProperty<T>> {
+class AbstractMappingContextIntegrationTests<T extends PersistentProperty<T>> {
 
 	@Test // DATACMNS-457
-	public void returnsManagedType() {
+	void returnsManagedType() {
 
 		SampleMappingContext context = new SampleMappingContext();
 		context.setInitialEntitySet(Collections.singleton(Person.class));
@@ -49,7 +49,7 @@ public class AbstractMappingContextIntegrationTests<T extends PersistentProperty
 	}
 
 	@Test // DATACMNS-457
-	public void indicatesManagedType() {
+	void indicatesManagedType() {
 
 		SampleMappingContext context = new SampleMappingContext();
 		context.setInitialEntitySet(Collections.singleton(Person.class));
@@ -59,7 +59,7 @@ public class AbstractMappingContextIntegrationTests<T extends PersistentProperty
 	}
 
 	@Test // DATACMNS-243
-	public void createsPersistentEntityForInterfaceCorrectly() {
+	void createsPersistentEntityForInterfaceCorrectly() {
 
 		SampleMappingContext context = new SampleMappingContext();
 		PersistentEntity<Object, SamplePersistentProperty> entity = context
@@ -69,7 +69,7 @@ public class AbstractMappingContextIntegrationTests<T extends PersistentProperty
 	}
 
 	@Test // DATACMNS-65
-	public void foo() throws InterruptedException {
+	void foo() throws InterruptedException {
 
 		final DummyMappingContext context = new DummyMappingContext();
 
@@ -113,7 +113,7 @@ public class AbstractMappingContextIntegrationTests<T extends PersistentProperty
 
 			when(prop.getTypeInformation()).thenReturn(owner.getTypeInformation());
 			when(prop.getName()).thenReturn(property.getName());
-			when(prop.getPersistentEntityType()).thenReturn(Collections.EMPTY_SET);
+			when(prop.getPersistentEntityTypes()).thenReturn(Collections.EMPTY_SET);
 
 			try {
 				Thread.sleep(200);

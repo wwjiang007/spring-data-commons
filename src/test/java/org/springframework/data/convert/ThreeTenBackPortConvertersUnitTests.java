@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.support.GenericConversionService;
@@ -36,11 +36,11 @@ import org.threeten.bp.ZoneId;
 
 /**
  * Unit tests for {@link ThreeTenBackPortConverters}.
- * 
+ *
  * @author Oliver Gierke
  * @since 1.10
  */
-public class ThreeTenBackPortConvertersUnitTests {
+class ThreeTenBackPortConvertersUnitTests {
 
 	static final Date NOW = new Date();
 	static final ConversionService CONVERSION_SERVICE;
@@ -57,13 +57,13 @@ public class ThreeTenBackPortConvertersUnitTests {
 	}
 
 	@Test // DATACMNS-606
-	public void convertsDateToLocalDateTime() {
+	void convertsDateToLocalDateTime() {
 		assertThat(CONVERSION_SERVICE.convert(NOW, LocalDateTime.class).toString())
 				.isEqualTo(format(NOW, "yyyy-MM-dd'T'HH:mm:ss.SSS"));
 	}
 
 	@Test // DATACMNS-606
-	public void convertsLocalDateTimeToDate() {
+	void convertsLocalDateTimeToDate() {
 
 		LocalDateTime now = LocalDateTime.now();
 		assertThat(format(CONVERSION_SERVICE.convert(now, Date.class), "yyyy-MM-dd'T'HH:mm:ss.SSS"))
@@ -71,45 +71,45 @@ public class ThreeTenBackPortConvertersUnitTests {
 	}
 
 	@Test // DATACMNS-606
-	public void convertsDateToLocalDate() {
+	void convertsDateToLocalDate() {
 		assertThat(CONVERSION_SERVICE.convert(NOW, LocalDate.class).toString()).isEqualTo(format(NOW, "yyyy-MM-dd"));
 	}
 
 	@Test // DATACMNS-606
-	public void convertsLocalDateToDate() {
+	void convertsLocalDateToDate() {
 
 		LocalDate now = LocalDate.now();
 		assertThat(format(CONVERSION_SERVICE.convert(now, Date.class), "yyyy-MM-dd")).isEqualTo(now.toString());
 	}
 
 	@Test // DATACMNS-606
-	public void convertsDateToLocalTime() {
+	void convertsDateToLocalTime() {
 		assertThat(CONVERSION_SERVICE.convert(NOW, LocalTime.class).toString()).isEqualTo(format(NOW, "HH:mm:ss.SSS"));
 	}
 
 	@Test // DATACMNS-606
-	public void convertsLocalTimeToDate() {
+	void convertsLocalTimeToDate() {
 
 		LocalTime now = LocalTime.now();
 		assertThat(format(CONVERSION_SERVICE.convert(now, Date.class), "HH:mm:ss.SSS")).isEqualTo(now.toString());
 	}
 
 	@Test // DATACMNS-623
-	public void convertsDateToInstant() {
+	void convertsDateToInstant() {
 
 		Date now = new Date();
 		assertThat(CONVERSION_SERVICE.convert(now, Instant.class)).isEqualTo(toInstant(now));
 	}
 
 	@Test // DATACMNS-623
-	public void convertsInstantToDate() {
+	void convertsInstantToDate() {
 
 		Date now = new Date();
 		assertThat(CONVERSION_SERVICE.convert(toInstant(now), Date.class)).isEqualTo(now);
 	}
 
 	@Test
-	public void convertsZoneIdToStringAndBack() {
+	void convertsZoneIdToStringAndBack() {
 
 		Map<String, ZoneId> ids = new HashMap<>();
 		ids.put("Europe/Berlin", ZoneId.of("Europe/Berlin"));

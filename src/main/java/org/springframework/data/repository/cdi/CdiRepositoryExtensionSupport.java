@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,12 +36,6 @@ import javax.inject.Qualifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.StandardEnvironment;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
-import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.RepositoryDefinition;
@@ -49,7 +43,7 @@ import org.springframework.data.repository.config.CustomRepositoryImplementation
 
 /**
  * Base class for {@link Extension} implementations that create instances for Spring Data repositories.
- * 
+ *
  * @author Dirk Mahler
  * @author Oliver Gierke
  * @author Mark Paluch
@@ -61,22 +55,16 @@ public abstract class CdiRepositoryExtensionSupport implements Extension {
 
 	private final Map<Class<?>, Set<Annotation>> repositoryTypes = new HashMap<>();
 	private final Set<CdiRepositoryBean<?>> eagerRepositories = new HashSet<>();
-	private final CustomRepositoryImplementationDetector customImplementationDetector;
+	private final CdiRepositoryContext context;
 
 	protected CdiRepositoryExtensionSupport() {
-
-		Environment environment = new StandardEnvironment();
-		ResourceLoader resourceLoader = new PathMatchingResourcePatternResolver(getClass().getClassLoader());
-		MetadataReaderFactory metadataReaderFactory = new CachingMetadataReaderFactory(resourceLoader);
-
-		this.customImplementationDetector = new CustomRepositoryImplementationDetector(metadataReaderFactory, environment,
-				resourceLoader);
+		context = new CdiRepositoryContext(getClass().getClassLoader());
 	}
 
 	/**
 	 * Implementation of a an observer which checks for Spring Data repository types and stores them in
 	 * {@link #repositoryTypes} for later registration as bean type.
-	 * 
+	 *
 	 * @param <X> The type.
 	 * @param processAnnotatedType The annotated type as defined by CDI.
 	 */
@@ -91,8 +79,8 @@ public abstract class CdiRepositoryExtensionSupport implements Extension {
 			Set<Annotation> qualifiers = getQualifiers(repositoryType);
 
 			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug(String.format("Discovered repository type '%s' with qualifiers %s.", repositoryType.getName(),
-						qualifiers));
+				LOGGER.debug(
+						String.format("Discovered repository type '%s' with qualifiers %s.", repositoryType.getName(), qualifiers));
 			}
 			// Store the repository type using its qualifiers.
 			repositoryTypes.put(repositoryType, qualifiers);
@@ -101,7 +89,7 @@ public abstract class CdiRepositoryExtensionSupport implements Extension {
 
 	/**
 	 * Returns whether the given type is a repository type.
-	 * 
+	 *
 	 * @param type must not be {@literal null}.
 	 * @return
 	 */
@@ -141,7 +129,7 @@ public abstract class CdiRepositoryExtensionSupport implements Extension {
 
 	/**
 	 * Triggers the eager initialization of beans registered for that behavior.
-	 * 
+	 *
 	 * @param event must not be {@literal null}.
 	 * @param manager must not be {@literal null}.
 	 * @see #registerBean(CdiRepositoryBean)
@@ -157,7 +145,7 @@ public abstract class CdiRepositoryExtensionSupport implements Extension {
 
 	/**
 	 * Provides access to all repository types as well as their qualifiers.
-	 * 
+	 *
 	 * @return
 	 */
 	protected Iterable<Entry<Class<?>, Set<Annotation>>> getRepositoryTypes() {
@@ -167,7 +155,7 @@ public abstract class CdiRepositoryExtensionSupport implements Extension {
 	/**
 	 * Registers the given {@link CdiRepositoryBean} for further general treatment by the infrastructure. In particular,
 	 * this will cause repositories to be instantiated eagerly if marked as such.
-	 * 
+	 *
 	 * @param bean must not be {@literal null}.
 	 * @see #afterDeploymentValidation(AfterDeploymentValidation, BeanManager)
 	 */
@@ -184,7 +172,15 @@ public abstract class CdiRepositoryExtensionSupport implements Extension {
 	 * @return the {@link CustomRepositoryImplementationDetector} to scan for the custom implementation
 	 */
 	protected CustomRepositoryImplementationDetector getCustomImplementationDetector() {
-		return customImplementationDetector;
+		return context.getCustomRepositoryImplementationDetector();
+	}
+
+	/**
+	 * @return the {@link CdiRepositoryContext} encapsulating the CDI-specific class loaders and fragment scanning.
+	 * @since 2.1
+	 */
+	protected CdiRepositoryContext getRepositoryContext() {
+		return context;
 	}
 
 	@SuppressWarnings("all")

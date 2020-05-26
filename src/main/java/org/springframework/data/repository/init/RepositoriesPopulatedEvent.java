@@ -1,11 +1,11 @@
 /*
- * Copyright 2012 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,8 @@
  */
 package org.springframework.data.repository.init;
 
+import javax.annotation.Nullable;
+
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.data.repository.support.Repositories;
@@ -23,7 +25,7 @@ import org.springframework.util.Assert;
 /**
  * {@link ApplicationEvent} being thrown after a {@link RepositoryPopulator} has finished populating the
  * {@link Repositories} available in the {@link ApplicationContext}.
- * 
+ *
  * @author Oliver Gierke
  */
 public class RepositoriesPopulatedEvent extends ApplicationEvent {
@@ -35,7 +37,7 @@ public class RepositoriesPopulatedEvent extends ApplicationEvent {
 	/**
 	 * Creates a new {@link RepositoriesPopulatedEvent} using the given {@link RepositoryPopulator} and
 	 * {@link Repositories}.
-	 * 
+	 *
 	 * @param populator the {@link RepositoryPopulator} that threw the event, must not be {@literal null}.
 	 * @param repositories the {@link Repositories} that were populated, must not be {@literal null}.
 	 */
@@ -49,7 +51,7 @@ public class RepositoriesPopulatedEvent extends ApplicationEvent {
 		this.repositories = repositories;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.util.EventObject#getSource()
 	 */
@@ -60,19 +62,19 @@ public class RepositoriesPopulatedEvent extends ApplicationEvent {
 
 	/**
 	 * Returns the {@link Repositories} that were populated.
-	 * 
+	 *
 	 * @return the repositories will never be {@literal null}.
 	 */
 	public Repositories getRepositories() {
 		return repositories;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 
 		if (this == obj) {
 			return true;
@@ -86,7 +88,7 @@ public class RepositoriesPopulatedEvent extends ApplicationEvent {
 		return this.source.equals(that.source) && this.repositories.equals(that.repositories);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */

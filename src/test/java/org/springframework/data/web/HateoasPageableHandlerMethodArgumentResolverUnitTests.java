@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,25 +19,25 @@ import static org.assertj.core.api.Assertions.*;
 
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.hateoas.mvc.UriComponentsContributor;
+import org.springframework.hateoas.server.mvc.UriComponentsContributor;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Unit tests for {@link HateoasPageableHandlerMethodArgumentResolver}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class HateoasPageableHandlerMethodArgumentResolverUnitTests
+class HateoasPageableHandlerMethodArgumentResolverUnitTests
 		extends PageableHandlerMethodArgumentResolverUnitTests {
 
 	@Test
-	public void buildsUpRequestParameters() {
+	void buildsUpRequestParameters() {
 
 		String basicString = String.format("page=%d&size=%d", PAGE_NUMBER, PAGE_SIZE);
 
@@ -47,7 +47,7 @@ public class HateoasPageableHandlerMethodArgumentResolverUnitTests
 	}
 
 	@Test // DATACMNS-343
-	public void replacesExistingPaginationInformation() throws Exception {
+	void replacesExistingPaginationInformation() throws Exception {
 
 		MethodParameter parameter = new MethodParameter(Sample.class.getMethod("supportedMethod", Pageable.class), 0);
 		UriComponentsContributor resolver = new HateoasPageableHandlerMethodArgumentResolver();
@@ -66,12 +66,12 @@ public class HateoasPageableHandlerMethodArgumentResolverUnitTests
 	}
 
 	@Test // DATACMNS-335
-	public void preventsPageSizeFromExceedingMayValueIfConfiguredOnWrite() throws Exception {
+	void preventsPageSizeFromExceedingMayValueIfConfiguredOnWrite() throws Exception {
 		assertUriStringFor(PageRequest.of(0, 200), "page=0&size=100");
 	}
 
 	@Test // DATACMNS-418
-	public void appendsTemplateVariablesCorrectly() {
+	void appendsTemplateVariablesCorrectly() {
 
 		assertTemplateEnrichment("/foo", "{?page,size,sort}");
 		assertTemplateEnrichment("/foo?bar=1", "{&page,size,sort}");
@@ -82,7 +82,7 @@ public class HateoasPageableHandlerMethodArgumentResolverUnitTests
 	}
 
 	@Test // DATACMNS-418
-	public void returnsCustomizedTemplateVariables() {
+	void returnsCustomizedTemplateVariables() {
 
 		UriComponents uriComponents = UriComponentsBuilder.fromPath("/foo").build();
 
@@ -94,7 +94,7 @@ public class HateoasPageableHandlerMethodArgumentResolverUnitTests
 	}
 
 	@Test // DATACMNS-563
-	public void enablingOneIndexedParameterReturnsOneForFirstPage() {
+	void enablingOneIndexedParameterReturnsOneForFirstPage() {
 
 		HateoasPageableHandlerMethodArgumentResolver resolver = getResolver();
 		resolver.setOneIndexedParameters(true);
@@ -107,6 +107,16 @@ public class HateoasPageableHandlerMethodArgumentResolverUnitTests
 
 		assertThat(params.containsKey(resolver.getPageParameterName())).isTrue();
 		assertThat(params.getFirst(resolver.getPageParameterName())).isEqualTo("1");
+	}
+
+	@Test // DATACMNS-1455
+	void enhancesUnpaged() {
+
+		UriComponentsBuilder builder = UriComponentsBuilder.fromPath("/");
+
+		getResolver().enhance(builder, null, Pageable.unpaged());
+
+		assertThat(builder).isEqualTo(builder);
 	}
 
 	@Override

@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2016 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,28 +23,28 @@ import org.springframework.data.repository.support.Repositories;
 
 /**
  * Metadata for repository interfaces.
- * 
+ *
  * @author Oliver Gierke
  */
 public interface RepositoryMetadata {
 
 	/**
 	 * Returns the id class the given class is declared for.
-	 * 
-	 * @return the id class of the entity managed by the repository for or {@code null} if none found.
+	 *
+	 * @return the id class of the entity managed by the repository.
 	 */
 	Class<?> getIdType();
 
 	/**
 	 * Returns the domain class the repository is declared for.
-	 * 
-	 * @return the domain class the repository is handling or {@code null} if none found.
+	 *
+	 * @return the domain class the repository is handling.
 	 */
 	Class<?> getDomainType();
 
 	/**
 	 * Returns the repository interface.
-	 * 
+	 *
 	 * @return
 	 */
 	Class<?> getRepositoryInterface();
@@ -52,7 +52,7 @@ public interface RepositoryMetadata {
 	/**
 	 * Returns the domain class returned by the given {@link Method}. Will extract the type from {@link Collection}s and
 	 * {@link org.springframework.data.domain.Page} as well.
-	 * 
+	 *
 	 * @param method
 	 * @return
 	 */
@@ -60,14 +60,14 @@ public interface RepositoryMetadata {
 
 	/**
 	 * Returns {@link CrudMethods} meta information for the repository.
-	 * 
+	 *
 	 * @return
 	 */
 	CrudMethods getCrudMethods();
 
 	/**
 	 * Returns whether the repository is a paging one.
-	 * 
+	 *
 	 * @return
 	 */
 	boolean isPagingRepository();
@@ -75,7 +75,7 @@ public interface RepositoryMetadata {
 	/**
 	 * Returns the set of types the repository shall be discoverable for when trying to look up a repository by domain
 	 * type.
-	 * 
+	 *
 	 * @see Repositories#getRepositoryFor(Class)
 	 * @return the set of types the repository shall be discoverable for when trying to look up a repository by domain
 	 *         type, must not be {@literal null}.
@@ -85,7 +85,7 @@ public interface RepositoryMetadata {
 
 	/**
 	 * Returns whether the repository is a reactive one, i.e. if it uses reactive types in one of its methods.
-	 * 
+	 *
 	 * @return
 	 * @since 2.0
 	 */

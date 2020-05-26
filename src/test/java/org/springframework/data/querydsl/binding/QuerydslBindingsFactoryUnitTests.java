@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,8 +21,8 @@ import static org.mockito.Mockito.*;
 import java.util.Collections;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.data.querydsl.QUser;
 import org.springframework.data.querydsl.SimpleEntityPathResolver;
@@ -38,24 +38,24 @@ import com.querydsl.core.types.Predicate;
 
 /**
  * Unit tests for {@link QuerydslBindingsFactory}.
- * 
+ *
  * @author Oliver Gierke
  * @soundtrack Miles Davis - All Blues (Kind of Blue)
  */
-public class QuerydslBindingsFactoryUnitTests {
+class QuerydslBindingsFactoryUnitTests {
 
 	static final TypeInformation<?> USER_TYPE = ClassTypeInformation.from(User.class);
 
 	QuerydslBindingsFactory factory;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		this.factory = new QuerydslBindingsFactory(SimpleEntityPathResolver.INSTANCE);
 	}
 
 	@Test // DATACMNS-669
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public void createBindingsShouldHonorQuerydslBinderCustomizerHookWhenPresent() {
+	void createBindingsShouldHonorQuerydslBinderCustomizerHookWhenPresent() {
 
 		Repositories repositories = mock(Repositories.class);
 
@@ -77,7 +77,7 @@ public class QuerydslBindingsFactoryUnitTests {
 
 	@Test // DATACMNS-669
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public void shouldReuseExistingQuerydslBinderCustomizer() {
+	void shouldReuseExistingQuerydslBinderCustomizer() {
 
 		AutowireCapableBeanFactory beanFactory = mock(AutowireCapableBeanFactory.class);
 		when(beanFactory.getBean(SpecificBinding.class)).thenReturn(new SpecificBinding());
@@ -96,7 +96,7 @@ public class QuerydslBindingsFactoryUnitTests {
 	}
 
 	@Test // DATACMNS-669
-	public void rejectsPredicateResolutionIfDomainTypeCantBeAutoDetected() {
+	void rejectsPredicateResolutionIfDomainTypeCantBeAutoDetected() {
 
 		assertThatExceptionOfType(IllegalStateException.class)//
 				.isThrownBy(() -> factory.createBindingsFor(ClassTypeInformation.from(ModelAndView.class)))//
@@ -116,7 +116,7 @@ public class QuerydslBindingsFactoryUnitTests {
 		}
 	}
 
-	public static class SampleRepo implements QuerydslBinderCustomizer<QUser> {
+	static class SampleRepo implements QuerydslBinderCustomizer<QUser> {
 
 		@Override
 		public void customize(QuerydslBindings bindings, QUser user) {

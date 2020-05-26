@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-2017 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,39 +25,40 @@ import rx.Single;
 
 import java.io.Serializable;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.reactivestreams.Publisher;
+
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.reactive.ReactiveSortingRepository;
 
 /**
  * Unit tests for {@link RepositoryFactorySupport} using reactive wrapper types.
- * 
+ *
  * @author Mark Paluch
  * @author Christoph Strobl
  */
-@RunWith(MockitoJUnitRunner.Silent.class)
-public class ReactiveWrapperRepositoryFactorySupportUnitTests {
-
-	public @Rule ExpectedException exception = ExpectedException.none();
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class ReactiveWrapperRepositoryFactorySupportUnitTests {
 
 	DummyRepositoryFactory factory;
 
 	@Mock ReactiveSortingRepository<Object, Serializable> backingRepo;
 	@Mock ObjectRepositoryCustom customImplementation;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		factory = new DummyRepositoryFactory(backingRepo);
 	}
 
 	@Test // DATACMNS-836
-	public void invokesCustomMethodIfItRedeclaresACRUDOne() {
+	void invokesCustomMethodIfItRedeclaresACRUDOne() {
 
 		ObjectRepository repository = factory.getRepository(ObjectRepository.class, customImplementation);
 		repository.findById(1);
@@ -66,10 +67,12 @@ public class ReactiveWrapperRepositoryFactorySupportUnitTests {
 		verify(backingRepo, times(0)).findById(1);
 	}
 
-	@Test // DATACMNS-836
-	public void callsRxJava1MethodOnBaseImplementationWithExactArguments() {
+	@Test // DATACMNS-836, DATACMNS-1154
+	void callsRxJava1MethodOnBaseImplementationWithExactArguments() {
 
 		Serializable id = 1L;
+		when(backingRepo.existsById(id)).thenReturn(Mono.just(true));
+
 		RxJava1ConvertingRepository repository = factory.getRepository(RxJava1ConvertingRepository.class);
 		repository.existsById(id);
 		repository.existsById((Long) id);
@@ -77,32 +80,37 @@ public class ReactiveWrapperRepositoryFactorySupportUnitTests {
 		verify(backingRepo, times(2)).existsById(id);
 	}
 
-	@Test // DATACMNS-836
+	@Test // DATACMNS-836, DATACMNS-1063, DATACMNS-1154
 	@SuppressWarnings("unchecked")
-	public void callsRxJava1MethodOnBaseImplementationWithTypeConversion() {
+	void callsRxJava1MethodOnBaseImplementationWithTypeConversion() {
+
+		when(backingRepo.existsById(any(Publisher.class))).thenReturn(Mono.just(true));
 
 		Single<Long> ids = Single.just(1L);
 
 		RxJava1ConvertingRepository repository = factory.getRepository(RxJava1ConvertingRepository.class);
 		repository.existsById(ids);
 
-		verify(backingRepo, times(1)).existsById(any(Mono.class));
+		verify(backingRepo, times(1)).existsById(any(Publisher.class));
 	}
 
-	@Test // DATACMNS-988
-	public void callsRxJava2MethodOnBaseImplementationWithExactArguments() {
+	@Test // DATACMNS-988, DATACMNS-1154
+	void callsRxJava2MethodOnBaseImplementationWithExactArguments() {
 
 		Long id = 1L;
+		when(backingRepo.findById(id)).thenReturn(Mono.just(true));
+
 		RxJava2ConvertingRepository repository = factory.getRepository(RxJava2ConvertingRepository.class);
 		repository.findById(id);
 
 		verify(backingRepo, times(1)).findById(id);
 	}
 
-	@Test // DATACMNS-988
-	public void callsRxJava2MethodOnBaseImplementationWithTypeConversion() {
+	@Test // DATACMNS-988, DATACMNS-1154
+	void callsRxJava2MethodOnBaseImplementationWithTypeConversion() {
 
 		Serializable id = 1L;
+		when(backingRepo.deleteById(id)).thenReturn(Mono.empty());
 
 		RxJava2ConvertingRepository repository = factory.getRepository(RxJava2ConvertingRepository.class);
 		repository.deleteById(id);

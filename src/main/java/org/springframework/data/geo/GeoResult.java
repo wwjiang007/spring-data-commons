@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2015 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,52 +18,37 @@ package org.springframework.data.geo;
 import java.io.Serializable;
 
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Value object capturing some arbitrary object plus a distance.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @since 1.8
  */
-public class GeoResult<T> implements Serializable {
+public final class GeoResult<T> implements Serializable {
 
 	private static final long serialVersionUID = 1637452570977581370L;
 
 	private final T content;
 	private final Distance distance;
 
-	/**
-	 * Creates a new {@link GeoResult} for the given content and distance.
-	 * 
-	 * @param content must not be {@literal null}.
-	 * @param distance must not be {@literal null}.
-	 */
 	public GeoResult(T content, Distance distance) {
 
-		Assert.notNull(content, "Content must not be null!");
-		Assert.notNull(distance, "Distance must not be null!");
+		Assert.notNull(content, "Content must not be null");
+		Assert.notNull(distance, "Distance must not be null");
 
 		this.content = content;
 		this.distance = distance;
 	}
 
-	/**
-	 * Returns the actual content object.
-	 * 
-	 * @return the content
-	 */
 	public T getContent() {
-		return content;
+		return this.content;
 	}
 
-	/**
-	 * Returns the distance the actual content object has from the origin.
-	 * 
-	 * @return the distance
-	 */
 	public Distance getDistance() {
-		return distance;
+		return this.distance;
 	}
 
 	/*
@@ -71,19 +56,23 @@ public class GeoResult<T> implements Serializable {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(Object o) {
 
-		if (this == obj) {
+		if (this == o) {
 			return true;
 		}
 
-		if (!(obj instanceof GeoResult)) {
+		if (!(o instanceof GeoResult)) {
 			return false;
 		}
 
-		GeoResult<?> that = (GeoResult<?>) obj;
+		GeoResult<?> geoResult = (GeoResult<?>) o;
 
-		return this.content.equals(that.content) && this.distance.equals(that.distance);
+		if (!ObjectUtils.nullSafeEquals(content, geoResult.content)) {
+			return false;
+		}
+
+		return ObjectUtils.nullSafeEquals(distance, geoResult.distance);
 	}
 
 	/*
@@ -92,12 +81,8 @@ public class GeoResult<T> implements Serializable {
 	 */
 	@Override
 	public int hashCode() {
-
-		int result = 17;
-
-		result += 31 * distance.hashCode();
-		result += 31 * content.hashCode();
-
+		int result = ObjectUtils.nullSafeHashCode(content);
+		result = 31 * result + ObjectUtils.nullSafeHashCode(distance);
 		return result;
 	}
 

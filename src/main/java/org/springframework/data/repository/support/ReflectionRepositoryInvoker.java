@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2015 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,7 @@ import org.springframework.data.repository.core.CrudMethods;
 import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.util.QueryExecutionConverters;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.MultiValueMap;
@@ -38,7 +39,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * Base {@link RepositoryInvoker} using reflection to invoke methods on Spring Data Repositories.
- * 
+ *
  * @author Oliver Gierke
  * @since 1.10
  */
@@ -55,7 +56,7 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 	/**
 	 * Creates a new {@link ReflectionRepositoryInvoker} for the given repository, {@link RepositoryMetadata} and
 	 * {@link ConversionService}.
-	 * 
+	 *
 	 * @param repository must not be {@literal null}.
 	 * @param metadata must not be {@literal null}.
 	 * @param conversionService must not be {@literal null}.
@@ -73,7 +74,7 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 		this.conversionService = conversionService;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.rest.core.invoke.RepositoryInvocationInformation#hasFindAllMethod()
 	 */
@@ -100,7 +101,7 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 		return invokeFindAllReflectively(pageable);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.rest.core.invoke.RepositoryInvocationInformation#hasSaveMethod()
 	 */
@@ -109,7 +110,8 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 		return methods.hasSaveMethod();
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see org.springframework.data.rest.core.invoke.RepositoryInvoker#invokeSave(java.lang.Object)
 	 */
 	@Override
@@ -118,10 +120,10 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 		Method method = methods.getSaveMethod()//
 				.orElseThrow(() -> new IllegalStateException("Repository doesn't have a save-method declared!"));
 
-		return invoke(method, object);
+		return invokeForNonNullResult(method, object);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.rest.core.invoke.RepositoryInvocationInformation#hasFindOneMethod()
 	 */
@@ -143,7 +145,7 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 		return returnAsOptional(invoke(method, convertId(id)));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.rest.core.invoke.RepositoryInvocationInformation#hasDeleteMethod()
 	 */
@@ -163,10 +165,8 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 
 		Method method = methods.getDeleteMethod()
 				.orElseThrow(() -> new IllegalStateException("Repository doesn't have a delete-method declared!"));
-		Class<?> parameterType = method.getParameterTypes()[0];
-		List<Class<?>> idTypes = Arrays.asList(idType, Object.class);
 
-		if (idTypes.contains(parameterType)) {
+		if (method.getName().endsWith("ById")) {
 			invoke(method, convertId(id));
 		} else {
 			invoke(method, this.<Object> invokeFindById(id).orElse(null));
@@ -178,7 +178,7 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 	 * @see org.springframework.data.rest.core.invoke.RepositoryInvoker#invokeQueryMethod(java.lang.reflect.Method, java.util.Map, org.springframework.data.domain.Pageable, org.springframework.data.domain.Sort)
 	 */
 	@Override
-	public Optional<Object> invokeQueryMethod(Method method, MultiValueMap<String, ? extends Object> parameters,
+	public Optional<Object> invokeQueryMethod(Method method, MultiValueMap<String, ?> parameters,
 			Pageable pageable, Sort sort) {
 
 		Assert.notNull(method, "Method must not be null!");
@@ -191,7 +191,7 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 		return returnAsOptional(invoke(method, prepareParameters(method, parameters, pageable, sort)));
 	}
 
-	private Object[] prepareParameters(Method method, MultiValueMap<String, ? extends Object> rawParameters,
+	private Object[] prepareParameters(Method method, MultiValueMap<String, ?> rawParameters,
 			Pageable pageable, Sort sort) {
 
 		List<MethodParameter> parameters = new MethodParameters(method, Optional.of(PARAM_ANNOTATION)).getParameters();
@@ -229,7 +229,12 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 		return result;
 	}
 
-	private Object convert(Object value, MethodParameter parameter) {
+	@Nullable
+	private Object convert(@Nullable Object value, MethodParameter parameter) {
+
+		if (value == null) {
+			return value;
+		}
 
 		try {
 			return conversionService.convert(value, TypeDescriptor.forObject(value), new TypeDescriptor(parameter));
@@ -240,46 +245,70 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 
 	/**
 	 * Invokes the given method with the given arguments on the backing repository.
-	 * 
+	 *
 	 * @param method
 	 * @param arguments
 	 * @return
 	 */
+	@Nullable
 	@SuppressWarnings("unchecked")
 	private <T> T invoke(Method method, Object... arguments) {
 		return (T) ReflectionUtils.invokeMethod(method, repository, arguments);
 	}
 
+	private <T> T invokeForNonNullResult(Method method, Object... arguments) {
+
+		T result = invoke(method, arguments);
+
+		if (result == null) {
+			throw new IllegalStateException(String.format("Invocation of method %s(%s) on %s unexpectedly returned null!",
+					method, Arrays.toString(arguments), repository));
+		}
+
+		return result;
+	}
+
 	@SuppressWarnings("unchecked")
-	private <T> Optional<T> returnAsOptional(Object source) {
-		return (Optional<T>) (Optional.class.isInstance(source) ? source
+	private <T> Optional<T> returnAsOptional(@Nullable Object source) {
+
+		return (Optional<T>) (source instanceof Optional //
+				? source //
 				: Optional.ofNullable(QueryExecutionConverters.unwrap(source)));
 	}
 
 	/**
 	 * Converts the given id into the id type of the backing repository.
-	 * 
+	 *
 	 * @param id must not be {@literal null}.
 	 * @return
 	 */
 	protected Object convertId(Object id) {
 
 		Assert.notNull(id, "Id must not be null!");
-		return conversionService.convert(id, idType);
+
+		Object result = conversionService.convert(id, idType);
+
+		if (result == null) {
+			throw new IllegalStateException(
+					String.format("Identifier conversion of %s to %s unexpectedly returned null!", id, idType));
+		}
+
+		return result;
 	}
 
 	protected Iterable<Object> invokeFindAllReflectively(Pageable pageable) {
 
 		Method method = methods.getFindAllMethod()
 				.orElseThrow(() -> new IllegalStateException("Repository doesn't have a find-all-method declared!"));
-		Class<?>[] types = method.getParameterTypes();
 
-		if (types.length == 0) {
-			return invoke(method);
+		if (method.getParameterCount() == 0) {
+			return invokeForNonNullResult(method);
 		}
 
+		Class<?>[] types = method.getParameterTypes();
+
 		if (Pageable.class.isAssignableFrom(types[0])) {
-			return invoke(method, pageable);
+			return invokeForNonNullResult(method, pageable);
 		}
 
 		return invokeFindAll(pageable.getSort());
@@ -291,19 +320,20 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 				.orElseThrow(() -> new IllegalStateException("Repository doesn't have a find-all-method declared!"));
 
 		if (method.getParameterCount() == 0) {
-			return invoke(method);
+			return invokeForNonNullResult(method);
 		}
 
-		return invoke(method, sort);
+		return invokeForNonNullResult(method, sort);
 	}
 
 	/**
 	 * Unwraps the first item if the given source has exactly one element.
-	 * 
+	 *
 	 * @param source can be {@literal null}.
 	 * @return
 	 */
-	private static Object unwrapSingleElement(List<? extends Object> source) {
+	@Nullable
+	private static Object unwrapSingleElement(@Nullable List<? extends Object> source) {
 		return source == null ? null : source.size() == 1 ? source.get(0) : source;
 	}
 }

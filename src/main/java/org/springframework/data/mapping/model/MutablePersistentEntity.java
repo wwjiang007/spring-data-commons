@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2016 by the original author(s).
+ * Copyright 2011-2020 the original authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,9 +16,11 @@
 package org.springframework.data.mapping.model;
 
 import org.springframework.data.mapping.Association;
+import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
+import org.springframework.data.spel.EvaluationContextProvider;
 
 /**
  * Interface capturing mutator methods for {@link PersistentEntity}s.
@@ -57,4 +59,11 @@ public interface MutablePersistentEntity<T, P extends PersistentProperty<P>> ext
 	 * @param factory must not be {@literal null}.
 	 */
 	void setPersistentPropertyAccessorFactory(PersistentPropertyAccessorFactory factory);
+
+	/**
+	 * Sets the {@link EvaluationContextProvider} to be used by the entity.
+	 * 
+	 * @param provider must not be {@literal null}.
+	 */
+	void setEvaluationContextProvider(EvaluationContextProvider provider);
 }

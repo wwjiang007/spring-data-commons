@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2013 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,14 +17,14 @@ package org.springframework.data.mapping;
 
 import static org.assertj.core.api.Assertions.*;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.mapping.context.SampleMappingContext;
 import org.springframework.data.mapping.context.SamplePersistentProperty;
 
 /**
  * Integration tests for Mapping metadata.
- * 
+ *
  * @author Jon Brisbin
  * @author Oliver Gierke
  */
@@ -32,7 +32,7 @@ public class MappingMetadataTests {
 
 	SampleMappingContext ctx;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		ctx = new SampleMappingContext();
 	}
@@ -42,7 +42,7 @@ public class MappingMetadataTests {
 
 		PersistentEntity<?, SamplePersistentProperty> person = ctx.getRequiredPersistentEntity(PersonWithId.class);
 
-		assertThat(person.getIdProperty()).hasValueSatisfying(it -> assertThat(it.getType()).isEqualTo(String.class));
+		assertThat(person.getIdProperty()).satisfies(it -> assertThat(it.getType()).isEqualTo(String.class));
 	}
 
 	@Test
@@ -51,7 +51,7 @@ public class MappingMetadataTests {
 		PersistentEntity<?, SamplePersistentProperty> person = ctx.getRequiredPersistentEntity(PersonWithChildren.class);
 
 		person.doWithAssociations((AssociationHandler<SamplePersistentProperty>) association -> {
-			assertThat(association.getInverse().getComponentType()).hasValue(Child.class);
+			assertThat(association.getInverse().getComponentType()).isEqualTo(Child.class);
 		});
 	}
 }

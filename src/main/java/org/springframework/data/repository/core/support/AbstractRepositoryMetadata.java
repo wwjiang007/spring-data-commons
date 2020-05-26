@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2016 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,9 +18,10 @@ package org.springframework.data.repository.core.support;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
+import org.springframework.core.KotlinDetector;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.CrudMethods;
@@ -28,15 +29,17 @@ import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.util.QueryExecutionConverters;
 import org.springframework.data.repository.util.ReactiveWrappers;
 import org.springframework.data.util.ClassTypeInformation;
+import org.springframework.data.util.KotlinReflectionUtils;
 import org.springframework.data.util.Lazy;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.Assert;
 
 /**
  * Base class for {@link RepositoryMetadata} implementations.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
+ * @author Jens Schauder
  */
 public abstract class AbstractRepositoryMetadata implements RepositoryMetadata {
 
@@ -46,7 +49,7 @@ public abstract class AbstractRepositoryMetadata implements RepositoryMetadata {
 
 	/**
 	 * Creates a new {@link AbstractRepositoryMetadata}.
-	 * 
+	 *
 	 * @param repositoryInterface must not be {@literal null} and must be an interface.
 	 */
 	public AbstractRepositoryMetadata(Class<?> repositoryInterface) {
@@ -60,8 +63,8 @@ public abstract class AbstractRepositoryMetadata implements RepositoryMetadata {
 	}
 
 	/**
-	 * Creates a new {@link RepositoryMetadata} for the given repsository interface.
-	 * 
+	 * Creates a new {@link RepositoryMetadata} for the given repository interface.
+	 *
 	 * @param repositoryInterface must not be {@literal null}.
 	 * @since 1.9
 	 * @return
@@ -74,15 +77,28 @@ public abstract class AbstractRepositoryMetadata implements RepositoryMetadata {
 				: new AnnotationRepositoryMetadata(repositoryInterface);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.core.RepositoryMetadata#getReturnedDomainClass(java.lang.reflect.Method)
 	 */
 	public Class<?> getReturnedDomainClass(Method method) {
-		return unwrapWrapperTypes(typeInformation.getReturnType(method));
+
+		TypeInformation<?> returnType = null;
+		if (KotlinDetector.isKotlinType(method.getDeclaringClass()) && KotlinReflectionUtils.isSuspend(method)) {
+
+			// the last parameter is Continuation<? super T> or Continuation<? super Flow<? super T>>
+			List<TypeInformation<?>> types = typeInformation.getParameterTypes(method);
+			returnType = types.get(types.size() - 1).getComponentType();
+		}
+
+		if (returnType == null) {
+			returnType = typeInformation.getReturnType(method);
+		}
+
+		return QueryExecutionConverters.unwrapWrapperTypes(returnType).getType();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.core.RepositoryMetadata#getRepositoryInterface()
 	 */
@@ -90,7 +106,7 @@ public abstract class AbstractRepositoryMetadata implements RepositoryMetadata {
 		return this.repositoryInterface;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.core.RepositoryMetadata#getCrudMethods()
 	 */
@@ -99,7 +115,7 @@ public abstract class AbstractRepositoryMetadata implements RepositoryMetadata {
 		return this.crudMethods.get();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.core.RepositoryMetadata#isPagingRepository()
 	 */
@@ -111,7 +127,7 @@ public abstract class AbstractRepositoryMetadata implements RepositoryMetadata {
 				.orElse(false);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.core.RepositoryMetadata#getAlternativeDomainTypes()
 	 */
@@ -120,28 +136,12 @@ public abstract class AbstractRepositoryMetadata implements RepositoryMetadata {
 		return Collections.emptySet();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.core.RepositoryMetadata#isReactiveRepository()
 	 */
 	@Override
 	public boolean isReactiveRepository() {
 		return ReactiveWrappers.usesReactiveType(repositoryInterface);
-	}
-
-	/**
-	 * Recursively unwraps well known wrapper types from the given {@link TypeInformation}.
-	 * 
-	 * @param type must not be {@literal null}.
-	 * @return
-	 */
-	private static Class<?> unwrapWrapperTypes(TypeInformation<?> type) {
-
-		Class<?> rawType = type.getType();
-
-		boolean needToUnwrap = Iterable.class.isAssignableFrom(rawType) || rawType.isArray()
-				|| QueryExecutionConverters.supports(rawType) || Stream.class.isAssignableFrom(rawType);
-
-		return needToUnwrap ? unwrapWrapperTypes(type.getRequiredComponentType()) : rawType;
 	}
 }

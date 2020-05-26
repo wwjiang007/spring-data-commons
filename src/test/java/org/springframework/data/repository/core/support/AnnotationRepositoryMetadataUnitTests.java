@@ -1,11 +1,11 @@
 /*
- * Copyright 2011 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,19 +17,19 @@ package org.springframework.data.repository.core.support;
 
 import static org.assertj.core.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.repository.RepositoryDefinition;
 import org.springframework.data.repository.core.RepositoryMetadata;
 
 /**
  * Unit tests for {@link DefaultRepositoryMetadata}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class AnnotationRepositoryMetadataUnitTests {
+class AnnotationRepositoryMetadataUnitTests {
 
 	@Test
-	public void handlesRepositoryProxyAnnotationCorrectly() {
+	void handlesRepositoryProxyAnnotationCorrectly() {
 
 		RepositoryMetadata metadata = new AnnotationRepositoryMetadata(AnnotatedRepository.class);
 
@@ -37,10 +37,12 @@ public class AnnotationRepositoryMetadataUnitTests {
 		assertThat(metadata.getIdType()).isEqualTo(Integer.class);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void preventsUnannotatedInterface() {
+	@Test // DATACMNS-37, DATACMNS-1375
+	void preventsUnannotatedInterface() {
 
-		new AnnotationRepositoryMetadata(UnannotatedRepository.class);
+		assertThatExceptionOfType(IllegalArgumentException.class) //
+				.isThrownBy(() -> new AnnotationRepositoryMetadata(UnannotatedRepository.class)) //
+				.withMessageContaining(UnannotatedRepository.class.getName());
 	}
 
 	@SuppressWarnings("unused")
@@ -48,7 +50,7 @@ public class AnnotationRepositoryMetadataUnitTests {
 
 		private String firstname;
 
-		public String getAddress() {
+		String getAddress() {
 
 			return null;
 		}

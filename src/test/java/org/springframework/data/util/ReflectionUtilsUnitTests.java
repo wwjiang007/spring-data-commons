@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,21 +20,27 @@ import static org.assertj.core.api.Assertions.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.MethodParameter;
+import org.springframework.data.mapping.model.TypeCreatingSyntheticClassKt;
+import org.springframework.data.repository.sample.User;
 import org.springframework.data.util.ReflectionUtils.DescribedFieldFilter;
 import org.springframework.util.ReflectionUtils.FieldFilter;
 
 /**
+ * Unit tests for {@link ReflectionUtils}.
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
 public class ReflectionUtilsUnitTests {
 
 	@SuppressWarnings("rawtypes") Constructor constructor;
 	Field reference;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		this.reference = Sample.class.getField("field");
 		this.constructor = ConstructorDetection.class.getConstructor(int.class, String.class);
@@ -54,9 +60,10 @@ public class ReflectionUtilsUnitTests {
 		assertThat(field).isNull();
 	}
 
-	@Test(expected = IllegalStateException.class)
+	@Test
 	public void rejectsNonUniqueField() {
-		ReflectionUtils.findField(Sample.class, new ReflectionUtils.AnnotationFieldFilter(Autowired.class));
+		assertThatIllegalStateException().isThrownBy(
+				() -> ReflectionUtils.findField(Sample.class, new ReflectionUtils.AnnotationFieldFilter(Autowired.class)));
 	}
 
 	@Test
@@ -104,6 +111,56 @@ public class ReflectionUtilsUnitTests {
 	@Test // DATACMNS-542
 	public void rejectsConstructorForNullForPrimitiveArgument() throws Exception {
 		assertThat(ReflectionUtils.findConstructor(ConstructorDetection.class, null, "test")).isNotPresent();
+	}
+
+	@Test // DATACMNS-1154
+	public void discoversNoReturnType() throws Exception {
+
+		MethodParameter parameter = new MethodParameter(DummyInterface.class.getDeclaredMethod("noReturnValue"), -1);
+		assertThat(ReflectionUtils.isNullable(parameter)).isTrue();
+	}
+
+	@Test // DATACMNS-1154
+	public void discoversNullableReturnType() throws Exception {
+
+		MethodParameter parameter = new MethodParameter(DummyInterface.class.getDeclaredMethod("nullableReturnValue"), -1);
+		assertThat(ReflectionUtils.isNullable(parameter)).isTrue();
+	}
+
+	@Test // DATACMNS-1154
+	public void discoversNonNullableReturnType() throws Exception {
+
+		MethodParameter parameter = new MethodParameter(DummyInterface.class.getDeclaredMethod("mandatoryReturnValue"), -1);
+		assertThat(ReflectionUtils.isNullable(parameter)).isFalse();
+	}
+
+	@Test // DATACMNS-1154
+	public void discoversNullableParameter() throws Exception {
+
+		MethodParameter parameter = new MethodParameter(
+				DummyInterface.class.getDeclaredMethod("nullableParameter", User.class), 0);
+		assertThat(ReflectionUtils.isNullable(parameter)).isTrue();
+	}
+
+	@Test // DATACMNS-1154
+	public void discoversNonNullablePrimitiveParameter() throws Exception {
+
+		MethodParameter parameter = new MethodParameter(DummyInterface.class.getDeclaredMethod("primitive", int.class), 0);
+		assertThat(ReflectionUtils.isNullable(parameter)).isFalse();
+	}
+
+	@Test // DATACMNS-1171
+	public void discoversKotlinClass() {
+
+		assertThat(ReflectionUtils.isKotlinClass(TypeCreatingSyntheticClass.class)).isTrue();
+		assertThat(ReflectionUtils.isSupportedKotlinClass(TypeCreatingSyntheticClass.class)).isTrue();
+	}
+
+	@Test // DATACMNS-1171
+	public void discoversUnsupportedKotlinClass() {
+
+		assertThat(ReflectionUtils.isKotlinClass(TypeCreatingSyntheticClassKt.class)).isTrue();
+		assertThat(ReflectionUtils.isSupportedKotlinClass(TypeCreatingSyntheticClassKt.class)).isFalse();
 	}
 
 	static class Sample {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,14 +20,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.springframework.context.ApplicationEventPublisher;
-
 /**
  * {@link DomainEvents} can be used on methods of aggregate roots managed by Spring Data repositories to publish the
  * events returned by that method as Spring application events.
- * 
+ *
  * @author Oliver Gierke
- * @see ApplicationEventPublisher
+ * @see org.springframework.context.ApplicationEventPublisher
  * @see AfterDomainEventPublication
  * @since 1.13
  * @soundtrack Benny Greb - Soulfood (Moving Parts Live)

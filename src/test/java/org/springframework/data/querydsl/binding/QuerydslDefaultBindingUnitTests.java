@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,8 +21,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.querydsl.QUser;
 
 import com.querydsl.core.types.Predicate;
@@ -30,18 +30,19 @@ import com.querydsl.core.types.Predicate;
 /**
  * @author Christoph Strobl
  * @author Oliver Gierke
+ * @author Colin Gao
  */
-public class QuerydslDefaultBindingUnitTests {
+class QuerydslDefaultBindingUnitTests {
 
 	QuerydslDefaultBinding binding;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		binding = new QuerydslDefaultBinding();
 	}
 
 	@Test // DATACMNS-669
-	public void shouldCreatePredicateCorrectlyWhenPropertyIsInRoot() {
+	void shouldCreatePredicateCorrectlyWhenPropertyIsInRoot() {
 
 		Optional<Predicate> predicate = binding.bind(QUser.user.firstname, Collections.singleton("tam"));
 
@@ -49,15 +50,16 @@ public class QuerydslDefaultBindingUnitTests {
 	}
 
 	@Test // DATACMNS-669
-	public void shouldCreatePredicateCorrectlyWhenPropertyIsInNestedElement() {
+	void shouldCreatePredicateCorrectlyWhenPropertyIsInNestedElement() {
 
 		Optional<Predicate> predicate = binding.bind(QUser.user.address.city, Collections.singleton("two rivers"));
 
-		assertThat(predicate).hasValueSatisfying(it -> assertThat(it.toString()).isEqualTo(QUser.user.address.city.eq("two rivers").toString()));
+		assertThat(predicate).hasValueSatisfying(
+				it -> assertThat(it.toString()).isEqualTo(QUser.user.address.city.eq("two rivers").toString()));
 	}
 
 	@Test // DATACMNS-669
-	public void shouldCreatePredicateWithContainingWhenPropertyIsCollectionLikeAndValueIsObject() {
+	void shouldCreatePredicateWithContainingWhenPropertyIsCollectionLikeAndValueIsObject() {
 
 		Optional<Predicate> predicate = binding.bind(QUser.user.nickNames, Collections.singleton("dragon reborn"));
 
@@ -65,7 +67,7 @@ public class QuerydslDefaultBindingUnitTests {
 	}
 
 	@Test // DATACMNS-669
-	public void shouldCreatePredicateWithInWhenPropertyIsAnObjectAndValueIsACollection() {
+	void shouldCreatePredicateWithInWhenPropertyIsAnObjectAndValueIsACollection() {
 
 		Optional<Predicate> predicate = binding.bind(QUser.user.firstname, Arrays.asList("dragon reborn", "shadowkiller"));
 
@@ -73,7 +75,17 @@ public class QuerydslDefaultBindingUnitTests {
 	}
 
 	@Test
-	public void testname() {
+	void testname() {
 		assertThat(binding.bind(QUser.user.lastname, Collections.emptySet())).isNotPresent();
+	}
+
+	@Test // DATACMNS-1578
+	void shouldCreatePredicateWithIsNullWhenPropertyIsANestedObjectAndValueIsNull() {
+
+		Optional<Predicate> predicate = binding.bind(QUser.user.address.city, Collections.singleton(null));
+
+		assertThat(predicate).hasValueSatisfying(it -> {
+			assertThat(it.toString()).isEqualTo(QUser.user.address.city.isNull().toString());
+		});
 	}
 }

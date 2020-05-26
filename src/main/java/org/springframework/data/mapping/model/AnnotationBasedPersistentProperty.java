@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,10 +17,9 @@ package org.springframework.data.mapping.model;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,10 +34,13 @@ import org.springframework.data.annotation.Reference;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mapping.Association;
+import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.util.Lazy;
 import org.springframework.data.util.Optionals;
+import org.springframework.data.util.StreamUtils;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -53,14 +55,24 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 
 	private static final String SPRING_DATA_PACKAGE = "org.springframework.data";
 
-	private final Optional<Value> value;
-	private final Map<Class<? extends Annotation>, Optional<? extends Annotation>> annotationCache = new HashMap<>();
+	private final @Nullable String value;
+	private final Map<Class<? extends Annotation>, Optional<? extends Annotation>> annotationCache = new ConcurrentHashMap<>();
 
-	private final Lazy<Boolean> usePropertyAccess = Lazy.of(() -> findPropertyOrOwnerAnnotation(AccessType.class)//
-			.map(it -> Type.PROPERTY.equals(it.value()))//
-			.orElse(super.usePropertyAccess()));
+	private final Lazy<Boolean> usePropertyAccess = Lazy.of(() -> {
+
+		AccessType accessType = findPropertyOrOwnerAnnotation(AccessType.class);
+
+		return accessType != null && Type.PROPERTY.equals(accessType.value()) || super.usePropertyAccess();
+	});
+
 	private final Lazy<Boolean> isTransient = Lazy.of(() -> super.isTransient() || isAnnotationPresent(Transient.class)
 			|| isAnnotationPresent(Value.class) || isAnnotationPresent(Autowired.class));
+
+	private final Lazy<Boolean> isWritable = Lazy
+			.of(() -> !isTransient() && !isAnnotationPresent(ReadOnlyProperty.class));
+	private final Lazy<Boolean> isReference = Lazy.of(() -> !isTransient() && isAnnotationPresent(Reference.class));
+	private final Lazy<Boolean> isId = Lazy.of(() -> isAnnotationPresent(Id.class));
+	private final Lazy<Boolean> isVersion = Lazy.of(() -> isAnnotationPresent(Version.class));
 
 	/**
 	 * Creates a new {@link AnnotationBasedPersistentProperty}.
@@ -75,7 +87,9 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 
 		populateAnnotationCache(property);
 
-		this.value = findAnnotation(Value.class);
+		Value value = findAnnotation(Value.class);
+
+		this.value = value == null ? null : value.value();
 	}
 
 	/**
@@ -99,7 +113,7 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 						annotationType.getSimpleName(), getName(), getOwner().getType().getSimpleName());
 
 				annotationCache.put(annotationType,
-						Optional.of(AnnotatedElementUtils.findMergedAnnotation(it, annotationType)));
+						Optional.ofNullable(AnnotatedElementUtils.findMergedAnnotation(it, annotationType)));
 			}
 		});
 
@@ -114,7 +128,7 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 						annotationType.getSimpleName(), it.getName(), getOwner().getType().getSimpleName());
 
 				annotationCache.put(annotationType,
-						Optional.of(AnnotatedElementUtils.findMergedAnnotation(it, annotationType)));
+						Optional.ofNullable(AnnotatedElementUtils.findMergedAnnotation(it, annotationType)));
 			}
 		});
 	}
@@ -147,16 +161,17 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 	 *
 	 * @see org.springframework.data.mapping.model.AbstractPersistentProperty#getSpelExpression()
 	 */
+	@Nullable
 	@Override
-	public Optional<String> getSpelExpression() {
-		return value.map(Value::value);
+	public String getSpelExpression() {
+		return value;
 	}
 
 	/**
 	 * Considers plain transient fields, fields annotated with {@link Transient}, {@link Value} or {@link Autowired} as
 	 * transient.
 	 *
-	 * @see org.springframework.data.mapping.BasicPersistentProperty#isTransient()
+	 * @see org.springframework.data.mapping.PersistentProperty#isTransient()
 	 */
 	@Override
 	public boolean isTransient() {
@@ -168,7 +183,7 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 	 * @see org.springframework.data.mapping.PersistentProperty#isIdProperty()
 	 */
 	public boolean isIdProperty() {
-		return isAnnotationPresent(Id.class);
+		return isId.get();
 	}
 
 	/*
@@ -176,7 +191,7 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 	 * @see org.springframework.data.mapping.PersistentProperty#isVersionProperty()
 	 */
 	public boolean isVersionProperty() {
-		return isAnnotationPresent(Version.class);
+		return isVersion.get();
 	}
 
 	/**
@@ -184,7 +199,7 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 	 */
 	@Override
 	public boolean isAssociation() {
-		return !isTransient() && isAnnotationPresent(Reference.class);
+		return isReference.get();
 	}
 
 	/*
@@ -193,7 +208,7 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 	 */
 	@Override
 	public boolean isWritable() {
-		return !isTransient() && !isAnnotationPresent(ReadOnlyProperty.class);
+		return isWritable.get();
 	}
 
 	/**
@@ -202,48 +217,45 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 	 * subclasses.
 	 *
 	 * @param annotationType must not be {@literal null}.
-	 * @return
+	 * @return {@literal null} if annotation type not found on property.
 	 */
-	@SuppressWarnings("unchecked")
-	public <A extends Annotation> Optional<A> findAnnotation(Class<A> annotationType) {
+	@Nullable
+	public <A extends Annotation> A findAnnotation(Class<A> annotationType) {
 
 		Assert.notNull(annotationType, "Annotation type must not be null!");
 
-		if (annotationCache != null && annotationCache.containsKey(annotationType)) {
-			return (Optional<A>) annotationCache.get(annotationType);
+		return doFindAnnotation(annotationType).orElse(null);
+	}
+
+	@SuppressWarnings("unchecked")
+	private <A extends Annotation> Optional<A> doFindAnnotation(Class<A> annotationType) {
+
+		Optional<? extends Annotation> annotation = annotationCache.get(annotationType);
+
+		if (annotation != null) {
+			return (Optional<A>) annotation;
 		}
 
-		return cacheAndReturn(annotationType,
-				getAccessors()//
-						.map(it -> it.map(inner -> AnnotatedElementUtils.findMergedAnnotation(inner, annotationType)))//
-						.flatMap(Optionals::toStream)//
-						.findFirst());
+		return (Optional<A>) annotationCache.computeIfAbsent(annotationType, type -> {
+
+			return getAccessors() //
+					.map(it -> AnnotatedElementUtils.findMergedAnnotation(it, type)) //
+					.flatMap(StreamUtils::fromNullable) //
+					.findFirst();
+		});
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentProperty#findPropertyOrOwnerAnnotation(java.lang.Class)
 	 */
+	@Nullable
 	@Override
-	public <A extends Annotation> Optional<A> findPropertyOrOwnerAnnotation(Class<A> annotationType) {
+	public <A extends Annotation> A findPropertyOrOwnerAnnotation(Class<A> annotationType) {
 
-		Optional<A> annotation = findAnnotation(annotationType);
-		return annotation.isPresent() ? annotation : getOwner().findAnnotation(annotationType);
-	}
+		A annotation = findAnnotation(annotationType);
 
-	/**
-	 * Puts the given annotation into the local cache and returns it.
-	 *
-	 * @param annotation
-	 * @return
-	 */
-	private <A extends Annotation> Optional<A> cacheAndReturn(Class<? extends A> type, Optional<A> annotation) {
-
-		if (annotationCache != null) {
-			annotationCache.put(type, annotation);
-		}
-
-		return annotation;
+		return annotation != null ? annotation : getOwner().findAnnotation(annotationType);
 	}
 
 	/**
@@ -253,7 +265,7 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 	 * @return
 	 */
 	public boolean isAnnotationPresent(Class<? extends Annotation> annotationType) {
-		return findAnnotation(annotationType).isPresent();
+		return doFindAnnotation(annotationType).isPresent();
 	}
 
 	/*
@@ -263,6 +275,27 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 	@Override
 	public boolean usePropertyAccess() {
 		return usePropertyAccess.get();
+	}
+
+	/* 
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.PersistentProperty#getAssociationTargetType()
+	 */
+	@Nullable
+	@Override
+	public Class<?> getAssociationTargetType() {
+
+		Reference reference = findAnnotation(Reference.class);
+
+		if (reference == null) {
+			return isEntity() ? getActualType() : null;
+		}
+
+		Class<?> targetType = reference.to();
+
+		return Class.class.equals(targetType) //
+				? isEntity() ? getActualType() : null //
+				: targetType;
 	}
 
 	/*
@@ -284,7 +317,9 @@ public abstract class AnnotationBasedPersistentProperty<P extends PersistentProp
 		return builder + super.toString();
 	}
 
-	private Stream<Optional<? extends AnnotatedElement>> getAccessors() {
-		return Arrays.<Optional<? extends AnnotatedElement>> asList(getGetter(), getSetter(), getField()).stream();
+	private Stream<? extends AnnotatedElement> getAccessors() {
+
+		return Optionals.toStream(Optional.ofNullable(getGetter()), Optional.ofNullable(getSetter()),
+				Optional.ofNullable(getField()));
 	}
 }

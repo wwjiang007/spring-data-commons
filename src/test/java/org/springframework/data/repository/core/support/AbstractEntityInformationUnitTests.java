@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,9 +18,9 @@ package org.springframework.data.repository.core.support;
 import static org.assertj.core.api.Assertions.*;
 
 import java.io.Serializable;
-import java.util.Optional;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.repository.core.EntityInformation;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -28,19 +28,20 @@ import org.springframework.util.ReflectionUtils;
 
 /**
  * Unit tests for {@link AbstractEntityInformation}.
- * 
+ *
  * @author Oliver Gierke
  * @author Nick Williams
+ * @author Mark Paluch
  */
-public class AbstractEntityInformationUnitTests {
+class AbstractEntityInformationUnitTests {
 
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNullDomainClass() throws Exception {
-		new DummyEntityInformation<>(null);
+	@Test
+	void rejectsNullDomainClass() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new DummyEntityInformation<>(null));
 	}
 
 	@Test
-	public void considersEntityNewIfGetIdReturnsNull() throws Exception {
+	void considersEntityNewIfGetIdReturnsNull() throws Exception {
 
 		EntityInformation<Object, Serializable> metadata = new DummyEntityInformation<>(Object.class);
 
@@ -49,7 +50,7 @@ public class AbstractEntityInformationUnitTests {
 	}
 
 	@Test // DATACMNS-357
-	public void detectsNewStateForPrimitiveIds() {
+	void detectsNewStateForPrimitiveIds() {
 
 		CustomEntityInformation<PrimitiveIdEntity, Serializable> fooEn = new CustomEntityInformation<>(
 				PrimitiveIdEntity.class);
@@ -62,7 +63,7 @@ public class AbstractEntityInformationUnitTests {
 	}
 
 	@Test // DATACMNS-357
-	public void detectsNewStateForPrimitiveWrapperIds() {
+	void detectsNewStateForPrimitiveWrapperIds() {
 
 		CustomEntityInformation<PrimitiveWrapperIdEntity, Serializable> fooEn = new CustomEntityInformation<>(
 				PrimitiveWrapperIdEntity.class);
@@ -75,7 +76,7 @@ public class AbstractEntityInformationUnitTests {
 	}
 
 	@Test // DATACMNS-357
-	public void rejectsUnsupportedPrimitiveIdType() {
+	void rejectsUnsupportedPrimitiveIdType() {
 
 		CustomEntityInformation<UnsupportedPrimitiveIdEntity, ?> information = new CustomEntityInformation<UnsupportedPrimitiveIdEntity, Boolean>(
 				UnsupportedPrimitiveIdEntity.class);
@@ -111,8 +112,8 @@ public class AbstractEntityInformationUnitTests {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Optional<ID> getId(T entity) {
-			return Optional.ofNullable((ID) ReflectionTestUtils.getField(entity, "id"));
+		public ID getId(T entity) {
+			return (ID) ReflectionTestUtils.getField(entity, "id");
 		}
 
 		@Override

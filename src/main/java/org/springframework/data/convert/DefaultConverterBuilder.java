@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 the original author or authors.
+ * Copyright 2017-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 package org.springframework.data.convert;
-
-import lombok.AccessLevel;
-import lombok.EqualsAndHashCode;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.Wither;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -35,27 +29,36 @@ import org.springframework.data.convert.ConverterBuilder.ConverterAware;
 import org.springframework.data.convert.ConverterBuilder.ReadingConverterBuilder;
 import org.springframework.data.convert.ConverterBuilder.WritingConverterBuilder;
 import org.springframework.data.util.Optionals;
+import org.springframework.lang.Nullable;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Builder to easily set up (bi-directional) {@link Converter} instances for Spring Data type mapping using Lambdas. Use
  * factory methods on {@link ConverterBuilder} to create instances of this class.
- * 
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  * @since 2.0
  * @see ConverterBuilder#writing(Class, Class, Function)
  * @see ConverterBuilder#reading(Class, Class, Function)
  * @soundtrack John Mayer - Still Feel Like Your Man (The Search for Everything)
  */
-@Wither(AccessLevel.PACKAGE)
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 class DefaultConverterBuilder<S, T>
 		implements ConverterAware, ReadingConverterBuilder<T, S>, WritingConverterBuilder<S, T> {
 
-	private final @NonNull ConvertiblePair convertiblePair;
-	private final @NonNull Optional<Function<? super S, ? extends T>> writing;
-	private final @NonNull Optional<Function<? super T, ? extends S>> reading;
+	private final ConvertiblePair convertiblePair;
+	private final Optional<Function<? super S, ? extends T>> writing;
+	private final Optional<Function<? super T, ? extends S>> reading;
 
-	/* 
+	DefaultConverterBuilder(ConvertiblePair convertiblePair, Optional<Function<? super S, ? extends T>> writing,
+			Optional<Function<? super T, ? extends S>> reading) {
+		this.convertiblePair = convertiblePair;
+		this.writing = writing;
+		this.reading = reading;
+	}
+
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.convert.WritingConverterBuilder#andReading(java.util.function.Function)
 	 */
@@ -64,7 +67,7 @@ class DefaultConverterBuilder<S, T>
 		return withReading(Optional.of(function));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.convert.ReadingConverterBuilder#andWriting(java.util.function.Function)
 	 */
@@ -73,7 +76,7 @@ class DefaultConverterBuilder<S, T>
 		return withWriting(Optional.of(function));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.convert.ReadingConverterBuilder#getRequiredReadingConverter()
 	 */
@@ -83,7 +86,7 @@ class DefaultConverterBuilder<S, T>
 				.orElseThrow(() -> new IllegalStateException("No reading converter specified!"));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.convert.WritingConverterBuilder#getRequiredWritingConverter()
 	 */
@@ -117,30 +120,80 @@ class DefaultConverterBuilder<S, T>
 		return new ConvertiblePair(convertiblePair.getTargetType(), convertiblePair.getSourceType());
 	}
 
-	@RequiredArgsConstructor
-	@EqualsAndHashCode
+	DefaultConverterBuilder<S, T> withWriting(Optional<Function<? super S, ? extends T>> writing) {
+		return this.writing == writing ? this
+				: new DefaultConverterBuilder<S, T>(this.convertiblePair, writing, this.reading);
+	}
+
+	DefaultConverterBuilder<S, T> withReading(Optional<Function<? super T, ? extends S>> reading) {
+		return this.reading == reading ? this
+				: new DefaultConverterBuilder<S, T>(this.convertiblePair, this.writing, reading);
+	}
+
 	private static class ConfigurableGenericConverter<S, T> implements GenericConverter {
 
 		private final ConvertiblePair convertiblePair;
 		private final Function<? super S, ? extends T> function;
 
-		/* 
+		public ConfigurableGenericConverter(ConvertiblePair convertiblePair, Function<? super S, ? extends T> function) {
+			this.convertiblePair = convertiblePair;
+			this.function = function;
+		}
+
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.core.convert.converter.GenericConverter#convert(java.lang.Object, org.springframework.core.convert.TypeDescriptor, org.springframework.core.convert.TypeDescriptor)
 		 */
+		@Nullable
 		@Override
 		@SuppressWarnings("unchecked")
-		public Object convert(Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
+		public Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
 			return function.apply((S) source);
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.core.convert.converter.GenericConverter#getConvertibleTypes()
 		 */
+
 		@Override
 		public Set<ConvertiblePair> getConvertibleTypes() {
 			return Collections.singleton(convertiblePair);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object o) {
+
+			if (this == o) {
+				return true;
+			}
+
+			if (!(o instanceof ConfigurableGenericConverter)) {
+				return false;
+			}
+
+			ConfigurableGenericConverter<?, ?> that = (ConfigurableGenericConverter<?, ?>) o;
+
+			if (!ObjectUtils.nullSafeEquals(convertiblePair, that.convertiblePair)) {
+				return false;
+			}
+
+			return ObjectUtils.nullSafeEquals(function, that.function);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			int result = ObjectUtils.nullSafeHashCode(convertiblePair);
+			result = 31 * result + ObjectUtils.nullSafeHashCode(function);
+			return result;
 		}
 
 		@WritingConverter

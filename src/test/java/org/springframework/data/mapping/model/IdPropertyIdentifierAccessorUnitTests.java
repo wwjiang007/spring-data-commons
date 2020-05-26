@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,32 +17,33 @@ package org.springframework.data.mapping.model;
 
 import static org.assertj.core.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mapping.IdentifierAccessor;
 import org.springframework.data.mapping.context.SampleMappingContext;
 
 /**
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
-public class IdPropertyIdentifierAccessorUnitTests {
+class IdPropertyIdentifierAccessorUnitTests {
 
 	SampleMappingContext mappingContext = new SampleMappingContext();
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-599
-	public void rejectsEntityWithoutIdentifierProperty() {
-
-		new IdPropertyIdentifierAccessor(mappingContext.getRequiredPersistentEntity(Sample.class), new Sample());
-	}
-
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-599
-	public void rejectsNullBean() {
-
-		new IdPropertyIdentifierAccessor(mappingContext.getRequiredPersistentEntity(SampleWithId.class), null);
+	@Test // DATACMNS-599
+	void rejectsEntityWithoutIdentifierProperty() {
+		assertThatIllegalArgumentException().isThrownBy(
+				() -> new IdPropertyIdentifierAccessor(mappingContext.getRequiredPersistentEntity(Sample.class), new Sample()));
 	}
 
 	@Test // DATACMNS-599
-	public void returnsIdentifierValue() {
+	void rejectsNullBean() {
+		assertThatIllegalArgumentException().isThrownBy(
+				() -> new IdPropertyIdentifierAccessor(mappingContext.getRequiredPersistentEntity(SampleWithId.class), null));
+	}
+
+	@Test // DATACMNS-599
+	void returnsIdentifierValue() {
 
 		SampleWithId sample = new SampleWithId();
 		sample.id = 1L;
@@ -50,10 +51,10 @@ public class IdPropertyIdentifierAccessorUnitTests {
 		IdentifierAccessor accessor = new IdPropertyIdentifierAccessor(
 				mappingContext.getRequiredPersistentEntity(SampleWithId.class), sample);
 
-		assertThat(accessor.getIdentifier()).hasValue(sample.id);
+		assertThat(accessor.getIdentifier()).isEqualTo(sample.id);
 	}
 
-	static class Sample {}
+	private static class Sample {}
 
 	static class SampleWithId {
 		@Id Long id;

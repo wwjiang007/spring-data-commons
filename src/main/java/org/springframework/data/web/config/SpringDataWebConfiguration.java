@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,10 @@ package org.springframework.data.web.config;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
+import org.springframework.beans.factory.BeanClassLoaderAware;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,6 +39,7 @@ import org.springframework.data.web.XmlBeamHttpMessageConverter;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.format.support.FormattingConversionService;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -53,10 +57,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @author Jens Schauder
  */
 @Configuration
-public class SpringDataWebConfiguration implements WebMvcConfigurer {
+public class SpringDataWebConfiguration implements WebMvcConfigurer, BeanClassLoaderAware {
 
 	private final ApplicationContext context;
 	private final ObjectFactory<ConversionService> conversionService;
+	private @Nullable ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
 
 	private @Autowired Optional<PageableHandlerMethodArgumentResolverCustomizer> pageableResolverCustomizer;
 	private @Autowired Optional<SortHandlerMethodArgumentResolverCustomizer> sortResolverCustomizer;
@@ -69,6 +74,15 @@ public class SpringDataWebConfiguration implements WebMvcConfigurer {
 
 		this.context = context;
 		this.conversionService = conversionService;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.beans.factory.BeanClassLoaderAware#setBeanClassLoader(java.lang.ClassLoader)
+	 */
+	@Override
+	public void setBeanClassLoader(ClassLoader classLoader) {
+		this.beanClassLoader = classLoader;
 	}
 
 	/*
@@ -126,10 +140,9 @@ public class SpringDataWebConfiguration implements WebMvcConfigurer {
 		argumentResolvers.add(sortResolver());
 		argumentResolvers.add(pageableResolver());
 
-		ProxyingHandlerMethodArgumentResolver resolver = new ProxyingHandlerMethodArgumentResolver(
-				conversionService.getObject());
+		ProxyingHandlerMethodArgumentResolver resolver = new ProxyingHandlerMethodArgumentResolver(conversionService, true);
 		resolver.setBeanFactory(context);
-		resolver.setBeanClassLoader(context.getClassLoader());
+		forwardBeanClassLoader(resolver);
 
 		argumentResolvers.add(resolver);
 	}
@@ -144,15 +157,19 @@ public class SpringDataWebConfiguration implements WebMvcConfigurer {
 		if (ClassUtils.isPresent("com.jayway.jsonpath.DocumentContext", context.getClassLoader())
 				&& ClassUtils.isPresent("com.fasterxml.jackson.databind.ObjectMapper", context.getClassLoader())) {
 
-			ProjectingJackson2HttpMessageConverter converter = new ProjectingJackson2HttpMessageConverter(new ObjectMapper());
-			converter.setBeanClassLoader(context.getClassLoader());
+			ObjectMapper mapper = getUniqueBean(ObjectMapper.class, context, ObjectMapper::new);
+
+			ProjectingJackson2HttpMessageConverter converter = new ProjectingJackson2HttpMessageConverter(mapper);
 			converter.setBeanFactory(context);
+			forwardBeanClassLoader(converter);
 
 			converters.add(0, converter);
 		}
 
 		if (ClassUtils.isPresent("org.xmlbeam.XBProjector", context.getClassLoader())) {
-			converters.add(0, new XmlBeamHttpMessageConverter());
+
+			converters.add(0, context.getBeanProvider(XmlBeamHttpMessageConverter.class) //
+					.getIfAvailable(() -> new XmlBeamHttpMessageConverter()));
 		}
 	}
 
@@ -162,5 +179,30 @@ public class SpringDataWebConfiguration implements WebMvcConfigurer {
 
 	protected void customizeSortResolver(SortHandlerMethodArgumentResolver sortResolver) {
 		sortResolverCustomizer.ifPresent(c -> c.customize(sortResolver));
+	}
+
+	private void forwardBeanClassLoader(BeanClassLoaderAware target) {
+
+		if (beanClassLoader != null) {
+			target.setBeanClassLoader(beanClassLoader);
+		}
+	}
+
+	/**
+	 * Returns the uniquely available bean of the given type from the given {@link ApplicationContext} or the one provided
+	 * by the given {@link Supplier} in case the initial lookup fails.
+	 *
+	 * @param type must not be {@literal null}.
+	 * @param context must not be {@literal null}.
+	 * @param fallback must not be {@literal null}.
+	 * @return
+	 */
+	private static <T> T getUniqueBean(Class<T> type, ApplicationContext context, Supplier<T> fallback) {
+
+		try {
+			return context.getBean(type);
+		} catch (NoSuchBeanDefinitionException o_O) {
+			return fallback.get();
+		}
 	}
 }

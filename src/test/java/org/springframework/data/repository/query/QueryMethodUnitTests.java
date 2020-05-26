@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2017 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,11 +16,9 @@
 package org.springframework.data.repository.query;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assume.*;
 
-import javaslang.collection.Seq;
-import javaslang.control.Option;
+import io.vavr.collection.Seq;
+import io.vavr.control.Option;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -29,8 +27,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
-import org.junit.Test;
-import org.springframework.core.SpringVersion;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -38,52 +36,51 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.RepositoryMetadata;
+import org.springframework.data.repository.core.support.AbstractRepositoryMetadata;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
-import org.springframework.data.util.Version;
 
 /**
  * Unit tests for {@link QueryMethod}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @author Maciek Opała
  */
-public class QueryMethodUnitTests {
-
-	private static final Version SPRING_VERSION = Version.parse(SpringVersion.getVersion());
-	private static final Version FOUR_DOT_TWO = new Version(4, 2);
+class QueryMethodUnitTests {
 
 	RepositoryMetadata metadata = new DefaultRepositoryMetadata(SampleRepository.class);
 	ProjectionFactory factory = new SpelAwareProxyProjectionFactory();
 
-	@Test(expected = IllegalStateException.class) // DATAJPA-59
-	public void rejectsPagingMethodWithInvalidReturnType() throws Exception {
+	@Test // DATAJPA-59
+	void rejectsPagingMethodWithInvalidReturnType() throws Exception {
 
 		Method method = SampleRepository.class.getMethod("pagingMethodWithInvalidReturnType", Pageable.class);
-		new QueryMethod(method, metadata, factory);
+
+		assertThatIllegalStateException().isThrownBy(() -> new QueryMethod(method, metadata, factory));
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATAJPA-59
-	public void rejectsPagingMethodWithoutPageable() throws Exception {
+	@Test // DATAJPA-59
+	void rejectsPagingMethodWithoutPageable() throws Exception {
 		Method method = SampleRepository.class.getMethod("pagingMethodWithoutPageable");
-		new QueryMethod(method, metadata, factory);
+
+		assertThatIllegalArgumentException().isThrownBy(() -> new QueryMethod(method, metadata, factory));
 	}
 
 	@Test // DATACMNS-64
-	public void setsUpSimpleQueryMethodCorrectly() throws Exception {
+	void setsUpSimpleQueryMethodCorrectly() throws Exception {
 		Method method = SampleRepository.class.getMethod("findByUsername", String.class);
 		new QueryMethod(method, metadata, factory);
 	}
 
 	@Test // DATACMNS-61
-	public void considersIterableMethodForCollectionQuery() throws Exception {
+	void considersIterableMethodForCollectionQuery() throws Exception {
 		Method method = SampleRepository.class.getMethod("sampleMethod");
 		QueryMethod queryMethod = new QueryMethod(method, metadata, factory);
 		assertThat(queryMethod.isCollectionQuery()).isTrue();
 	}
 
 	@Test // DATACMNS-67
-	public void doesNotConsiderPageMethodCollectionQuery() throws Exception {
+	void doesNotConsiderPageMethodCollectionQuery() throws Exception {
 		Method method = SampleRepository.class.getMethod("anotherSampleMethod", Pageable.class);
 		QueryMethod queryMethod = new QueryMethod(method, metadata, factory);
 		assertThat(queryMethod.isPageQuery()).isTrue();
@@ -91,7 +88,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-171
-	public void detectsAnEntityBeingReturned() throws Exception {
+	void detectsAnEntityBeingReturned() throws Exception {
 
 		Method method = SampleRepository.class.getMethod("returnsEntitySubclass");
 		QueryMethod queryMethod = new QueryMethod(method, metadata, factory);
@@ -100,7 +97,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-171
-	public void detectsNonEntityBeingReturned() throws Exception {
+	void detectsNonEntityBeingReturned() throws Exception {
 
 		Method method = SampleRepository.class.getMethod("returnsProjection");
 		QueryMethod queryMethod = new QueryMethod(method, metadata, factory);
@@ -109,7 +106,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-397
-	public void detectsSliceMethod() throws Exception {
+	void detectsSliceMethod() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("sliceOfUsers");
@@ -121,7 +118,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-471
-	public void detectsCollectionMethodForArrayRetrunType() throws Exception {
+	void detectsCollectionMethodForArrayRetrunType() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("arrayOfUsers");
@@ -130,7 +127,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-650
-	public void considersMethodReturningAStreamStreaming() throws Exception {
+	void considersMethodReturningAStreamStreaming() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("streaming");
@@ -139,7 +136,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-650
-	public void doesNotRejectStreamingForPagination() throws Exception {
+	void doesNotRejectStreamingForPagination() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("streaming", Pageable.class);
@@ -148,7 +145,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-716
-	public void doesNotRejectCompletableFutureQueryForSingleEntity() throws Exception {
+	void doesNotRejectCompletableFutureQueryForSingleEntity() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("returnsCompletableFutureForSingleEntity");
@@ -157,9 +154,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-716
-	public void doesNotRejectCompletableFutureQueryForEntityCollection() throws Exception {
-
-		assumeThat(SPRING_VERSION.isGreaterThanOrEqualTo(FOUR_DOT_TWO), is(true));
+	void doesNotRejectCompletableFutureQueryForEntityCollection() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("returnsCompletableFutureForEntityCollection");
@@ -168,7 +163,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-716
-	public void doesNotRejectFutureQueryForSingleEntity() throws Exception {
+	void doesNotRejectFutureQueryForSingleEntity() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("returnsFutureForSingleEntity");
@@ -177,7 +172,7 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-716
-	public void doesNotRejectFutureQueryForEntityCollection() throws Exception {
+	void doesNotRejectFutureQueryForEntityCollection() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("returnsFutureForEntityCollection");
@@ -189,7 +184,7 @@ public class QueryMethodUnitTests {
 	 * @see DATACMNS-940
 	 */
 	@Test
-	public void detectsCustomCollectionReturnType() throws Exception {
+	void detectsCustomCollectionReturnType() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("returnsSeq");
@@ -201,7 +196,7 @@ public class QueryMethodUnitTests {
 	 * @see DATACMNS-940
 	 */
 	@Test
-	public void detectsWrapperWithinWrapper() throws Exception {
+	void detectsWrapperWithinWrapper() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("returnsFutureOfSeq");
@@ -213,7 +208,7 @@ public class QueryMethodUnitTests {
 	 * @see DATACMNS-940
 	 */
 	@Test
-	public void detectsSinglValueWrapperWithinWrapper() throws Exception {
+	void detectsSinglValueWrapperWithinWrapper() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("returnsFutureOfOption");
@@ -222,12 +217,21 @@ public class QueryMethodUnitTests {
 	}
 
 	@Test // DATACMNS-1005
-	public void doesNotRejectSeqForPagination() throws Exception {
+	void doesNotRejectSeqForPagination() throws Exception {
 
 		RepositoryMetadata repositoryMetadata = new DefaultRepositoryMetadata(SampleRepository.class);
 		Method method = SampleRepository.class.getMethod("returnsSeq", Pageable.class);
 
 		assertThat(new QueryMethod(method, repositoryMetadata, factory).isCollectionQuery()).isTrue();
+	}
+
+	@Test // DATACMNS-1300
+	void doesNotConsiderMethodForIterableAggregateACollectionQuery() throws Exception {
+
+		RepositoryMetadata metadata = AbstractRepositoryMetadata.getMetadata(ContainerRepository.class);
+		Method method = ContainerRepository.class.getMethod("someMethod");
+
+		assertThat(new QueryMethod(method, metadata, factory).isCollectionQuery()).isFalse();
 	}
 
 	interface SampleRepository extends Repository<User, Serializable> {
@@ -282,5 +286,15 @@ public class QueryMethodUnitTests {
 
 	class SpecialUser extends User {
 
+	}
+
+	// DATACMNS-1300
+
+	class Element {}
+
+	abstract class Container implements Iterable<Element> {}
+
+	interface ContainerRepository extends Repository<Container, Long> {
+		Container someMethod();
 	}
 }

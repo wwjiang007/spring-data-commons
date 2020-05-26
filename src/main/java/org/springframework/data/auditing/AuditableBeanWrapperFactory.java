@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /**
  * A factory to lookup {@link AuditableBeanWrapper}s.
- * 
+ *
  * @author Oliver Gierke
  * @since 1.10
  */
@@ -27,9 +27,9 @@ public interface AuditableBeanWrapperFactory {
 
 	/**
 	 * Returns the {@link AuditableBeanWrapper} for the given source object if it's eligible for auditing.
-	 * 
+	 *
 	 * @param source must not be {@literal null}.
 	 * @return the {@link AuditableBeanWrapper} for the given source object if it's eligible for auditing.
 	 */
-	Optional<AuditableBeanWrapper> getBeanWrapperFor(Object source);
+	<T> Optional<AuditableBeanWrapper<T>> getBeanWrapperFor(T source);
 }

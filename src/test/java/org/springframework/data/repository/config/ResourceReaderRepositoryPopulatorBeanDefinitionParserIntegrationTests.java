@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,11 +16,10 @@
 package org.springframework.data.repository.config;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.hamcrest.Matchers.*;
 
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
@@ -33,14 +32,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Integration tests for the initializer namespace elements.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  */
-public class ResourceReaderRepositoryPopulatorBeanDefinitionParserIntegrationTests {
+class ResourceReaderRepositoryPopulatorBeanDefinitionParserIntegrationTests {
 
 	@Test // DATACMNS-333
-	public void registersJackson2InitializerCorrectly() {
+	void registersJackson2InitializerCorrectly() {
 
 		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
 		XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(beanFactory);
@@ -59,7 +58,7 @@ public class ResourceReaderRepositoryPopulatorBeanDefinitionParserIntegrationTes
 	}
 
 	@Test // DATACMNS-58
-	public void registersXmlInitializerCorrectly() {
+	void registersXmlInitializerCorrectly() {
 
 		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
 		XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(beanFactory);
@@ -83,7 +82,7 @@ public class ResourceReaderRepositoryPopulatorBeanDefinitionParserIntegrationTes
 
 		assertThat(source).isInstanceOf(List.class);
 		List<?> list = (List<?>) source;
-		assertThat(list).isNotEqualTo(empty());
+		assertThat(list).isNotEmpty();
 		Object element = list.get(0);
 		assertThat(element).isInstanceOf(ClassPathResource.class);
 		ClassPathResource resource = (ClassPathResource) element;

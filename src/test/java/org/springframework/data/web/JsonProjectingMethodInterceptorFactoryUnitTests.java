@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-2017 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,8 +25,8 @@ import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 
@@ -36,18 +36,18 @@ import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
 /**
  * Unit tests for {@link JsonProjectingMethodInterceptorFactory}.
- * 
+ *
  * @author Oliver Gierke
  * @since 1.13
  * @soundtrack Richard Spaven - Assemble (Whole Other*)
  */
-public class JsonProjectingMethodInterceptorFactoryUnitTests {
+class JsonProjectingMethodInterceptorFactoryUnitTests {
 
 	ProjectionFactory projectionFactory;
 	Customer customer;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 
 		String json = "{\"firstname\" : \"Dave\", "//
 				+ "\"address\" : { \"zipCode\" : \"01097\", \"city\" : \"Dresden\" }," //
@@ -63,47 +63,47 @@ public class JsonProjectingMethodInterceptorFactoryUnitTests {
 	}
 
 	@Test // DATCMNS-885
-	public void accessSimpleProperty() {
+	void accessSimpleProperty() {
 		assertThat(customer.getFirstname()).isEqualTo("Dave");
 	}
 
 	@Test // DATCMNS-885
-	public void accessPropertyWithExplicitAnnotation() {
+	void accessPropertyWithExplicitAnnotation() {
 		assertThat(customer.getBar()).isEqualTo("Dave");
 	}
 
 	@Test // DATCMNS-885
-	public void accessPropertyWithComplexReturnType() {
+	void accessPropertyWithComplexReturnType() {
 		assertThat(customer.getAddress()).isEqualTo(new Address("01097", "Dresden"));
 	}
 
 	@Test // DATCMNS-885
-	public void accessComplexPropertyWithProjection() {
+	void accessComplexPropertyWithProjection() {
 		assertThat(customer.getAddressProjection().getCity()).isEqualTo("Dresden");
 	}
 
 	@Test // DATCMNS-885
-	public void accessPropertyWithNestedJsonPath() {
+	void accessPropertyWithNestedJsonPath() {
 		assertThat(customer.getNestedZipCode()).isEqualTo("01097");
 	}
 
 	@Test // DATCMNS-885
-	public void accessCollectionProperty() {
+	void accessCollectionProperty() {
 		assertThat(customer.getAddresses().get(0)).isEqualTo(new Address("01097", "Dresden"));
 	}
 
 	@Test // DATCMNS-885
-	public void accessPropertyOnNestedProjection() {
+	void accessPropertyOnNestedProjection() {
 		assertThat(customer.getAddressProjections().get(0).getZipCode()).isEqualTo("01097");
 	}
 
 	@Test // DATCMNS-885
-	public void accessPropertyThatUsesJsonPathProjectionInTurn() {
+	void accessPropertyThatUsesJsonPathProjectionInTurn() {
 		assertThat(customer.getAnotherAddressProjection().getZipCodeButNotCity()).isEqualTo("01097");
 	}
 
 	@Test // DATCMNS-885
-	public void accessCollectionPropertyThatUsesJsonPathProjectionInTurn() {
+	void accessCollectionPropertyThatUsesJsonPathProjectionInTurn() {
 
 		List<AnotherAddressProjection> projections = customer.getAnotherAddressProjections();
 
@@ -112,7 +112,7 @@ public class JsonProjectingMethodInterceptorFactoryUnitTests {
 	}
 
 	@Test // DATCMNS-885
-	public void accessAsCollectionPropertyThatUsesJsonPathProjectionInTurn() {
+	void accessAsCollectionPropertyThatUsesJsonPathProjectionInTurn() {
 
 		Set<AnotherAddressProjection> projections = customer.getAnotherAddressProjectionAsCollection();
 
@@ -121,7 +121,7 @@ public class JsonProjectingMethodInterceptorFactoryUnitTests {
 	}
 
 	@Test // DATCMNS-885
-	public void accessNestedPropertyButStayOnRootLevel() {
+	void accessNestedPropertyButStayOnRootLevel() {
 
 		Name name = customer.getName();
 
@@ -130,10 +130,20 @@ public class JsonProjectingMethodInterceptorFactoryUnitTests {
 	}
 
 	@Test // DATACMNS-885
-	public void accessNestedFields() {
+	void accessNestedFields() {
 
 		assertThat(customer.getNestedCity()).isEqualTo("Dresden");
 		assertThat(customer.getNestedCities()).hasSize(2);
+	}
+
+	@Test // DATACMNS-1144
+	void returnsNullForNonExistantValue() {
+		assertThat(customer.getName().getLastname()).isNull();
+	}
+
+	@Test // DATACMNS-1144
+	void triesMultipleDeclaredPathsIfNotAvailable() {
+		assertThat(customer.getName().getSomeName()).isEqualTo(customer.getName().getFirstname());
 	}
 
 	interface Customer {
@@ -187,8 +197,13 @@ public class JsonProjectingMethodInterceptorFactoryUnitTests {
 		@JsonPath("$.firstname")
 		String getFirstname();
 
+		// Not available in the payload
 		@JsonPath("$.lastname")
 		String getLastname();
+
+		// First one not available in the payload
+		@JsonPath({ "$.lastname", "$.firstname" })
+		String getSomeName();
 	}
 
 	interface AnotherAddressProjection {

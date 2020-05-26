@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 by the original author(s).
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,50 +15,54 @@
  */
 package org.springframework.data.mapping.context;
 
-import lombok.AccessLevel;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.core.KotlinDetector;
+import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
+import org.springframework.data.mapping.PersistentPropertyPath;
+import org.springframework.data.mapping.PersistentPropertyPaths;
 import org.springframework.data.mapping.PropertyPath;
 import org.springframework.data.mapping.model.ClassGeneratingPropertyAccessorFactory;
-import org.springframework.data.mapping.model.MappingException;
+import org.springframework.data.mapping.model.EntityInstantiators;
+import org.springframework.data.mapping.model.InstantiationAwarePropertyAccessorFactory;
 import org.springframework.data.mapping.model.MutablePersistentEntity;
 import org.springframework.data.mapping.model.PersistentPropertyAccessorFactory;
 import org.springframework.data.mapping.model.Property;
 import org.springframework.data.mapping.model.SimpleTypeHolder;
+import org.springframework.data.spel.EvaluationContextProvider;
+import org.springframework.data.spel.ExtensionAwareEvaluationContextProvider;
 import org.springframework.data.util.ClassTypeInformation;
+import org.springframework.data.util.KotlinReflectionUtils;
 import org.springframework.data.util.Optionals;
-import org.springframework.data.util.Pair;
 import org.springframework.data.util.Streamable;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.ReflectionUtils.FieldCallback;
 import org.springframework.util.ReflectionUtils.FieldFilter;
-import org.springframework.util.StringUtils;
 
 /**
  * Base class to build mapping metadata and thus create instances of {@link PersistentEntity} and
@@ -67,8 +71,8 @@ import org.springframework.util.StringUtils;
  * The implementation uses a {@link ReentrantReadWriteLock} to make sure {@link PersistentEntity} are completely
  * populated before accessing them from outside.
  *
- * @param E the concrete {@link PersistentEntity} type the {@link MappingContext} implementation creates
- * @param P the concrete {@link PersistentProperty} type the {@link MappingContext} implementation creates
+ * @param <E> the concrete {@link PersistentEntity} type the {@link MappingContext} implementation creates
+ * @param <P> the concrete {@link PersistentProperty} type the {@link MappingContext} implementation creates
  * @author Jon Brisbin
  * @author Oliver Gierke
  * @author Michael Hunger
@@ -79,13 +83,15 @@ import org.springframework.util.StringUtils;
  * @author Christoph Strobl
  */
 public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?, P>, P extends PersistentProperty<P>>
-		implements MappingContext<E, P>, ApplicationEventPublisherAware, InitializingBean {
+		implements MappingContext<E, P>, ApplicationEventPublisherAware, ApplicationContextAware, InitializingBean {
 
 	private final Optional<E> NONE = Optional.empty();
 	private final Map<TypeInformation<?>, Optional<E>> persistentEntities = new HashMap<>();
-	private final PersistentPropertyAccessorFactory persistentPropertyAccessorFactory = new ClassGeneratingPropertyAccessorFactory();
+	private final PersistentPropertyAccessorFactory persistentPropertyAccessorFactory;
+	private final PersistentPropertyPathFactory<E, P> persistentPropertyPathFactory;
 
-	private ApplicationEventPublisher applicationEventPublisher;
+	private @Nullable ApplicationEventPublisher applicationEventPublisher;
+	private EvaluationContextProvider evaluationContextProvider = EvaluationContextProvider.DEFAULT;
 
 	private Set<? extends Class<?>> initialEntitySet = new HashSet<>();
 	private boolean strict = false;
@@ -95,12 +101,38 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 	private final Lock read = lock.readLock();
 	private final Lock write = lock.writeLock();
 
+	protected AbstractMappingContext() {
+
+		this.persistentPropertyPathFactory = new PersistentPropertyPathFactory<>(this);
+
+		EntityInstantiators instantiators = new EntityInstantiators();
+		ClassGeneratingPropertyAccessorFactory accessorFactory = new ClassGeneratingPropertyAccessorFactory();
+
+		this.persistentPropertyAccessorFactory = new InstantiationAwarePropertyAccessorFactory(accessorFactory,
+				instantiators);
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.context.ApplicationEventPublisherAware#setApplicationEventPublisher(org.springframework.context.ApplicationEventPublisher)
 	 */
+	@Override
 	public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
 		this.applicationEventPublisher = applicationEventPublisher;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.context.ApplicationContextAware#setApplicationContext(org.springframework.context.ApplicationContext)
+	 */
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+
+		this.evaluationContextProvider = new ExtensionAwareEvaluationContextProvider(applicationContext);
+
+		if (applicationEventPublisher == null) {
+			this.applicationEventPublisher = applicationContext;
+		}
 	}
 
 	/**
@@ -126,7 +158,7 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 
 	/**
 	 * Configures the {@link SimpleTypeHolder} to be used by the {@link MappingContext}. Allows customization of what
-	 * types will be regarded as simple types and thus not recursively analysed.
+	 * types will be regarded as simple types and thus not recursively analyzed.
 	 *
 	 * @param simpleTypes must not be {@literal null}.
 	 */
@@ -141,6 +173,7 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.model.MappingContext#getPersistentEntities()
 	 */
+	@Override
 	public Collection<E> getPersistentEntities() {
 
 		try {
@@ -160,19 +193,9 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.model.MappingContext#getPersistentEntity(java.lang.Class)
 	 */
-	public Optional<E> getPersistentEntity(Class<?> type) {
+	@Nullable
+	public E getPersistentEntity(Class<?> type) {
 		return getPersistentEntity(ClassTypeInformation.from(type));
-	}
-
-	/* 
-	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.context.MappingContext#getRequiredPersistentEntity(java.lang.Class)
-	 */
-	@Override
-	public E getRequiredPersistentEntity(Class<?> type) {
-
-		return getPersistentEntity(type).orElseThrow(
-				() -> new IllegalArgumentException(String.format("Couldn't find PersistentEntity for type %s!", type)));
 	}
 
 	/*
@@ -184,14 +207,18 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 
 		Assert.notNull(type, "Type must not be null!");
 
-		return persistentEntities.containsKey(ClassTypeInformation.from(type));
+		Optional<E> entity = persistentEntities.get(ClassTypeInformation.from(type));
+
+		return entity == null ? false : entity.isPresent();
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.model.MappingContext#getPersistentEntity(org.springframework.data.util.TypeInformation)
 	 */
-	public Optional<E> getPersistentEntity(TypeInformation<?> type) {
+	@Nullable
+	@Override
+	public E getPersistentEntity(TypeInformation<?> type) {
 
 		Assert.notNull(type, "Type must not be null!");
 
@@ -202,7 +229,7 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 			Optional<E> entity = persistentEntities.get(type);
 
 			if (entity != null) {
-				return entity;
+				return entity.orElse(null);
 			}
 
 		} finally {
@@ -218,131 +245,79 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 				write.unlock();
 			}
 
-			return NONE;
+			return null;
 		}
 
 		if (strict) {
 			throw new MappingException("Unknown persistent entity " + type);
 		}
 
-		return addPersistentEntity(type);
-	}
-
-	/* 
-	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.context.MappingContext#getRequiredPersistentEntity(org.springframework.data.util.TypeInformation)
-	 */
-	@Override
-	public E getRequiredPersistentEntity(TypeInformation<?> type) {
-
-		return getPersistentEntity(type)
-				.orElseThrow(() -> new MappingException(String.format("Couldn't find PersistentEntity for type %s!", type)));
+		return addPersistentEntity(type).orElse(null);
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.context.MappingContext#getPersistentEntity(org.springframework.data.mapping.PersistentProperty)
 	 */
-	public Optional<E> getPersistentEntity(P persistentProperty) {
+	@Nullable
+	@Override
+	public E getPersistentEntity(P persistentProperty) {
 
 		Assert.notNull(persistentProperty, "PersistentProperty must not be null!");
 
+		if (!persistentProperty.isEntity()) {
+			return null;
+		}
+
 		TypeInformation<?> typeInfo = persistentProperty.getTypeInformation();
-		return getPersistentEntity(typeInfo.getActualType());
-	}
-
-	/* 
-	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.context.MappingContext#getRequiredPersistentEntity(org.springframework.data.mapping.PersistentProperty)
-	 */
-	@Override
-	public E getRequiredPersistentEntity(P persistentProperty) {
-
-		return getPersistentEntity(persistentProperty).orElseThrow(() -> new IllegalArgumentException(
-				String.format("Couldn't find PersistentEntity for type %s!", persistentProperty)));
+		return getPersistentEntity(typeInfo.getRequiredActualType());
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.context.MappingContext#getPersistentPropertyPath(java.lang.Class, java.lang.String)
 	 */
+	@Override
 	public PersistentPropertyPath<P> getPersistentPropertyPath(PropertyPath propertyPath) {
-
-		Assert.notNull(propertyPath, "Property path must not be null!");
-
-		return getPersistentPropertyPath(propertyPath.toDotPath(), propertyPath.getOwningType());
+		return persistentPropertyPathFactory.from(propertyPath);
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.context.MappingContext#getPersistentPropertyPath(java.lang.String, java.lang.Class)
 	 */
+	@Override
 	public PersistentPropertyPath<P> getPersistentPropertyPath(String propertyPath, Class<?> type) {
-
-		Assert.notNull(propertyPath, "Property path must not be null!");
-		Assert.notNull(type, "Type must not be null!");
-
-		return getPersistentPropertyPath(propertyPath, ClassTypeInformation.from(type));
+		return persistentPropertyPathFactory.from(type, propertyPath);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.context.MappingContext#getPersistentPropertyPath(org.springframework.data.mapping.context.InvalidPersistentPropertyPath)
+	 * @see org.springframework.data.mapping.context.MappingContext#findPersistentPropertyPath(java.lang.Class, java.util.function.Predicate)
 	 */
 	@Override
-	public PersistentPropertyPath<P> getPersistentPropertyPath(InvalidPersistentPropertyPath invalidPath) {
-		return getPersistentPropertyPath(invalidPath.getResolvedPath(), invalidPath.getType());
-	}
+	public <T> PersistentPropertyPaths<T, P> findPersistentPropertyPaths(Class<T> type, Predicate<? super P> predicate) {
 
-	private PersistentPropertyPath<P> getPersistentPropertyPath(String propertyPath, TypeInformation<?> type) {
-		return getPersistentPropertyPath(Arrays.asList(propertyPath.split("\\.")), type);
+		Assert.notNull(type, "Type must not be null!");
+		Assert.notNull(predicate, "Selection predicate must not be null!");
+
+		return doFindPersistentPropertyPaths(type, predicate, it -> !it.isAssociation());
 	}
 
 	/**
-	 * Creates a {@link PersistentPropertyPath} for the given parts and {@link TypeInformation}.
+	 * Actually looks up the {@link PersistentPropertyPaths} for the given type, selection predicate and traversal guard.
+	 * Primary purpose is to allow sub-types to alter the default traversal guard, e.g. used by
+	 * {@link #findPersistentPropertyPaths(Class, Predicate)}.
 	 *
-	 * @param parts must not be {@literal null} or empty.
-	 * @param type must not be {@literal null}.
-	 * @return
+	 * @param type will never be {@literal null}.
+	 * @param predicate will never be {@literal null}.
+	 * @param traversalGuard will never be {@literal null}.
+	 * @return will never be {@literal null}.
+	 * @see #findPersistentPropertyPaths(Class, Predicate)
 	 */
-	private PersistentPropertyPath<P> getPersistentPropertyPath(Collection<String> parts, TypeInformation<?> type) {
-
-		DefaultPersistentPropertyPath<P> path = DefaultPersistentPropertyPath.empty();
-		Iterator<String> iterator = parts.iterator();
-		E current = getRequiredPersistentEntity(type);
-
-		while (iterator.hasNext()) {
-
-			String segment = iterator.next();
-			final DefaultPersistentPropertyPath<P> foo = path;
-			final E bar = current;
-
-			Pair<DefaultPersistentPropertyPath<P>, E> pair = getPair(path, iterator, segment, current).orElseThrow(() -> {
-
-				String source = StringUtils.collectionToDelimitedString(parts, ".");
-				String resolvedPath = foo.toDotPath();
-
-				return new InvalidPersistentPropertyPath(source, type, segment, resolvedPath,
-						String.format("No property %s found on %s!", segment, bar.getName()));
-			});
-
-			path = pair.getFirst();
-			current = pair.getSecond();
-		}
-
-		return path;
-	}
-
-	private Optional<Pair<DefaultPersistentPropertyPath<P>, E>> getPair(DefaultPersistentPropertyPath<P> path,
-			Iterator<String> iterator, String segment, E entity) {
-
-		Optional<P> persistentProperty = entity.getPersistentProperty(segment);
-
-		return persistentProperty.map(it -> {
-
-			TypeInformation<?> type = it.getTypeInformation().getActualType();
-			return Pair.of(path.append(it), iterator.hasNext() ? getRequiredPersistentEntity(type) : entity);
-		});
+	protected final <T> PersistentPropertyPaths<T, P> doFindPersistentPropertyPaths(Class<T> type,
+			Predicate<? super P> predicate, Predicate<P> traversalGuard) {
+		return persistentPropertyPathFactory.from(ClassTypeInformation.from(type), predicate, traversalGuard);
 	}
 
 	/**
@@ -380,12 +355,15 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 		}
 
 		Class<?> type = typeInformation.getType();
+		E entity = null;
 
 		try {
 
 			write.lock();
 
-			final E entity = createPersistentEntity(typeInformation);
+			entity = createPersistentEntity(typeInformation);
+
+			entity.setEvaluationContextProvider(evaluationContextProvider);
 
 			// Eagerly cache the entity as we might have to find it during recursive lookups.
 			persistentEntities.put(typeInformation, Optional.of(entity));
@@ -409,23 +387,23 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 					entity.setPersistentPropertyAccessorFactory(persistentPropertyAccessorFactory);
 				}
 
-			} catch (MappingException e) {
+			} catch (RuntimeException e) {
 				persistentEntities.remove(typeInformation);
 				throw e;
 			}
-
-			// Inform listeners
-			if (null != applicationEventPublisher) {
-				applicationEventPublisher.publishEvent(new MappingContextEvent<>(this, entity));
-			}
-
-			return Optional.of(entity);
 
 		} catch (BeansException e) {
 			throw new MappingException(e.getMessage(), e);
 		} finally {
 			write.unlock();
 		}
+
+		// Inform listeners
+		if (applicationEventPublisher != null && entity != null) {
+			applicationEventPublisher.publishEvent(new MappingContextEvent<>(this, entity));
+		}
+
+		return Optional.of(entity);
 	}
 
 	/*
@@ -457,8 +435,7 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 	/**
 	 * Creates the concrete instance of {@link PersistentProperty}.
 	 *
-	 * @param field
-	 * @param descriptor
+	 * @param property
 	 * @param owner
 	 * @param simpleTypeHolder
 	 * @return
@@ -484,15 +461,21 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 
 	/**
 	 * Returns whether a {@link PersistentEntity} instance should be created for the given {@link TypeInformation}. By
-	 * default this will reject this for all types considered simple, but it might be necessary to tweak that in case you
-	 * have registered custom converters for top level types (which renders them to be considered simple) but still need
-	 * meta-information about them.
+	 * default this will reject all types considered simple and non-supported Kotlin classes, but it might be necessary to
+	 * tweak that in case you have registered custom converters for top level types (which renders them to be considered
+	 * simple) but still need meta-information about them.
+	 * <p/>
 	 *
 	 * @param type will never be {@literal null}.
 	 * @return
 	 */
 	protected boolean shouldCreatePersistentEntityFor(TypeInformation<?> type) {
-		return !simpleTypeHolder.isSimpleType(type.getType());
+
+		if (simpleTypeHolder.isSimpleType(type.getType())) {
+			return false;
+		}
+
+		return !KotlinDetector.isKotlinType(type.getType()) || KotlinReflectionUtils.isSupportedKotlinClass(type.getType());
 	}
 
 	/**
@@ -500,15 +483,21 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 	 *
 	 * @author Oliver Gierke
 	 */
-	@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 	private final class PersistentPropertyCreator implements FieldCallback {
 
-		private final @NonNull E entity;
-		private final @NonNull Map<String, PropertyDescriptor> descriptors;
-		private final @NonNull Map<String, PropertyDescriptor> remainingDescriptors;
+		private final E entity;
+		private final Map<String, PropertyDescriptor> descriptors;
+		private final Map<String, PropertyDescriptor> remainingDescriptors;
 
 		public PersistentPropertyCreator(E entity, Map<String, PropertyDescriptor> descriptors) {
 			this(entity, descriptors, descriptors);
+		}
+
+		private PersistentPropertyCreator(E entity, Map<String, PropertyDescriptor> descriptors,
+				Map<String, PropertyDescriptor> remainingDescriptors) {
+			this.entity = entity;
+			this.descriptors = descriptors;
+			this.remainingDescriptors = remainingDescriptors;
 		}
 
 		/*
@@ -518,12 +507,13 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 		public void doWith(Field field) {
 
 			String fieldName = field.getName();
+			TypeInformation<?> type = entity.getTypeInformation();
 
 			ReflectionUtils.makeAccessible(field);
 
 			Property property = Optional.ofNullable(descriptors.get(fieldName))//
-					.map(it -> Property.of(field, it))//
-					.orElseGet(() -> Property.of(field));
+					.map(it -> Property.of(type, field, it))//
+					.orElseGet(() -> Property.of(type, field));
 
 			createAndRegisterProperty(property);
 
@@ -538,9 +528,10 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 		 */
 		public void addPropertiesForRemainingDescriptors() {
 
-			remainingDescriptors.values().stream()//
-					.map(Property::of)//
-					.filter(PersistentPropertyFilter.INSTANCE::matches)//
+			remainingDescriptors.values().stream() //
+					.filter(Property::supportsStandalone) //
+					.map(it -> Property.of(entity.getTypeInformation(), it)) //
+					.filter(PersistentPropertyFilter.INSTANCE::matches) //
 					.forEach(this::createAndRegisterProperty);
 		}
 
@@ -557,13 +548,16 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 			}
 
 			entity.addPersistentProperty(property);
-			property.getAssociation().ifPresent(entity::addAssociation);
+
+			if (property.isAssociation()) {
+				entity.addAssociation(property.getRequiredAssociation());
+			}
 
 			if (entity.getType().equals(property.getRawType())) {
 				return;
 			}
 
-			property.getPersistentEntityType().forEach(AbstractMappingContext.this::addPersistentEntity);
+			property.getPersistentEntityTypes().forEach(AbstractMappingContext.this::addPersistentEntity);
 		}
 	}
 
@@ -606,7 +600,7 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 		/**
 		 * Returns whether the given {@link PropertyDescriptor} is one to create a {@link PersistentProperty} for.
 		 *
-		 * @param descriptor must not be {@literal null}.
+		 * @param property must not be {@literal null}.
 		 * @return
 		 */
 		public boolean matches(Property property) {
@@ -629,19 +623,18 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 		 */
 		static class PropertyMatch {
 
-			private final String namePattern;
-			private final String typeName;
+			private final @Nullable String namePattern, typeName;
 
 			/**
-			 * Creates a new {@link PropertyMatch} for the given name pattern and type name. At least one of the paramters
+			 * Creates a new {@link PropertyMatch} for the given name pattern and type name. At least one of the parameters
 			 * must not be {@literal null}.
 			 *
 			 * @param namePattern a regex pattern to match field names, can be {@literal null}.
 			 * @param typeName the name of the type to exclude, can be {@literal null}.
 			 */
-			public PropertyMatch(String namePattern, String typeName) {
+			public PropertyMatch(@Nullable String namePattern, @Nullable String typeName) {
 
-				Assert.isTrue(!(namePattern == null && typeName == null), "Either name patter or type name must be given!");
+				Assert.isTrue(!(namePattern == null && typeName == null), "Either name pattern or type name must be given!");
 
 				this.namePattern = namePattern;
 				this.typeName = typeName;
@@ -650,10 +643,14 @@ public abstract class AbstractMappingContext<E extends MutablePersistentEntity<?
 			/**
 			 * Returns whether the given {@link Field} matches the defined {@link PropertyMatch}.
 			 *
-			 * @param field must not be {@literal null}.
+			 * @param name must not be {@literal null}.
+			 * @param type must not be {@literal null}.
 			 * @return
 			 */
 			public boolean matches(String name, Class<?> type) {
+
+				Assert.notNull(name, "Name must not be null!");
+				Assert.notNull(type, "Type must not be null!");
 
 				if (namePattern != null && !name.matches(namePattern)) {
 					return false;

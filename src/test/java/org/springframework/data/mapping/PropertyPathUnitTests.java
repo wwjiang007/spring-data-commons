@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,29 +16,27 @@
 package org.springframework.data.mapping;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.springframework.data.mapping.PropertyPath.*;
+import static org.springframework.data.mapping.PropertyPath.from;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 
 /**
  * Unit tests for {@link PropertyPath}.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
+ * @author Mark Paluch
  */
 @SuppressWarnings("unused")
 public class PropertyPathUnitTests {
-
-	@Rule public ExpectedException exception = ExpectedException.none();
 
 	@Test
 	public void parsesSimplePropertyCorrectly() throws Exception {
@@ -214,16 +212,17 @@ public class PropertyPathUnitTests {
 				.withMessageContaining("property _id");
 	}
 
-	@Test(expected = PropertyReferenceException.class) // DATACMNS 158
+	@Test // DATACMNS 158
 	public void rejectsInvalidPathsContainingDigits() {
-		PropertyPath.from("PropertyThatWillFail4Sure", Foo.class);
+		assertThatExceptionOfType(PropertyReferenceException.class)
+				.isThrownBy(() -> from("PropertyThatWillFail4Sure", Foo.class));
 	}
 
 	@Test
 	public void rejectsInvalidProperty() {
 
 		assertThatExceptionOfType(PropertyReferenceException.class)//
-				.isThrownBy(() -> PropertyPath.from("_foo_id", Sample2.class))//
+				.isThrownBy(() -> from("_foo_id", Sample2.class))//
 				.matches(e -> e.getBaseProperty().getSegment().equals("_foo"));
 	}
 
@@ -278,61 +277,54 @@ public class PropertyPathUnitTests {
 	@Test // DATACMNS-381
 	public void exposesPreviouslyReferencedPathInExceptionMessage() {
 
-		exception.expect(PropertyReferenceException.class);
-		exception.expectMessage("bar"); // missing variable
-		exception.expectMessage("String"); // type
-		exception.expectMessage("Bar.user.name"); // previously referenced path
-
-		PropertyPath.from("userNameBar", Bar.class);
+		assertThatExceptionOfType(PropertyReferenceException.class).isThrownBy(() -> from("userNameBar", Bar.class)) //
+				.withMessageContaining("bar") // missing variable
+				.withMessageContaining("String") // type
+				.withMessageContaining("Bar.user.name"); // previously referenced path
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-387
+	@Test // DATACMNS-387
 	public void rejectsNullSource() {
-		from(null, Foo.class);
+		assertThatIllegalArgumentException().isThrownBy(() -> from(null, Foo.class));
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-387
+	@Test // DATACMNS-387
 	public void rejectsEmptySource() {
-		from("", Foo.class);
+		assertThatIllegalArgumentException().isThrownBy(() -> from("", Foo.class));
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-387
+	@Test // DATACMNS-387
 	public void rejectsNullClass() {
-		from("foo", (Class<?>) null);
+		assertThatIllegalArgumentException().isThrownBy(() -> from("foo", (Class<?>) null));
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-387
+	@Test // DATACMNS-387
 	public void rejectsNullTypeInformation() {
-		from("foo", (TypeInformation<?>) null);
+		assertThatIllegalArgumentException().isThrownBy(() -> from("foo", (TypeInformation<?>) null));
 	}
 
 	@Test // DATACMNS-546
 	public void returnsCompletePathIfResolutionFailedCompletely() {
 
-		exception.expect(PropertyReferenceException.class);
-		exception.expectMessage("somethingDifferent");
-
-		from("somethingDifferent", Foo.class);
+		assertThatExceptionOfType(PropertyReferenceException.class) //
+				.isThrownBy(() -> from("somethingDifferent", Foo.class)).withMessageContaining("somethingDifferent");
 	}
 
 	@Test // DATACMNS-546
 	public void includesResolvedPathInExceptionMessage() {
 
-		exception.expect(PropertyReferenceException.class);
-		exception.expectMessage("fooName");
-		exception.expectMessage(FooBar.class.getSimpleName());
-		exception.expectMessage("Bar.user");
-
-		from("userFooName", Bar.class);
+		assertThatExceptionOfType(PropertyReferenceException.class) //
+				.isThrownBy(() -> from("userFooName", Bar.class)) //
+				.withMessageContaining("fooName") // missing variable
+				.withMessageContaining(FooBar.class.getSimpleName()) // type
+				.withMessageContaining("Bar.user"); // previously referenced path
 	}
 
 	@Test // DATACMNS-703
 	public void includesPropertyHintsOnTypos() {
 
-		exception.expect(PropertyReferenceException.class);
-		exception.expectMessage("userName");
-
-		from("userAme", Foo.class);
+		assertThatExceptionOfType(PropertyReferenceException.class) //
+				.isThrownBy(() -> from("userAme", Foo.class)).withMessageContaining("userName");
 	}
 
 	@Test // DATACMNS-867
@@ -343,6 +335,62 @@ public class PropertyPathUnitTests {
 		assertThat(path).isNotNull();
 		assertThat(path.getSegment()).isEqualTo("var_name_with_underscore");
 		assertThat(path.hasNext()).isFalse();
+	}
+
+	@Test // DATACMNS-1120
+	public void cachesPropertyPathsByPathAndType() {
+		assertThat(from("userName", Foo.class)).isSameAs(from("userName", Foo.class));
+	}
+
+	@Test // DATACMNS-1198
+	public void exposesLeafPropertyType() {
+		assertThat(from("user.name", Bar.class).getLeafType()).isEqualTo(String.class);
+	}
+
+	@Test // DATACMNS-1199
+	public void createsNestedPropertyPath() {
+		assertThat(from("user", Bar.class).nested("name")).isEqualTo(from("user.name", Bar.class));
+	}
+
+	@Test // DATACMNS-1199
+	public void rejectsNonExistantNestedPath() {
+
+		assertThatExceptionOfType(PropertyReferenceException.class) //
+				.isThrownBy(() -> from("user", Bar.class).nested("nonexistant")) //
+				.withMessageContaining("nonexistant") //
+				.withMessageContaining("Bar.user");
+	}
+
+	@Test // DATACMNS-1285
+	public void rejectsTooLongPath() {
+
+		String source = "foo.bar";
+
+		for (int i = 0; i < 9; i++) {
+			source = source + "." + source;
+		}
+
+		assertThat(source.split("\\.").length).isGreaterThan(1000);
+
+		final String path = source;
+
+		assertThatExceptionOfType(IllegalArgumentException.class) //
+				.isThrownBy(() -> PropertyPath.from(path, Left.class));
+	}
+
+	@Test // DATACMNS-1304
+	public void resolvesPropertyPathWithSingleUppercaseLetterPropertyEnding() {
+		assertThat(from("categoryB", Product.class).toDotPath()).isEqualTo("categoryB");
+	}
+
+	@Test // DATACMNS-1304
+	public void resolvesPropertyPathWithUppercaseLettersPropertyEnding() {
+		assertThat(from("categoryABId", Product.class).toDotPath()).isEqualTo("categoryAB.id");
+	}
+
+	@Test // DATACMNS-1304
+	public void detectsNestedSingleCharacterProperty() {
+		assertThat(from("category_B", Product.class).toDotPath()).isEqualTo("category.b");
 	}
 
 	private class Foo {
@@ -379,4 +427,28 @@ public class PropertyPathUnitTests {
 		private FooBar user;
 		private Foo _foo;
 	}
+
+	// DATACMNS-1285
+
+	private class Left {
+		Right foo;
+	}
+
+	private class Right {
+		Left bar;
+	}
+
+	// DATACMNS-1304
+	private class Product {
+		Category category;
+		Category categoryB;
+		Category categoryAB;
+	}
+
+	private class Category {
+		B b;
+		String id;
+	}
+
+	private class B {}
 }

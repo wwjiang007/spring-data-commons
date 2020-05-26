@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2013 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,23 +16,12 @@
 package org.springframework.data.convert;
 
 import org.springframework.data.mapping.PersistentEntity;
-import org.springframework.data.mapping.PersistentProperty;
-import org.springframework.data.mapping.model.ParameterValueProvider;
 
 /**
  * SPI to abstract strategies to create instances for {@link PersistentEntity}s.
- * 
+ *
  * @author Oliver Gierke
+ * @since 2.3, use {@link org.springframework.data.mapping.model.EntityInstantiator} instead.
  */
-public interface EntityInstantiator {
-
-	/**
-	 * Creates a new instance of the given entity using the given source to pull data from.
-	 * 
-	 * @param entity will not be {@literal null}.
-	 * @param provider will not be {@literal null}.
-	 * @return
-	 */
-	<T, E extends PersistentEntity<? extends T, P>, P extends PersistentProperty<P>> T createInstance(E entity,
-			ParameterValueProvider<P> provider);
-}
+@Deprecated
+public interface EntityInstantiator extends org.springframework.data.mapping.model.EntityInstantiator {}

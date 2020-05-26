@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,43 +16,44 @@
 package org.springframework.data.util;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.springframework.data.util.ClassTypeInformation.*;
+import static org.springframework.data.util.ClassTypeInformation.from;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * Unit tests for {@link TypeDiscoverer}.
- * 
+ *
  * @author Oliver Gierke
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TypeDiscovererUnitTests {
 
-	static final Map<TypeVariable<?>, Type> EMPTY_MAP = Collections.emptyMap();
+	private static final Map<TypeVariable<?>, Type> EMPTY_MAP = Collections.emptyMap();
 
 	@Mock Map<TypeVariable<?>, Type> firstMap;
 	@Mock Map<TypeVariable<?>, Type> secondMap;
 
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNullType() {
-		new TypeDiscoverer<>(null, null);
+	@Test
+	void rejectsNullType() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new TypeDiscoverer<>(null, null));
 	}
 
 	@Test
-	public void isNotEqualIfTypesDiffer() {
+	void isNotEqualIfTypesDiffer() {
 
 		TypeDiscoverer<Object> objectTypeInfo = new TypeDiscoverer<>(Object.class, EMPTY_MAP);
 		TypeDiscoverer<String> stringTypeInfo = new TypeDiscoverer<>(String.class, EMPTY_MAP);
@@ -61,7 +62,7 @@ public class TypeDiscovererUnitTests {
 	}
 
 	@Test
-	public void isNotEqualIfTypeVariableMapsDiffer() {
+	void isNotEqualIfTypeVariableMapsDiffer() {
 
 		assertThat(firstMap.equals(secondMap)).isFalse();
 
@@ -72,56 +73,51 @@ public class TypeDiscovererUnitTests {
 	}
 
 	@Test
-	public void dealsWithTypesReferencingThemselves() {
+	void dealsWithTypesReferencingThemselves() {
 
 		TypeInformation<SelfReferencing> information = from(SelfReferencing.class);
-		Optional<TypeInformation<?>> first = information.getProperty("parent").flatMap(TypeInformation::getMapValueType);
-		Optional<TypeInformation<?>> second = first.flatMap(it -> it.getProperty("map"))
-				.flatMap(TypeInformation::getMapValueType);
+		TypeInformation<?> first = information.getProperty("parent").getMapValueType();
+		TypeInformation<?> second = first.getProperty("map").getMapValueType();
 
 		assertThat(second).isEqualTo(first);
 	}
 
 	@Test
-	public void dealsWithTypesReferencingThemselvesInAMap() {
+	void dealsWithTypesReferencingThemselvesInAMap() {
 
 		TypeInformation<SelfReferencingMap> information = from(SelfReferencingMap.class);
-		Optional<TypeInformation<?>> property = information.getProperty("map");
+		TypeInformation<?> property = information.getProperty("map");
 
-		assertThat(property).hasValueSatisfying(it -> assertThat(it.getMapValueType()).hasValue(information));
+		assertThat(property.getMapValueType()).isEqualTo(information);
 	}
 
 	@Test
-	public void returnsComponentAndValueTypesForMapExtensions() {
+	void returnsComponentAndValueTypesForMapExtensions() {
 
 		TypeInformation<?> discoverer = new TypeDiscoverer<>(CustomMap.class, EMPTY_MAP);
 
-		assertThat(discoverer.getMapValueType()).hasValueSatisfying(it -> assertThat(it.getType()).isEqualTo(Locale.class));
-
-		assertThat(discoverer.getComponentType())
-				.hasValueSatisfying(it -> assertThat(it.getType()).isEqualTo(String.class));
+		assertThat(discoverer.getMapValueType().getType()).isEqualTo(Locale.class);
+		assertThat(discoverer.getComponentType().getType()).isEqualTo(String.class);
 	}
 
 	@Test
-	public void returnsComponentTypeForCollectionExtension() {
+	void returnsComponentTypeForCollectionExtension() {
 
 		TypeDiscoverer<CustomCollection> discoverer = new TypeDiscoverer<>(CustomCollection.class, firstMap);
 
-		assertThat(discoverer.getComponentType())
-				.hasValueSatisfying(it -> assertThat(it.getType()).isEqualTo(String.class));
+		assertThat(discoverer.getComponentType().getType()).isEqualTo(String.class);
 	}
 
 	@Test
-	public void returnsComponentTypeForArrays() {
+	void returnsComponentTypeForArrays() {
 
 		TypeDiscoverer<String[]> discoverer = new TypeDiscoverer<>(String[].class, EMPTY_MAP);
 
-		assertThat(discoverer.getComponentType())
-				.hasValueSatisfying(it -> assertThat(it.getType()).isEqualTo(String.class));
+		assertThat(discoverer.getComponentType().getType()).isEqualTo(String.class);
 	}
 
 	@Test // DATACMNS-57
-	public void discoveresConstructorParameterTypesCorrectly() throws NoSuchMethodException, SecurityException {
+	void discoveresConstructorParameterTypesCorrectly() throws NoSuchMethodException, SecurityException {
 
 		TypeDiscoverer<GenericConstructors> discoverer = new TypeDiscoverer<>(GenericConstructors.class, firstMap);
 		Constructor<GenericConstructors> constructor = GenericConstructors.class.getConstructor(List.class, Locale.class);
@@ -129,40 +125,58 @@ public class TypeDiscovererUnitTests {
 
 		assertThat(types).hasSize(2);
 		assertThat(types.get(0).getType()).isEqualTo(List.class);
-		assertThat(types.get(0).getComponentType())
-				.hasValueSatisfying(it -> assertThat(it.getType()).isEqualTo(String.class));
+		assertThat(types.get(0).getComponentType().getType()).isEqualTo(String.class);
 	}
 
 	@Test
 	@SuppressWarnings("rawtypes")
-	public void returnsNullForComponentAndValueTypesForRawMaps() {
+	void returnsNullForComponentAndValueTypesForRawMaps() {
 
 		TypeDiscoverer<Map> discoverer = new TypeDiscoverer<>(Map.class, EMPTY_MAP);
 
-		assertThat(discoverer.getComponentType()).isEmpty();
-		assertThat(discoverer.getMapValueType()).isEmpty();
+		assertThat(discoverer.getComponentType()).isNull();
+		assertThat(discoverer.getMapValueType()).isNull();
 	}
 
 	@Test // DATACMNS-167
 	@SuppressWarnings("rawtypes")
-	public void doesNotConsiderTypeImplementingIterableACollection() {
+	void doesNotConsiderTypeImplementingIterableACollection() {
 
 		TypeDiscoverer<Person> discoverer = new TypeDiscoverer<>(Person.class, EMPTY_MAP);
 		TypeInformation reference = from(Address.class);
 
-		Optional<TypeInformation<?>> addresses = discoverer.getProperty("addresses");
+		TypeInformation<?> addresses = discoverer.getProperty("addresses");
 
-		assertThat(addresses).hasValueSatisfying(it -> {
+		assertThat(addresses).satisfies(it -> {
 			assertThat(it.isCollectionLike()).isFalse();
-			assertThat(it.getComponentType()).hasValue(reference);
+			assertThat(it.getComponentType()).isEqualTo(reference);
 		});
 
-		Optional<TypeInformation<?>> adressIterable = discoverer.getProperty("addressIterable");
+		TypeInformation<?> adressIterable = discoverer.getProperty("addressIterable");
 
-		assertThat(adressIterable).hasValueSatisfying(it -> {
+		assertThat(adressIterable).satisfies(it -> {
 			assertThat(it.isCollectionLike()).isTrue();
-			assertThat(it.getComponentType()).hasValue(reference);
+			assertThat(it.getComponentType()).isEqualTo(reference);
 		});
+	}
+
+	@Test // DATACMNS-1342, DATACMNS-1430
+	void considersStreamableToBeCollectionLike() {
+
+		TypeInformation<SomeStreamable> type = from(SomeStreamable.class);
+
+		assertThat(type.isCollectionLike()).isTrue();
+		assertThat(type.getRequiredProperty("streamable").isCollectionLike()).isTrue();
+	}
+
+	@Test // DATACMNS-1419
+	void detectsSubTypes() {
+
+		ClassTypeInformation<Set> type = from(Set.class);
+
+		assertThat(type.isSubTypeOf(Collection.class)).isTrue();
+		assertThat(type.isSubTypeOf(Set.class)).isFalse();
+		assertThat(type.isSubTypeOf(String.class)).isFalse();
 	}
 
 	class Person {
@@ -200,6 +214,18 @@ public class TypeDiscovererUnitTests {
 
 		public GenericConstructors(List<String> first, Locale second) {
 
+		}
+	}
+
+	// DATACMNS-1342
+
+	static class SomeStreamable implements Streamable<String> {
+
+		Streamable<String> streamable;
+
+		@Override
+		public Iterator<String> iterator() {
+			return Collections.emptyIterator();
 		}
 	}
 }

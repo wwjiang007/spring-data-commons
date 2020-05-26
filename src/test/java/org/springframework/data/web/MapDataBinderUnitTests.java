@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,22 +27,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.ConfigurablePropertyAccessor;
 import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.NotWritablePropertyException;
 import org.springframework.beans.PropertyValues;
+import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.format.support.DefaultFormattingConversionService;
 
 /**
  * Unit tests for {@link MapDataBinder}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class MapDataBinderUnitTests {
+class MapDataBinderUnitTests {
 
 	@Test // DATACMNS-630
-	public void honorsFormattingAnnotationOnAccessor() {
+	void honorsFormattingAnnotationOnAccessor() {
 
 		Date reference = new Date();
 
@@ -56,8 +59,7 @@ public class MapDataBinderUnitTests {
 	}
 
 	@Test // DATACMNS-630
-	@SuppressWarnings("rawtypes")
-	public void bindsNestedCollectionElement() {
+	void bindsNestedCollectionElement() {
 
 		MutablePropertyValues values = new MutablePropertyValues();
 		values.add("foo.bar.fooBar[0]", "String");
@@ -71,8 +73,7 @@ public class MapDataBinderUnitTests {
 	}
 
 	@Test // DATACMNS-630
-	@SuppressWarnings("rawtypes")
-	public void bindsNestedPrimitive() {
+	void bindsNestedPrimitive() {
 
 		MutablePropertyValues values = new MutablePropertyValues();
 		values.add("foo.firstname", "Dave");
@@ -88,12 +89,34 @@ public class MapDataBinderUnitTests {
 	}
 
 	@Test // DATACMNS-630
-	public void skipsPropertyNotExposedByTheTypeHierarchy() {
+	void skipsPropertyNotExposedByTheTypeHierarchy() {
 
 		MutablePropertyValues values = new MutablePropertyValues();
 		values.add("somethingWeird", "Value");
 
-		assertThat(bind(values)).isEqualTo(Collections.<String, Object> emptyMap());
+		assertThat(bind(values)).isEqualTo(Collections.emptyMap());
+	}
+
+	@Test // DATACMNS-1264
+	void dropsMapExpressionsForCollectionReferences() {
+
+		ConfigurablePropertyAccessor accessor = new MapDataBinder(Bar.class, new DefaultFormattingConversionService())
+				.getPropertyAccessor();
+
+		assertThatExceptionOfType(NotWritablePropertyException.class) //
+				.isThrownBy(() -> accessor.setPropertyValue("fooBar['foo']", null)) //
+				.withCauseInstanceOf(SpelEvaluationException.class);
+	}
+
+	@Test // DATACMNS-1264
+	void rejectsExpressionContainingTypeExpression() {
+
+		ConfigurablePropertyAccessor accessor = new MapDataBinder(Bar.class, new DefaultFormattingConversionService())
+				.getPropertyAccessor();
+
+		assertThatExceptionOfType(NotWritablePropertyException.class) //
+				.isThrownBy(() -> accessor.setPropertyValue("fooBar[T(java.lang.String)]", null)) //
+				.withCauseInstanceOf(SpelEvaluationException.class);
 	}
 
 	private static Map<String, Object> bind(PropertyValues values) {

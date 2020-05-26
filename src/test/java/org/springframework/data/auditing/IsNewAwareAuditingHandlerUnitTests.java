@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2017 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,42 +16,47 @@
 package org.springframework.data.auditing;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
-import java.util.Collections;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mapping.context.PersistentEntities;
 import org.springframework.data.mapping.context.SampleMappingContext;
 
 /**
  * Unit test for {@code AuditingHandler}.
- * 
+ *
  * @author Oliver Gierke
  * @since 1.5
  */
-@RunWith(MockitoJUnitRunner.class)
-public class IsNewAwareAuditingHandlerUnitTests extends AuditingHandlerUnitTests {
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class IsNewAwareAuditingHandlerUnitTests extends AuditingHandlerUnitTests {
 
 	SampleMappingContext mappingContext;
 
-	@Before
-	public void init() {
+	@BeforeEach
+	void init() {
+
 		this.mappingContext = new SampleMappingContext();
+		this.mappingContext.getPersistentEntity(AuditedUser.class);
+		this.mappingContext.afterPropertiesSet();
 	}
 
 	@Override
 	protected IsNewAwareAuditingHandler getHandler() {
-		return new IsNewAwareAuditingHandler(mock(PersistentEntities.class));
+		return new IsNewAwareAuditingHandler(PersistentEntities.of(mappingContext));
 	}
 
 	@Test
-	public void delegatesToMarkCreatedForNewEntity() {
+	void delegatesToMarkCreatedForNewEntity() {
 
 		AuditedUser user = new AuditedUser();
 
@@ -62,7 +67,7 @@ public class IsNewAwareAuditingHandlerUnitTests extends AuditingHandlerUnitTests
 	}
 
 	@Test
-	public void delegatesToMarkModifiedForNonNewEntity() {
+	void delegatesToMarkModifiedForNonNewEntity() {
 
 		AuditedUser user = new AuditedUser();
 		user.id = 1L;
@@ -73,18 +78,18 @@ public class IsNewAwareAuditingHandlerUnitTests extends AuditingHandlerUnitTests
 		assertThat(user.modifiedDate).isNotNull();
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-365
-	public void rejectsNullMappingContext() {
-		new IsNewAwareAuditingHandler((PersistentEntities) null);
+	@Test // DATACMNS-365
+	void rejectsNullMappingContext() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new IsNewAwareAuditingHandler((PersistentEntities) null));
 	}
 
 	@Test // DATACMNS-365
-	public void setsUpHandlerWithMappingContext() {
-		new IsNewAwareAuditingHandler(new PersistentEntities(Collections.emptySet()));
+	void setsUpHandlerWithMappingContext() {
+		new IsNewAwareAuditingHandler(PersistentEntities.of());
 	}
 
 	@Test // DATACMNS-638
-	public void handlingOptionalIsANoOp() {
+	void handlingOptionalIsANoOp() {
 
 		IsNewAwareAuditingHandler handler = getHandler();
 
@@ -94,7 +99,7 @@ public class IsNewAwareAuditingHandlerUnitTests extends AuditingHandlerUnitTests
 	}
 
 	@Test // DATACMNS-957
-	public void skipsEntityWithoutIdentifier() {
+	void skipsEntityWithoutIdentifier() {
 		getHandler().markAudited(Optional.of(new EntityWithoutId()));
 	}
 

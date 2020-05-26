@@ -1,11 +1,11 @@
 /*
- * Copyright 2012 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,20 +17,20 @@ package org.springframework.data.support;
 
 import static org.assertj.core.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Persistable;
 
 /**
  * Unit tests for {@link PersistableIsNewStrategy}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class PersistableIsNewStrategyUnitTests {
+class PersistableIsNewStrategyUnitTests {
 
 	IsNewStrategy strategy = PersistableIsNewStrategy.INSTANCE;
 
 	@Test
-	public void invokesPersistableIsNewForTest() {
+	void invokesPersistableIsNewForTest() {
 
 		PersistableEntity entity = new PersistableEntity();
 		assertThat(strategy.isNew(entity)).isTrue();
@@ -39,9 +39,9 @@ public class PersistableIsNewStrategyUnitTests {
 		assertThat(strategy.isNew(entity)).isFalse();
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNonPersistableEntity() {
-		strategy.isNew(new Object());
+	@Test
+	void rejectsNonPersistableEntity() {
+		assertThatIllegalArgumentException().isThrownBy(() -> strategy.isNew(new Object()));
 	}
 
 	@SuppressWarnings("serial")

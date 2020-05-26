@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,7 +31,6 @@ import org.springframework.core.CollectionFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.TypeDescriptor;
-import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.mapping.PropertyPath;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.data.util.TypeInformation;
@@ -39,10 +38,12 @@ import org.springframework.expression.AccessException;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.TypedValue;
+import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParserConfiguration;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.expression.spel.support.StandardTypeConverter;
+import org.springframework.expression.spel.support.SimpleEvaluationContext;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.WebDataBinder;
 
@@ -59,7 +60,7 @@ class MapDataBinder extends WebDataBinder {
 
 	/**
 	 * Creates a new {@link MapDataBinder} for the given type and {@link ConversionService}.
-	 * 
+	 *
 	 * @param type target type to detect property that need to be bound.
 	 * @param conversionService the {@link ConversionService} to be used to preprocess values.
 	 */
@@ -71,17 +72,25 @@ class MapDataBinder extends WebDataBinder {
 		this.conversionService = conversionService;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.validation.DataBinder#getTarget()
 	 */
+	@NonNull
 	@Override
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> getTarget() {
-		return (Map<String, Object>) super.getTarget();
+
+		Object target = super.getTarget();
+
+		if (target == null) {
+			throw new IllegalStateException("Target bean should never be null!");
+		}
+
+		return (Map<String, Object>) target;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.validation.DataBinder#getPropertyAccessor()
 	 */
@@ -106,25 +115,14 @@ class MapDataBinder extends WebDataBinder {
 		private final Map<String, Object> map;
 		private final ConversionService conversionService;
 
-		/**
-		 * Creates a new {@link MapPropertyAccessor} for the given type, map and {@link ConversionService}.
-		 * 
-		 * @param type must not be {@literal null}.
-		 * @param map must not be {@literal null}.
-		 * @param conversionService must not be {@literal null}.
-		 */
 		public MapPropertyAccessor(Class<?> type, Map<String, Object> map, ConversionService conversionService) {
-
-			Assert.notNull(type, "Type must not be null!");
-			Assert.notNull(map, "Map must not be null!");
-			Assert.notNull(conversionService, "ConversionService must not be null!");
 
 			this.type = type;
 			this.map = map;
 			this.conversionService = conversionService;
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.beans.PropertyAccessor#isReadableProperty(java.lang.String)
 		 */
@@ -133,7 +131,7 @@ class MapDataBinder extends WebDataBinder {
 			throw new UnsupportedOperationException();
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.beans.PropertyAccessor#isWritableProperty(java.lang.String)
 		 */
@@ -147,41 +145,36 @@ class MapDataBinder extends WebDataBinder {
 			}
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.beans.PropertyAccessor#getPropertyTypeDescriptor(java.lang.String)
 		 */
+		@Nullable
 		@Override
 		public TypeDescriptor getPropertyTypeDescriptor(String propertyName) throws BeansException {
 			throw new UnsupportedOperationException();
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.beans.AbstractPropertyAccessor#getPropertyValue(java.lang.String)
 		 */
+		@Nullable
 		@Override
 		public Object getPropertyValue(String propertyName) throws BeansException {
 			throw new UnsupportedOperationException();
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.beans.AbstractPropertyAccessor#setPropertyValue(java.lang.String, java.lang.Object)
 		 */
 		@Override
-		public void setPropertyValue(String propertyName, Object value) throws BeansException {
+		public void setPropertyValue(String propertyName, @Nullable Object value) throws BeansException {
 
 			if (!isWritableProperty(propertyName)) {
 				throw new NotWritablePropertyException(type, propertyName);
 			}
-
-			StandardEvaluationContext context = new StandardEvaluationContext();
-			context.addPropertyAccessor(new PropertyTraversingMapAccessor(type, new DefaultConversionService()));
-			context.setTypeConverter(new StandardTypeConverter(conversionService));
-			context.setRootObject(map);
-
-			Expression expression = PARSER.parseExpression(propertyName);
 
 			PropertyPath leafProperty = getPropertyPath(propertyName).getLeafProperty();
 			TypeInformation<?> owningType = leafProperty.getOwningType();
@@ -189,22 +182,45 @@ class MapDataBinder extends WebDataBinder {
 
 			propertyType = propertyName.endsWith("]") ? propertyType.getActualType() : propertyType;
 
-			if (conversionRequired(value, propertyType.getType())) {
+			if (propertyType != null && conversionRequired(value, propertyType.getType())) {
 
 				PropertyDescriptor descriptor = BeanUtils.getPropertyDescriptor(owningType.getType(),
 						leafProperty.getSegment());
+
+				if (descriptor == null) {
+					throw new IllegalStateException(String.format("Couldn't find PropertyDescriptor for %s on %s!",
+							leafProperty.getSegment(), owningType.getType()));
+				}
+
 				MethodParameter methodParameter = new MethodParameter(descriptor.getReadMethod(), -1);
 				TypeDescriptor typeDescriptor = TypeDescriptor.nested(methodParameter, 0);
+
+				if (typeDescriptor == null) {
+					throw new IllegalStateException(
+							String.format("Couldn't obtain type descriptor for method parameter %s!", methodParameter));
+				}
 
 				value = conversionService.convert(value, TypeDescriptor.forObject(value), typeDescriptor);
 			}
 
-			expression.setValue(context, value);
+			EvaluationContext context = SimpleEvaluationContext //
+					.forPropertyAccessors(new PropertyTraversingMapAccessor(type, conversionService)) //
+					.withConversionService(conversionService) //
+					.withRootObject(map) //
+					.build();
+
+			Expression expression = PARSER.parseExpression(propertyName);
+
+			try {
+				expression.setValue(context, value);
+			} catch (SpelEvaluationException o_O) {
+				throw new NotWritablePropertyException(type, propertyName, "Could not write property!", o_O);
+			}
 		}
 
-		private boolean conversionRequired(Object source, Class<?> targetType) {
+		private boolean conversionRequired(@Nullable Object source, Class<?> targetType) {
 
-			if (targetType.isInstance(source)) {
+			if (source == null || targetType.isInstance(source)) {
 				return false;
 			}
 
@@ -220,7 +236,7 @@ class MapDataBinder extends WebDataBinder {
 		/**
 		 * A special {@link MapAccessor} that traverses properties on the configured type to automatically create nested Map
 		 * and collection values as necessary.
-		 * 
+		 *
 		 * @author Oliver Gierke
 		 * @since 1.10
 		 */
@@ -231,7 +247,7 @@ class MapDataBinder extends WebDataBinder {
 
 			/**
 			 * Creates a new {@link PropertyTraversingMapAccessor} for the given type and {@link ConversionService}.
-			 * 
+			 *
 			 * @param type must not be {@literal null}.
 			 * @param conversionService must not be {@literal null}.
 			 */
@@ -249,17 +265,21 @@ class MapDataBinder extends WebDataBinder {
 			 * @see org.springframework.context.expression.MapAccessor#canRead(org.springframework.expression.EvaluationContext, java.lang.Object, java.lang.String)
 			 */
 			@Override
-			public boolean canRead(EvaluationContext context, Object target, String name) throws AccessException {
+			public boolean canRead(EvaluationContext context, @Nullable Object target, String name) throws AccessException {
 				return true;
 			}
 
-			/* 
+			/*
 			 * (non-Javadoc)
 			 * @see org.springframework.context.expression.MapAccessor#read(org.springframework.expression.EvaluationContext, java.lang.Object, java.lang.String)
 			 */
 			@Override
 			@SuppressWarnings("unchecked")
-			public TypedValue read(EvaluationContext context, Object target, String name) throws AccessException {
+			public TypedValue read(EvaluationContext context, @Nullable Object target, String name) throws AccessException {
+
+				if (target == null) {
+					return TypedValue.NULL;
+				}
 
 				PropertyPath path = PropertyPath.from(name, type);
 
@@ -280,7 +300,7 @@ class MapDataBinder extends WebDataBinder {
 
 			/**
 			 * Returns the type descriptor for the given {@link PropertyPath} and empty value for that path.
-			 * 
+			 *
 			 * @param path must not be {@literal null}.
 			 * @param emptyValue must not be {@literal null}.
 			 * @return
@@ -290,7 +310,8 @@ class MapDataBinder extends WebDataBinder {
 				Class<?> actualPropertyType = path.getType();
 
 				TypeDescriptor valueDescriptor = conversionService.canConvert(String.class, actualPropertyType)
-						? TypeDescriptor.valueOf(String.class) : TypeDescriptor.valueOf(HashMap.class);
+						? TypeDescriptor.valueOf(String.class)
+						: TypeDescriptor.valueOf(HashMap.class);
 
 				return path.isCollection() ? TypeDescriptor.collection(emptyValue.getClass(), valueDescriptor)
 						: TypeDescriptor.map(emptyValue.getClass(), TypeDescriptor.valueOf(String.class), valueDescriptor);

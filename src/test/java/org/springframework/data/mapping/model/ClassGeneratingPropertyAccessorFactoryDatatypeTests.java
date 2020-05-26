@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-2017 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,12 +23,10 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.AccessType.Type;
 import org.springframework.data.mapping.PersistentProperty;
@@ -43,26 +41,12 @@ import org.springframework.test.util.ReflectionTestUtils;
  * @author Mark Paluch
  * @author Oliver Gierke
  */
-@RunWith(Parameterized.class)
 public class ClassGeneratingPropertyAccessorFactoryDatatypeTests {
 
 	private final ClassGeneratingPropertyAccessorFactory factory = new ClassGeneratingPropertyAccessorFactory();
 	private final SampleMappingContext mappingContext = new SampleMappingContext();
 
-	private final Object bean;
-	private final String propertyName;
-	private final Optional<Object> value;
-
-	public ClassGeneratingPropertyAccessorFactoryDatatypeTests(Object bean, String propertyName, Object value,
-			String displayName) {
-
-		this.bean = bean;
-		this.propertyName = propertyName;
-		this.value = Optional.of(value);
-	}
-
-	@Parameters(name = "{3}")
-	public static List<Object[]> parameters() throws Exception {
+	static List<Object[]> parameters() throws Exception {
 
 		List<Object[]> parameters = new ArrayList<>();
 		List<Class<?>> types = Arrays.asList(FieldAccess.class, PropertyAccess.class, PrivateFinalFieldAccess.class,
@@ -121,10 +105,11 @@ public class ClassGeneratingPropertyAccessorFactoryDatatypeTests {
 		return parameters;
 	}
 
-	@Test // DATACMNS-809
-	public void shouldSetAndGetProperty() throws Exception {
+	@ParameterizedTest(name = "{3}") // DATACMNS-809
+	@MethodSource("parameters")
+	void shouldSetAndGetProperty(Object bean, String propertyName, Object value, String displayName) {
 
-		assertThat(getProperty(bean, propertyName)).hasValueSatisfying(property -> {
+		assertThat(getProperty(bean, propertyName)).satisfies(property -> {
 
 			PersistentPropertyAccessor persistentPropertyAccessor = getPersistentPropertyAccessor(bean);
 
@@ -133,21 +118,26 @@ public class ClassGeneratingPropertyAccessorFactoryDatatypeTests {
 		});
 	}
 
-	@Test // DATACMNS-809
-	public void shouldUseClassPropertyAccessorFactory() throws Exception {
+	@ParameterizedTest(name = "{3}") // DATACMNS-809
+	@MethodSource("parameters")
+	void shouldUseClassPropertyAccessorFactory(Object bean, String propertyName, Object value, String displayName)
+			throws Exception {
 
 		BasicPersistentEntity<Object, SamplePersistentProperty> persistentEntity = mappingContext
 				.getRequiredPersistentEntity(bean.getClass());
 
 		assertThat(ReflectionTestUtils.getField(persistentEntity, "propertyAccessorFactory"))
-				.isInstanceOf(ClassGeneratingPropertyAccessorFactory.class);
+				.isInstanceOfSatisfying(InstantiationAwarePropertyAccessorFactory.class, it -> {
+					assertThat(ReflectionTestUtils.getField(it, "delegate"))
+							.isInstanceOf(ClassGeneratingPropertyAccessorFactory.class);
+				});
 	}
 
 	private PersistentPropertyAccessor getPersistentPropertyAccessor(Object bean) {
 		return factory.getPropertyAccessor(mappingContext.getRequiredPersistentEntity(bean.getClass()), bean);
 	}
 
-	private Optional<? extends PersistentProperty<?>> getProperty(Object bean, String name) {
+	private PersistentProperty<?> getProperty(Object bean, String name) {
 
 		BasicPersistentEntity<Object, SamplePersistentProperty> persistentEntity = mappingContext
 				.getRequiredPersistentEntity(bean.getClass());

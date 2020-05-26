@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,7 +29,7 @@ import com.querydsl.core.types.Predicate;
 /**
  * {@link RepositoryInvoker} that is aware of a {@link QuerydslPredicateExecutor} and {@link Predicate} to be executed
  * for all flavors of {@code findAll(…)}. All other calls are forwarded to the configured delegate.
- * 
+ *
  * @author Oliver Gierke
  */
 public class QuerydslRepositoryInvokerAdapter implements RepositoryInvoker {
@@ -41,7 +41,7 @@ public class QuerydslRepositoryInvokerAdapter implements RepositoryInvoker {
 	/**
 	 * Creates a new {@link QuerydslRepositoryInvokerAdapter} for the given delegate {@link RepositoryInvoker},
 	 * {@link QuerydslPredicateExecutor} and Querydsl {@link Predicate}.
-	 * 
+	 *
 	 * @param delegate must not be {@literal null}.
 	 * @param executor must not be {@literal null}.
 	 * @param predicate can be {@literal null}.
@@ -75,7 +75,7 @@ public class QuerydslRepositoryInvokerAdapter implements RepositoryInvoker {
 		return executor.findAll(predicate, sort);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.support.RepositoryInvocationInformation#hasDeleteMethod()
 	 */
@@ -84,7 +84,7 @@ public class QuerydslRepositoryInvokerAdapter implements RepositoryInvoker {
 		return delegate.hasDeleteMethod();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.support.RepositoryInvocationInformation#hasFindAllMethod()
 	 */
@@ -93,7 +93,7 @@ public class QuerydslRepositoryInvokerAdapter implements RepositoryInvoker {
 		return delegate.hasFindAllMethod();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.support.RepositoryInvocationInformation#hasFindOneMethod()
 	 */
@@ -102,7 +102,7 @@ public class QuerydslRepositoryInvokerAdapter implements RepositoryInvoker {
 		return delegate.hasFindOneMethod();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.support.RepositoryInvocationInformation#hasSaveMethod()
 	 */
@@ -139,7 +139,7 @@ public class QuerydslRepositoryInvokerAdapter implements RepositoryInvoker {
 		return delegate.invokeQueryMethod(method, parameters, pageable, sort);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.support.RepositoryInvoker#invokeSave(java.lang.Object)
 	 */

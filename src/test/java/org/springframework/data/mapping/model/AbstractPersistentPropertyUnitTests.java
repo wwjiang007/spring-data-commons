@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,9 @@
 package org.springframework.data.mapping.model;
 
 import static org.assertj.core.api.Assertions.*;
+
+import lombok.Getter;
+import lombok.Setter;
 
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -29,30 +32,32 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.mapping.Association;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.Person;
 import org.springframework.data.util.ClassTypeInformation;
+import org.springframework.data.util.Optionals;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.ReflectionUtils;
 
 /**
  * Unit tests for {@link AbstractPersistentProperty}.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
+ * @author Jens Schauder
  */
 public class AbstractPersistentPropertyUnitTests {
 
-	TypeInformation<TestClassComplex> typeInfo;
-	PersistentEntity<TestClassComplex, SamplePersistentProperty> entity;
-	SimpleTypeHolder typeHolder;
+	private TypeInformation<TestClassComplex> typeInfo;
+	private PersistentEntity<TestClassComplex, SamplePersistentProperty> entity;
+	private SimpleTypeHolder typeHolder;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 
 		typeInfo = ClassTypeInformation.from(TestClassComplex.class);
 		entity = new BasicPersistentEntity<>(typeInfo);
@@ -60,27 +65,27 @@ public class AbstractPersistentPropertyUnitTests {
 	}
 
 	@Test // DATACMNS-68
-	public void discoversComponentTypeCorrectly() throws Exception {
-		assertThat(getProperty(TestClassComplex.class, "testClassSet").getComponentType()).hasValue(Object.class);
+	void discoversComponentTypeCorrectly() {
+		assertThat(getProperty(TestClassComplex.class, "testClassSet").getComponentType()).isEqualTo(Object.class);
 	}
 
 	@Test // DATACMNS-101
-	public void returnsNestedEntityTypeCorrectly() {
-		assertThat(getProperty(TestClassComplex.class, "testClassSet").getPersistentEntityType()).isEmpty();
+	void returnsNestedEntityTypeCorrectly() {
+		assertThat(getProperty(TestClassComplex.class, "testClassSet").getPersistentEntityTypes()).isEmpty();
 	}
 
 	@Test // DATACMNS-132
-	public void isEntityWorksForUntypedMaps() throws Exception {
+	void isEntityWorksForUntypedMaps() {
 		assertThat(getProperty(TestClassComplex.class, "map").isEntity()).isFalse();
 	}
 
 	@Test // DATACMNS-132
-	public void isEntityWorksForUntypedCollection() throws Exception {
+	void isEntityWorksForUntypedCollection() {
 		assertThat(getProperty(TestClassComplex.class, "collection").isEntity()).isFalse();
 	}
 
 	@Test // DATACMNS-121
-	public void considersPropertiesEqualIfFieldEquals() {
+	void considersPropertiesEqualIfFieldEquals() {
 
 		SamplePersistentProperty firstProperty = getProperty(FirstConcrete.class, "genericField");
 		SamplePersistentProperty secondProperty = getProperty(SecondConcrete.class, "genericField");
@@ -90,59 +95,61 @@ public class AbstractPersistentPropertyUnitTests {
 	}
 
 	@Test // DATACMNS-180
-	public void doesNotConsiderJavaTransientFieldsTransient() {
+	void doesNotConsiderJavaTransientFieldsTransient() {
 		assertThat(getProperty(TestClassComplex.class, "transientField").isTransient()).isFalse();
 	}
 
 	@Test // DATACMNS-206
-	public void findsSimpleGettersAndASetters() {
+	void findsSimpleGettersAndASetters() {
 
 		SamplePersistentProperty property = getProperty(AccessorTestClass.class, "id");
 
-		assertThat(property.getGetter()).isPresent();
-		assertThat(property.getSetter()).isPresent();
+		assertThat(property.getGetter()).isNotNull();
+		assertThat(property.getSetter()).isNotNull();
 	}
 
 	@Test // DATACMNS-206
-	public void doesNotUseInvalidGettersAndASetters() {
+	void doesNotUseInvalidGettersAndASetters() {
 
 		SamplePersistentProperty property = getProperty(AccessorTestClass.class, "anotherId");
 
-		assertThat(property.getGetter()).isNotPresent();
-		assertThat(property.getSetter()).isNotPresent();
+		assertThat(property.getGetter()).isNull();
+		assertThat(property.getSetter()).isNull();
 	}
 
 	@Test // DATACMNS-206
-	public void usesCustomGetter() {
+	void usesCustomGetter() {
 
 		SamplePersistentProperty property = getProperty(AccessorTestClass.class, "yetAnotherId");
 
-		assertThat(property.getGetter()).isPresent();
-		assertThat(property.getSetter()).isNotPresent();
+		assertThat(property.getGetter()).isNotNull();
+		assertThat(property.getSetter()).isNull();
 	}
 
 	@Test // DATACMNS-206
-	public void usesCustomSetter() {
+	void usesCustomSetter() {
 
 		SamplePersistentProperty property = getProperty(AccessorTestClass.class, "yetYetAnotherId");
 
-		assertThat(property.getGetter()).isNotPresent();
-		assertThat(property.getSetter()).isPresent();
+		assertThat(property.getGetter()).isNull();
+		assertThat(property.getSetter()).isNotNull();
 	}
 
 	@Test // DATACMNS-206
-	public void doesNotDiscoverGetterAndSetterIfNoPropertyDescriptorGiven() {
+	void doesNotDiscoverGetterAndSetterIfNoPropertyDescriptorGiven() {
 
 		Field field = ReflectionUtils.findField(AccessorTestClass.class, "id");
-		PersistentProperty<SamplePersistentProperty> property = new SamplePersistentProperty(Property.of(field),
+		Property property = Property.of(ClassTypeInformation.from(AccessorTestClass.class), field);
+
+		PersistentProperty<SamplePersistentProperty> persistentProperty = new SamplePersistentProperty(property,
 				getEntity(AccessorTestClass.class), typeHolder);
 
-		assertThat(property.getGetter()).isNotPresent();
-		assertThat(property.getSetter()).isNotPresent();
+		assertThat(persistentProperty.getGetter()).isNull();
+		assertThat(persistentProperty.getSetter()).isNull();
 	}
 
 	@Test // DATACMNS-337
-	public void resolvesActualType() {
+	void resolvesActualType() {
 
 		SamplePersistentProperty property = getProperty(Sample.class, "person");
 		assertThat(property.getActualType()).isEqualTo(Person.class);
@@ -158,46 +165,63 @@ public class AbstractPersistentPropertyUnitTests {
 	}
 
 	@Test // DATACMNS-462
-	public void considersCollectionPropertyEntitiesIfComponentTypeIsEntity() {
+	void considersCollectionPropertyEntitiesIfComponentTypeIsEntity() {
 
 		SamplePersistentProperty property = getProperty(Sample.class, "persons");
 		assertThat(property.isEntity()).isTrue();
 	}
 
 	@Test // DATACMNS-462
-	public void considersMapPropertyEntitiesIfValueTypeIsEntity() {
+	void considersMapPropertyEntitiesIfValueTypeIsEntity() {
 
 		SamplePersistentProperty property = getProperty(Sample.class, "personMap");
 		assertThat(property.isEntity()).isTrue();
 	}
 
 	@Test // DATACMNS-462
-	public void considersArrayPropertyEntitiesIfComponentTypeIsEntity() {
+	void considersArrayPropertyEntitiesIfComponentTypeIsEntity() {
 
 		SamplePersistentProperty property = getProperty(Sample.class, "personArray");
 		assertThat(property.isEntity()).isTrue();
 	}
 
 	@Test // DATACMNS-462
-	public void considersCollectionPropertySimpleIfComponentTypeIsSimple() {
+	void considersCollectionPropertySimpleIfComponentTypeIsSimple() {
 
 		SamplePersistentProperty property = getProperty(Sample.class, "strings");
 		assertThat(property.isEntity()).isFalse();
 	}
 
 	@Test // DATACMNS-562
-	public void doesNotConsiderPropertyWithTreeMapMapValueAnEntity() {
+	void doesNotConsiderPropertyWithTreeMapMapValueAnEntity() {
 
 		SamplePersistentProperty property = getProperty(TreeMapWrapper.class, "map");
-		assertThat(property.getPersistentEntityType()).isEmpty();
+		assertThat(property.getPersistentEntityTypes()).isEmpty();
 		assertThat(property.isEntity()).isFalse();
 	}
 
 	@Test // DATACMNS-867
-	public void resolvesFieldNameWithUnderscoresCorrectly() {
+	void resolvesFieldNameWithUnderscoresCorrectly() {
 
 		SamplePersistentProperty property = getProperty(TestClassComplex.class, "var_name_with_underscores");
 		assertThat(property.getName()).isEqualTo("var_name_with_underscores");
+	}
+
+	@Test // DATACMNS-1139
+	void resolvesGenericsForRawType() {
+
+		SamplePersistentProperty property = getProperty(FirstConcrete.class, "genericField");
+
+		assertThat(property.getRawType()).isEqualTo(String.class);
+	}
+
+	@Test // DATACMNS-1180
+	void returnsAccessorsForGenericReturnType() {
+
+		SamplePersistentProperty property = getProperty(ConcreteGetter.class, "genericField");
+
+		assertThat(property.getSetter()).isNotNull();
+		assertThat(property.getGetter()).isNotNull();
 	}
 
 	private <T> BasicPersistentEntity<T, SamplePersistentProperty> getEntity(Class<T> type) {
@@ -206,17 +230,15 @@ public class AbstractPersistentPropertyUnitTests {
 
 	private <T> SamplePersistentProperty getProperty(Class<T> type, String name) {
 
+		TypeInformation<?> typeInformation = ClassTypeInformation.from(type);
 		Optional<Field> field = Optional.ofNullable(ReflectionUtils.findField(type, name));
 		Optional<PropertyDescriptor> descriptor = getPropertyDescriptor(type, name);
 
-		Property property = field
-				.map(it -> descriptor//
-						.map(foo -> Property.of(it, foo))//
-						.orElseGet(() -> Property.of(it)))
-				.orElseGet(() -> getPropertyDescriptor(type, name)//
-						.map(it -> Property.of(it))//
-						.orElseThrow(
-								() -> new IllegalArgumentException(String.format("Couldn't find property %s on %s!", name, type))));
+		Property property = Optionals.firstNonEmpty( //
+				() -> Optionals.mapIfAllPresent(field, descriptor, (left, right) -> Property.of(typeInformation, left, right)), //
+				() -> field.map(it -> Property.of(typeInformation, it)), //
+				() -> descriptor.map(it -> Property.of(typeInformation, it))) //
+				.orElseThrow(() -> new IllegalArgumentException(String.format("Couldn't find property %s on %s!", name, type)));
 
 		return new SamplePersistentProperty(property, getEntity(type), typeHolder);
 	}
@@ -246,6 +268,14 @@ public class AbstractPersistentPropertyUnitTests {
 	class SecondConcrete extends Generic<Integer> {
 
 	}
+
+	@Getter
+	@Setter
+	class GenericGetter<T> {
+		T genericField;
+	}
+
+	class ConcreteGetter extends GenericGetter<String> {}
 
 	@SuppressWarnings("serial")
 	class TestClassSet extends TreeSet<Object> {}
@@ -325,8 +355,8 @@ public class AbstractPersistentPropertyUnitTests {
 		}
 
 		@Override
-		public <A extends Annotation> Optional<A> findAnnotation(Class<A> annotationType) {
-			return Optional.empty();
+		public <A extends Annotation> A findAnnotation(Class<A> annotationType) {
+			return null;
 		}
 
 		@Override
@@ -335,8 +365,13 @@ public class AbstractPersistentPropertyUnitTests {
 		}
 
 		@Override
-		public <A extends Annotation> Optional<A> findPropertyOrOwnerAnnotation(Class<A> annotationType) {
-			return Optional.empty();
+		public <A extends Annotation> A findPropertyOrOwnerAnnotation(Class<A> annotationType) {
+			return null;
+		}
+
+		@Override
+		public Class<?> getAssociationTargetType() {
+			return null;
 		}
 	}
 

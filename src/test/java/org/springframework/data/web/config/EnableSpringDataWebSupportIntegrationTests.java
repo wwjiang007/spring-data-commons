@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,8 +30,12 @@ import org.springframework.core.convert.ConversionService;
 import org.springframework.data.classloadersupport.HidingClassLoader;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Point;
+import org.springframework.data.querydsl.EntityPathResolver;
+import org.springframework.data.querydsl.SimpleEntityPathResolver;
+import org.springframework.data.querydsl.binding.QuerydslBindingsFactory;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.data.web.PagedResourcesAssemblerArgumentResolver;
+import org.springframework.data.web.ProxyingHandlerMethodArgumentResolver;
 import org.springframework.data.web.SortHandlerMethodArgumentResolver;
 import org.springframework.data.web.WebTestUtils;
 import org.springframework.hateoas.Link;
@@ -53,14 +57,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @author Jens Schauder
  * @author Vedran Pavic
  */
-public class EnableSpringDataWebSupportIntegrationTests {
+class EnableSpringDataWebSupportIntegrationTests {
 
 	@Configuration
 	@EnableWebMvc
 	@EnableSpringDataWebSupport
 	static class SampleConfig {
 
-		public @Bean SampleController controller() {
+		@Bean
+		SampleController controller() {
 			return new SampleController();
 		}
 	}
@@ -71,7 +76,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	static class PageableResolverCustomizerConfig extends SampleConfig {
 
 		@Bean
-		public PageableHandlerMethodArgumentResolverCustomizer testPageableResolverCustomizer() {
+		PageableHandlerMethodArgumentResolverCustomizer testPageableResolverCustomizer() {
 			return pageableResolver -> pageableResolver.setMaxPageSize(100);
 		}
 	}
@@ -82,13 +87,25 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	static class SortResolverCustomizerConfig extends SampleConfig {
 
 		@Bean
-		public SortHandlerMethodArgumentResolverCustomizer testSortResolverCustomizer() {
+		SortHandlerMethodArgumentResolverCustomizer testSortResolverCustomizer() {
 			return sortResolver -> sortResolver.setSortParameter("foo");
 		}
 	}
 
+	@Configuration
+	@EnableSpringDataWebSupport
+	static class CustomEntityPathResolver {
+
+		static SimpleEntityPathResolver resolver = new SimpleEntityPathResolver("suffix");
+
+		@Bean
+		SimpleEntityPathResolver entityPathResolver() {
+			return resolver;
+		}
+	}
+
 	@Test // DATACMNS-330
-	public void registersBasicBeanDefinitions() throws Exception {
+	void registersBasicBeanDefinitions() throws Exception {
 
 		ApplicationContext context = WebTestUtils.createApplicationContext(SampleConfig.class);
 		List<String> names = Arrays.asList(context.getBeanDefinitionNames());
@@ -100,7 +117,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-330
-	public void registersHateoasSpecificBeanDefinitions() throws Exception {
+	void registersHateoasSpecificBeanDefinitions() throws Exception {
 
 		ApplicationContext context = WebTestUtils.createApplicationContext(SampleConfig.class);
 		List<String> names = Arrays.asList(context.getBeanDefinitionNames());
@@ -110,7 +127,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-330
-	public void doesNotRegisterHateoasSpecificComponentsIfHateoasNotPresent() throws Exception {
+	void doesNotRegisterHateoasSpecificComponentsIfHateoasNotPresent() throws Exception {
 
 		HidingClassLoader classLoader = HidingClassLoader.hide(Link.class);
 
@@ -123,7 +140,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-475
-	public void registersJacksonSpecificBeanDefinitions() throws Exception {
+	void registersJacksonSpecificBeanDefinitions() throws Exception {
 
 		ApplicationContext context = WebTestUtils.createApplicationContext(SampleConfig.class);
 		List<String> names = Arrays.asList(context.getBeanDefinitionNames());
@@ -132,7 +149,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-475
-	public void doesNotRegisterJacksonSpecificComponentsIfJacksonNotPresent() throws Exception {
+	void doesNotRegisterJacksonSpecificComponentsIfJacksonNotPresent() throws Exception {
 
 		ApplicationContext context = WebTestUtils.createApplicationContext(HidingClassLoader.hide(ObjectMapper.class),
 				SampleConfig.class);
@@ -143,7 +160,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-626
-	public void registersFormatters() {
+	void registersFormatters() {
 
 		ApplicationContext context = WebTestUtils.createApplicationContext(SampleConfig.class);
 
@@ -156,7 +173,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-630
-	public void createsProxyForInterfaceBasedControllerMethodParameter() throws Exception {
+	void createsProxyForInterfaceBasedControllerMethodParameter() throws Exception {
 
 		WebApplicationContext applicationContext = WebTestUtils.createApplicationContext(SampleConfig.class);
 		MockMvc mvc = MockMvcBuilders.webAppContextSetup(applicationContext).build();
@@ -174,7 +191,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-660
-	public void picksUpWebConfigurationMixins() {
+	void picksUpWebConfigurationMixins() {
 
 		ApplicationContext context = WebTestUtils.createApplicationContext(SampleConfig.class);
 		List<String> names = Arrays.asList(context.getBeanDefinitionNames());
@@ -183,7 +200,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-822
-	public void picksUpPageableResolverCustomizer() {
+	void picksUpPageableResolverCustomizer() {
 
 		ApplicationContext context = WebTestUtils.createApplicationContext(PageableResolverCustomizerConfig.class);
 		List<String> names = Arrays.asList(context.getBeanDefinitionNames());
@@ -194,7 +211,7 @@ public class EnableSpringDataWebSupportIntegrationTests {
 	}
 
 	@Test // DATACMNS-822
-	public void picksUpSortResolverCustomizer() {
+	void picksUpSortResolverCustomizer() {
 
 		ApplicationContext context = WebTestUtils.createApplicationContext(SortResolverCustomizerConfig.class);
 		List<String> names = Arrays.asList(context.getBeanDefinitionNames());
@@ -202,6 +219,26 @@ public class EnableSpringDataWebSupportIntegrationTests {
 
 		assertThat(names).contains("testSortResolverCustomizer");
 		assertThat((String) ReflectionTestUtils.getField(resolver, "sortParameter")).isEqualTo("foo");
+	}
+
+	@Test // DATACMNS-1237
+	void configuresProxyingHandlerMethodArgumentResolver() {
+
+		ApplicationContext context = WebTestUtils.createApplicationContext(SampleConfig.class);
+
+		RequestMappingHandlerAdapter adapter = context.getBean(RequestMappingHandlerAdapter.class);
+
+		assertThat(adapter.getArgumentResolvers().get(0)).isInstanceOf(ProxyingHandlerMethodArgumentResolver.class);
+	}
+
+	@Test // DATACMNS-1235
+	void picksUpEntityPathResolverIfRegistered() {
+
+		WebApplicationContext context = WebTestUtils.createApplicationContext(CustomEntityPathResolver.class);
+
+		assertThat(context.getBean(EntityPathResolver.class)).isEqualTo(CustomEntityPathResolver.resolver);
+		assertThat(context.getBean(QuerydslBindingsFactory.class).getEntityPathResolver())
+				.isEqualTo(CustomEntityPathResolver.resolver);
 	}
 
 	private static void assertResolversRegistered(ApplicationContext context, Class<?>... resolverTypes) {

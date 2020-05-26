@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,26 +20,27 @@ import static org.mockito.Mockito.*;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.beans.NotReadablePropertyException;
 import org.springframework.beans.NotWritablePropertyException;
 
 /**
  * Unit tests for {@link PropertyAccessingMethodInterceptor}.
- * 
+ *
  * @author Oliver Gierke
  * @author Mark Paluch
  */
-@RunWith(MockitoJUnitRunner.class)
-public class PropertyAccessingMethodInterceptorUnitTests {
+@ExtendWith(MockitoExtension.class)
+class PropertyAccessingMethodInterceptorUnitTests {
 
 	@Mock MethodInvocation invocation;
 
 	@Test // DATAREST-221
-	public void triggersPropertyAccessOnTarget() throws Throwable {
+	void triggersPropertyAccessOnTarget() throws Throwable {
 
 		Source source = new Source();
 		source.firstname = "Dave";
@@ -50,31 +51,33 @@ public class PropertyAccessingMethodInterceptorUnitTests {
 		assertThat(interceptor.invoke(invocation)).isEqualTo("Dave");
 	}
 
-	@Test(expected = NotReadablePropertyException.class) // DATAREST-221
-	public void throwsAppropriateExceptionIfThePropertyCannotBeFound() throws Throwable {
+	@Test // DATAREST-221
+	void throwsAppropriateExceptionIfThePropertyCannotBeFound() throws Throwable {
 
 		when(invocation.getMethod()).thenReturn(Projection.class.getMethod("getLastname"));
-		new PropertyAccessingMethodInterceptor(new Source()).invoke(invocation);
+		assertThatExceptionOfType(NotReadablePropertyException.class)
+				.isThrownBy(() -> new PropertyAccessingMethodInterceptor(new Source()).invoke(invocation));
 	}
 
 	@Test // DATAREST-221
-	public void forwardsObjectMethodInvocation() throws Throwable {
+	void forwardsObjectMethodInvocation() throws Throwable {
 
 		when(invocation.getMethod()).thenReturn(Object.class.getMethod("toString"));
 
 		new PropertyAccessingMethodInterceptor(new Source()).invoke(invocation);
 	}
 
-	@Test(expected = IllegalStateException.class) // DATACMNS-630
-	public void rejectsNonAccessorMethod() throws Throwable {
+	@Test // DATACMNS-630
+	void rejectsNonAccessorMethod() throws Throwable {
 
 		when(invocation.getMethod()).thenReturn(Projection.class.getMethod("someGarbage"));
 
-		new PropertyAccessingMethodInterceptor(new Source()).invoke(invocation);
+		assertThatIllegalStateException()
+				.isThrownBy(() -> new PropertyAccessingMethodInterceptor(new Source()).invoke(invocation));
 	}
 
 	@Test // DATACMNS-820
-	public void triggersWritePropertyAccessOnTarget() throws Throwable {
+	void triggersWritePropertyAccessOnTarget() throws Throwable {
 
 		Source source = new Source();
 		source.firstname = "Dave";
@@ -87,24 +90,26 @@ public class PropertyAccessingMethodInterceptorUnitTests {
 		assertThat(source.firstname).isEqualTo("Carl");
 	}
 
-	@Test(expected = IllegalStateException.class) // DATACMNS-820
-	public void throwsAppropriateExceptionIfTheInvocationHasNoArguments() throws Throwable {
+	@Test // DATACMNS-820
+	void throwsAppropriateExceptionIfTheInvocationHasNoArguments() throws Throwable {
 
 		Source source = new Source();
 
 		when(invocation.getMethod()).thenReturn(Projection.class.getMethod("setFirstname", String.class));
 		when(invocation.getArguments()).thenReturn(new Object[0]);
 
-		new PropertyAccessingMethodInterceptor(source).invoke(invocation);
+		assertThatIllegalStateException()
+				.isThrownBy(() -> new PropertyAccessingMethodInterceptor(source).invoke(invocation));
 	}
 
-	@Test(expected = NotWritablePropertyException.class) // DATACMNS-820
-	public void throwsAppropriateExceptionIfThePropertyCannotWritten() throws Throwable {
+	@Test // DATACMNS-820
+	void throwsAppropriateExceptionIfThePropertyCannotWritten() throws Throwable {
 
 		when(invocation.getMethod()).thenReturn(Projection.class.getMethod("setGarbage", String.class));
 		when(invocation.getArguments()).thenReturn(new Object[] { "Carl" });
 
-		new PropertyAccessingMethodInterceptor(new Source()).invoke(invocation);
+		assertThatExceptionOfType(NotWritablePropertyException.class)
+				.isThrownBy(() -> new PropertyAccessingMethodInterceptor(new Source()).invoke(invocation));
 	}
 
 	static class Source {

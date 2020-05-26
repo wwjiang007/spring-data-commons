@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2015 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,30 +15,29 @@
  */
 package org.springframework.data.repository.query;
 
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.util.QueryExecutionConverters;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * {@link ParameterAccessor} implementation using a {@link Parameters} instance to find special parameters.
- * 
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
 public class ParametersParameterAccessor implements ParameterAccessor {
 
 	private final Parameters<?, ?> parameters;
-	private final List<Object> values;
+	private final Object[] values;
 
 	/**
 	 * Creates a new {@link ParametersParameterAccessor}.
-	 * 
+	 *
 	 * @param parameters must not be {@literal null}.
 	 * @param values must not be {@literal null}.
 	 */
@@ -50,18 +49,45 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 		Assert.isTrue(parameters.getNumberOfParameters() == values.length, "Invalid number of parameters given!");
 
 		this.parameters = parameters;
-		this.values = Arrays.stream(values)//
-				.map(QueryExecutionConverters::unwrap)//
-				.collect(Collectors.toList());
+
+		if (requiresUnwrapping(values)) {
+			this.values = new Object[values.length];
+
+			for (int i = 0; i < values.length; i++) {
+				this.values[i] = QueryExecutionConverters.unwrap(values[i]);
+			}
+		} else {
+			this.values = values;
+		}
+	}
+
+	private static boolean requiresUnwrapping(Object[] values) {
+
+		for (Object value : values) {
+			if (value != null && QueryExecutionConverters.supports(value.getClass())) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
 	 * Returns the {@link Parameters} instance backing the accessor.
-	 * 
+	 *
 	 * @return the parameters will never be {@literal null}.
 	 */
 	public Parameters<?, ?> getParameters() {
 		return parameters;
+	}
+
+	/**
+	 * Returns the potentially unwrapped values.
+	 *
+	 * @return
+	 */
+	protected Object[] getValues() {
+		return this.values;
 	}
 
 	/*
@@ -74,7 +100,7 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 			return Pageable.unpaged();
 		}
 
-		Pageable pageable = (Pageable) values.get(parameters.getPageableIndex());
+		Pageable pageable = (Pageable) values[parameters.getPageableIndex()];
 
 		return pageable == null ? Pageable.unpaged() : pageable;
 	}
@@ -87,7 +113,7 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 
 		if (parameters.hasSortParameter()) {
 
-			Sort sort = (Sort) values.get(parameters.getSortIndex());
+			Sort sort = (Sort) values[parameters.getSortIndex()];
 			return sort == null ? Sort.unsorted() : sort;
 		}
 
@@ -100,23 +126,38 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 
 	/**
 	 * Returns the dynamic projection type if available, {@literal null} otherwise.
-	 * 
+	 *
 	 * @return
 	 */
 	public Optional<Class<?>> getDynamicProjection() {
-		return Optional.ofNullable(
-				parameters.hasDynamicProjection() ? (Class<?>) values.get(parameters.getDynamicProjectionIndex()) : null);
+
+		return Optional.ofNullable(parameters.hasDynamicProjection() //
+				? (Class<?>) values[parameters.getDynamicProjectionIndex()] //
+				: null);
+	}
+
+	/**
+	 * Returns the dynamic projection type if available, {@literal null} otherwise.
+	 *
+	 * @return
+	 */
+	@Nullable
+	public Class<?> findDynamicProjection() {
+
+		return parameters.hasDynamicProjection() //
+				? (Class<?>) values[parameters.getDynamicProjectionIndex()]
+				: null;
 	}
 
 	/**
 	 * Returns the value with the given index.
-	 * 
+	 *
 	 * @param index
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
 	protected <T> T getValue(int index) {
-		return (T) values.get(index);
+		return (T) values[index];
 	}
 
 	/*
@@ -124,7 +165,7 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 	 * @see org.springframework.data.repository.query.ParameterAccessor#getBindableValue(int)
 	 */
 	public Object getBindableValue(int index) {
-		return values.get(parameters.getBindableParameter(index).getIndex());
+		return values[parameters.getBindableParameter(index).getIndex()];
 	}
 
 	/*
@@ -133,8 +174,13 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 	 */
 	public boolean hasBindableNullValue() {
 
-		return parameters.getBindableParameters().stream()//
-				.anyMatch(it -> values.get(it.getIndex()) == null);
+		for (Parameter parameter : parameters.getBindableParameters()) {
+			if (values[parameter.getIndex()] == null) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/*
@@ -147,7 +193,7 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 
 	/**
 	 * Iterator class to allow traversing all bindable parameters inside the accessor.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	private static class BindableParameterIterator implements Iterator<Object> {
@@ -159,7 +205,7 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 
 		/**
 		 * Creates a new {@link BindableParameterIterator}.
-		 * 
+		 *
 		 * @param accessor must not be {@literal null}.
 		 */
 		public BindableParameterIterator(ParametersParameterAccessor accessor) {
@@ -172,7 +218,7 @@ public class ParametersParameterAccessor implements ParameterAccessor {
 
 		/**
 		 * Returns the next bindable parameter.
-		 * 
+		 *
 		 * @return
 		 */
 		public Object next() {

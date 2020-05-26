@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,27 +20,27 @@ import static org.assertj.core.api.Assertions.*;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 /**
  * Unit tests for {@link ParametersParameterAccessor}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class ParametersParameterAccessorUnitTests {
+class ParametersParameterAccessorUnitTests {
 
 	Parameters<?, ?> parameters;
 
-	@Before
-	public void setUp() throws Exception {
+	@BeforeEach
+	void setUp() throws Exception {
 		parameters = new DefaultParameters(Sample.class.getMethod("method", String.class, int.class));
 	}
 
 	@Test
-	public void accessorIteratorHasNext() throws SecurityException, NoSuchMethodException {
+	void accessorIteratorHasNext() throws SecurityException, NoSuchMethodException {
 
 		ParameterAccessor accessor = new ParametersParameterAccessor(parameters, new Object[] { "Foo", 2 });
 
@@ -53,7 +53,7 @@ public class ParametersParameterAccessorUnitTests {
 	}
 
 	@Test
-	public void detectsNullValue() throws Exception {
+	void detectsNullValue() throws Exception {
 
 		ParameterAccessor accessor = new ParametersParameterAccessor(parameters, new Object[] { null, 5 });
 		assertThat(accessor.hasBindableNullValue()).isTrue();
@@ -66,7 +66,7 @@ public class ParametersParameterAccessorUnitTests {
 	}
 
 	@Test // DATACMNS-804
-	public void iteratesonlyOverBindableValues() throws Exception {
+	void iteratesonlyOverBindableValues() throws Exception {
 
 		Method method = Sample.class.getMethod("method", Pageable.class, String.class);
 		DefaultParameters parameters = new DefaultParameters(method);

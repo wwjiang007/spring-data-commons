@@ -1,11 +1,11 @@
 /*
- * Copyright 2010-2012 the original author or authors.
+ * Copyright 2010-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,11 +22,12 @@ import java.io.IOException;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.beans.factory.parsing.ReaderContext;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.io.ClassPathResource;
@@ -35,16 +36,17 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.core.type.filter.TypeFilter;
 import org.springframework.data.config.TypeFilterParser.Type;
 import org.springframework.util.xml.DomUtils;
+
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 /**
  * Unit test for {@link TypeFilterParser}.
- * 
+ *
  * @author Oliver Gierke
  */
-@RunWith(MockitoJUnitRunner.class)
-public class TypeFilterParserUnitTests {
+@ExtendWith(MockitoExtension.class)
+class TypeFilterParserUnitTests {
 
 	TypeFilterParser parser;
 	Element documentElement;
@@ -54,8 +56,8 @@ public class TypeFilterParserUnitTests {
 
 	@Mock ClassPathScanningCandidateComponentProvider scanner;
 
-	@Before
-	public void setUp() throws SAXException, IOException, ParserConfigurationException {
+	@BeforeEach
+	void setUp() throws SAXException, IOException, ParserConfigurationException {
 
 		parser = new TypeFilterParser(context, classLoader);
 
@@ -68,7 +70,7 @@ public class TypeFilterParserUnitTests {
 	}
 
 	@Test
-	public void parsesIncludesCorrectly() throws Exception {
+	void parsesIncludesCorrectly() throws Exception {
 
 		Element element = DomUtils.getChildElementByTagName(documentElement, "firstSample");
 
@@ -77,7 +79,7 @@ public class TypeFilterParserUnitTests {
 	}
 
 	@Test
-	public void parsesExcludesCorrectly() throws Exception {
+	void parsesExcludesCorrectly() throws Exception {
 
 		Element element = DomUtils.getChildElementByTagName(documentElement, "secondSample");
 

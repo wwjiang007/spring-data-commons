@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,6 @@
  */
 package org.springframework.data.domain;
 
-import lombok.Getter;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,12 +23,11 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.core.convert.converter.Converter;
 import org.springframework.util.Assert;
 
 /**
  * A chunk of data restricted by the configured {@link Pageable}.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  * @since 1.8
@@ -40,11 +37,11 @@ abstract class Chunk<T> implements Slice<T>, Serializable {
 	private static final long serialVersionUID = 867755909294344406L;
 
 	private final List<T> content = new ArrayList<>();
-	private final @Getter Pageable pageable;
+	private final Pageable pageable;
 
 	/**
 	 * Creates a new {@link Chunk} with the given content and the given governing {@link Pageable}.
-	 * 
+	 *
 	 * @param content must not be {@literal null}.
 	 * @param pageable must not be {@literal null}.
 	 */
@@ -70,7 +67,7 @@ abstract class Chunk<T> implements Slice<T>, Serializable {
 	 * @see org.springframework.data.domain.Slice#getSize()
 	 */
 	public int getSize() {
-		return pageable.isPaged() ? pageable.getPageSize() : 0;
+		return pageable.isPaged() ? pageable.getPageSize() : content.size();
 	}
 
 	/*
@@ -105,7 +102,7 @@ abstract class Chunk<T> implements Slice<T>, Serializable {
 		return !hasNext();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.Slice#nextPageable()
 	 */
@@ -139,6 +136,15 @@ abstract class Chunk<T> implements Slice<T>, Serializable {
 
 	/*
 	 * (non-Javadoc)
+	 * @see org.springframework.data.domain.Slice#getPageable()
+	 */
+	@Override
+	public Pageable getPageable() {
+		return pageable;
+	}
+
+	/*
+	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.Slice#getSort()
 	 */
 	@Override
@@ -155,14 +161,14 @@ abstract class Chunk<T> implements Slice<T>, Serializable {
 	}
 
 	/**
-	 * Applies the given {@link Converter} to the content of the {@link Chunk}.
-	 * 
+	 * Applies the given {@link Function} to the content of the {@link Chunk}.
+	 *
 	 * @param converter must not be {@literal null}.
 	 * @return
 	 */
 	protected <U> List<U> getConvertedContent(Function<? super T, ? extends U> converter) {
 
-		Assert.notNull(converter, "Converter must not be null!");
+		Assert.notNull(converter, "Function must not be null!");
 
 		return this.stream().map(converter::apply).collect(Collectors.toList());
 	}

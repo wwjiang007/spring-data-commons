@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,36 +18,30 @@ package org.springframework.data.util;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
-import org.assertj.core.api.OptionalAssert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests to reproduce issues reported in DATACMNS-511.
- * 
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
 public class DataCmns511Tests {
 
 	@Test // DATACMNS-511
 	public void detectsEqualTypeVariableTypeInformationInstances() {
 
-		OptionalAssert<TypeInformation<?>> assertion = assertThat(
-				ClassTypeInformation.from(AbstractRole.class).getProperty("createdBy"));
+		TypeInformation<?> createdBy = ClassTypeInformation.from(AbstractRole.class).getProperty("createdBy");
 
-		assertion.flatMap(it -> it.getProperty("roles"))//
-				.map(TypeInformation::getActualType)//
-				.flatMap(it -> it.getProperty("createdBy"))//
-				.hasValueSatisfying(second -> {
+		assertThat(createdBy.getProperty("roles").getActualType().getProperty("createdBy"))//
+				.satisfies(second -> {
 
-					Optional<TypeInformation<?>> third = second.getProperty("roles")//
-							.map(TypeInformation::getActualType)//
-							.flatMap(it -> it.getProperty("createdBy"));
+					TypeInformation<?> third = second.getProperty("roles").getActualType().getProperty("createdBy");
 
-					assertThat(third).hasValue(second);
-					assertThat(third).map(Object::hashCode).hasValue(second.hashCode());
+					assertThat(third).isEqualTo(second);
+					assertThat(third.hashCode()).isEqualTo(second.hashCode());
 				});
 	}
 

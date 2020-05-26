@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2017 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,8 @@
 package org.springframework.data.domain;
 
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 /**
  * Basic Java Bean implementation of {@code Pageable}.
@@ -30,44 +32,17 @@ public class PageRequest extends AbstractPageRequest {
 	private final Sort sort;
 
 	/**
-	 * Creates a new {@link PageRequest}. Pages are zero indexed, thus providing 0 for {@code page} will return the first
-	 * page.
-	 *
-	 * @param page zero-based page index.
-	 * @param size the size of the page to be returned.
-	 * @deprecated use {@link #of(int, int)} instead.
-	 */
-	@Deprecated
-	public PageRequest(int page, int size) {
-		this(page, size, Sort.unsorted());
-	}
-
-	/**
 	 * Creates a new {@link PageRequest} with sort parameters applied.
 	 *
-	 * @param page zero-based page index.
-	 * @param size the size of the page to be returned.
-	 * @param direction the direction of the {@link Sort} to be specified, can be {@literal null}.
-	 * @param properties the properties to sort by, must not be {@literal null} or empty.
-	 * @deprecated use {@link #of(int, int, Direction, String...)} instead.
+	 * @param page zero-based page index, must not be negative.
+	 * @param size the size of the page to be returned, must be greater than 0.
+	 * @param sort must not be {@literal null}, use {@link Sort#unsorted()} instead.
 	 */
-	@Deprecated
-	public PageRequest(int page, int size, Direction direction, String... properties) {
-		this(page, size, Sort.by(direction, properties));
-	}
-
-	/**
-	 * Creates a new {@link PageRequest} with sort parameters applied.
-	 *
-	 * @param page zero-based page index.
-	 * @param size the size of the page to be returned.
-	 * @param sort can be {@literal null}.
-	 * @deprecated since 2.0, use {@link #of(int, int, Sort)} instead.
-	 */
-	@Deprecated
-	public PageRequest(int page, int size, Sort sort) {
+	protected PageRequest(int page, int size, Sort sort) {
 
 		super(page, size);
+
+		Assert.notNull(sort, "Sort must not be null!");
 
 		this.sort = sort;
 	}
@@ -75,8 +50,8 @@ public class PageRequest extends AbstractPageRequest {
 	/**
 	 * Creates a new unsorted {@link PageRequest}.
 	 *
-	 * @param page zero-based page index.
-	 * @param size the size of the page to be returned.
+	 * @param page zero-based page index, must not be negative.
+	 * @param size the size of the page to be returned, must be greater than 0.
 	 * @since 2.0
 	 */
 	public static PageRequest of(int page, int size) {
@@ -88,7 +63,7 @@ public class PageRequest extends AbstractPageRequest {
 	 *
 	 * @param page zero-based page index.
 	 * @param size the size of the page to be returned.
-	 * @param sort must not be {@literal null}.
+	 * @param sort must not be {@literal null}, use {@link Sort#unsorted()} instead.
 	 * @since 2.0
 	 */
 	public static PageRequest of(int page, int size, Sort sort) {
@@ -98,8 +73,8 @@ public class PageRequest extends AbstractPageRequest {
 	/**
 	 * Creates a new {@link PageRequest} with sort direction and properties applied.
 	 *
-	 * @param page zero-based page index.
-	 * @param size the size of the page to be returned.
+	 * @param page zero-based page index, must not be negative.
+	 * @param size the size of the page to be returned, must be greater than 0.
 	 * @param direction must not be {@literal null}.
 	 * @param properties must not be {@literal null}.
 	 * @since 2.0
@@ -120,6 +95,7 @@ public class PageRequest extends AbstractPageRequest {
 	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.Pageable#next()
 	 */
+	@Override
 	public Pageable next() {
 		return new PageRequest(getPageNumber() + 1, getPageSize(), getSort());
 	}
@@ -128,6 +104,7 @@ public class PageRequest extends AbstractPageRequest {
 	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.AbstractPageRequest#previous()
 	 */
+	@Override
 	public PageRequest previous() {
 		return getPageNumber() == 0 ? this : new PageRequest(getPageNumber() - 1, getPageSize(), getSort());
 	}
@@ -136,6 +113,7 @@ public class PageRequest extends AbstractPageRequest {
 	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.Pageable#first()
 	 */
+	@Override
 	public Pageable first() {
 		return new PageRequest(0, getPageSize(), getSort());
 	}
@@ -145,7 +123,7 @@ public class PageRequest extends AbstractPageRequest {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(final Object obj) {
+	public boolean equals(@Nullable Object obj) {
 
 		if (this == obj) {
 			return true;

@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,34 +15,33 @@
  */
 package org.springframework.data.mapping;
 
-import lombok.EqualsAndHashCode;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.util.Lazy;
-import org.springframework.data.util.Streamable;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
 /**
  * Value object to encapsulate the constructor to be used when mapping persistent data to objects.
- * 
+ *
  * @author Oliver Gierke
  * @author Jon Brisbin
  * @author Thomas Darimont
  * @author Christoph Strobl
+ * @author Mark Paluch
  */
 public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
@@ -56,7 +55,7 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
 	/**
 	 * Creates a new {@link PreferredConstructor} from the given {@link Constructor} and {@link Parameter}s.
-	 * 
+	 *
 	 * @param constructor must not be {@literal null}.
 	 * @param parameters must not be {@literal null}.
 	 */
@@ -73,7 +72,7 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
 	/**
 	 * Returns the underlying {@link Constructor}.
-	 * 
+	 *
 	 * @return
 	 */
 	public Constructor<T> getConstructor() {
@@ -82,16 +81,16 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
 	/**
 	 * Returns the {@link Parameter}s of the constructor.
-	 * 
+	 *
 	 * @return
 	 */
-	public Streamable<Parameter<Object, P>> getParameters() {
-		return Streamable.of(parameters);
+	public List<Parameter<Object, P>> getParameters() {
+		return parameters;
 	}
 
 	/**
 	 * Returns whether the constructor has {@link Parameter}s.
-	 * 
+	 *
 	 * @see #isNoArgConstructor()
 	 * @return
 	 */
@@ -101,7 +100,7 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
 	/**
 	 * Returns whether the constructor does not have any arguments.
-	 * 
+	 *
 	 * @see #hasParameters()
 	 * @return
 	 */
@@ -111,7 +110,7 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
 	/**
 	 * Returns whether the constructor was explicitly selected (by {@link PersistenceConstructor}).
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isExplicitlyAnnotated() {
@@ -121,7 +120,7 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 	/**
 	 * Returns whether the given {@link PersistentProperty} is referenced in a constructor argument of the
 	 * {@link PersistentEntity} backing this {@link PreferredConstructor}.
-	 * 
+	 *
 	 * @param property must not be {@literal null}.
 	 * @return
 	 */
@@ -165,7 +164,7 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 	 * Returns whether the given {@link Parameter} is one referring to an enclosing class. That is in case the class this
 	 * {@link PreferredConstructor} belongs to is a member class actually. If that's the case the compiler creates a first
 	 * constructor argument of the enclosing class type.
-	 * 
+	 *
 	 * @param parameter must not be {@literal null}.
 	 * @return
 	 */
@@ -182,33 +181,32 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
 	/**
 	 * Value object to represent constructor parameters.
-	 * 
+	 *
 	 * @param <T> the type of the parameter
 	 * @author Oliver Gierke
 	 */
-	@EqualsAndHashCode(exclude = { "enclosingClassCache", "hasSpelExpression" })
 	public static class Parameter<T, P extends PersistentProperty<P>> {
 
-		private final Optional<String> name;
+		private final @Nullable String name;
 		private final TypeInformation<T> type;
-		private final Optional<String> key;
-		private final Optional<PersistentEntity<T, P>> entity;
+		private final String key;
+		private final @Nullable PersistentEntity<T, P> entity;
 
 		private final Lazy<Boolean> enclosingClassCache;
 		private final Lazy<Boolean> hasSpelExpression;
 
 		/**
 		 * Creates a new {@link Parameter} with the given name, {@link TypeInformation} as well as an array of
-		 * {@link Annotation}s. Will insprect the annotations for an {@link Value} annotation to lookup a key or an SpEL
+		 * {@link Annotation}s. Will inspect the annotations for an {@link Value} annotation to lookup a key or an SpEL
 		 * expression to be evaluated.
-		 * 
+		 *
 		 * @param name the name of the parameter, can be {@literal null}
 		 * @param type must not be {@literal null}
 		 * @param annotations must not be {@literal null} but can be empty
 		 * @param entity must not be {@literal null}.
 		 */
-		public Parameter(Optional<String> name, TypeInformation<T> type, Annotation[] annotations,
-				Optional<PersistentEntity<T, P>> entity) {
+		public Parameter(@Nullable String name, TypeInformation<T> type, Annotation[] annotations,
+				@Nullable PersistentEntity<T, P> entity) {
 
 			Assert.notNull(type, "Type must not be null!");
 			Assert.notNull(annotations, "Annotations must not be null!");
@@ -219,33 +217,39 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 			this.entity = entity;
 
 			this.enclosingClassCache = Lazy.of(() -> {
-				Class<T> owningType = entity.orElseThrow(IllegalStateException::new).getType();
+
+				if (entity == null) {
+					throw new IllegalStateException();
+				}
+
+				Class<T> owningType = entity.getType();
 				return owningType.isMemberClass() && type.getType().equals(owningType.getEnclosingClass());
 			});
 
-			this.hasSpelExpression = Lazy.of(() -> getSpelExpression().map(StringUtils::hasText).orElse(false));
+			this.hasSpelExpression = Lazy.of(() -> StringUtils.hasText(getSpelExpression()));
 		}
 
-		private static Optional<String> getValue(Annotation[] annotations) {
+		private static String getValue(Annotation[] annotations) {
 
 			return Arrays.stream(annotations)//
 					.filter(it -> it.annotationType() == Value.class)//
 					.findFirst().map(it -> ((Value) it).value())//
-					.filter(StringUtils::hasText);
+					.filter(StringUtils::hasText).orElse(null);
 		}
 
 		/**
 		 * Returns the name of the parameter.
-		 * 
+		 *
 		 * @return
 		 */
-		public Optional<String> getName() {
+		@Nullable
+		public String getName() {
 			return name;
 		}
 
 		/**
 		 * Returns the {@link TypeInformation} of the parameter.
-		 * 
+		 *
 		 * @return
 		 */
 		public TypeInformation<T> getType() {
@@ -254,7 +258,7 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
 		/**
 		 * Returns the raw resolved type of the parameter.
-		 * 
+		 *
 		 * @return
 		 */
 		public Class<T> getRawType() {
@@ -263,35 +267,81 @@ public class PreferredConstructor<T, P extends PersistentProperty<P>> {
 
 		/**
 		 * Returns the key to be used when looking up a source data structure to populate the actual parameter value.
-		 * 
+		 *
 		 * @return
 		 */
-		public Optional<String> getSpelExpression() {
+		public String getSpelExpression() {
 			return key;
 		}
 
 		/**
 		 * Returns whether the constructor parameter is equipped with a SpEL expression.
-		 * 
+		 *
 		 * @return
 		 */
 		public boolean hasSpelExpression() {
-			return hasSpelExpression.get();
+			return this.hasSpelExpression.get();
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object o) {
+
+			if (this == o) {
+				return true;
+			}
+
+			if (!(o instanceof Parameter)) {
+				return false;
+			}
+
+			Parameter<?, ?> parameter = (Parameter<?, ?>) o;
+
+			if (!ObjectUtils.nullSafeEquals(name, parameter.name)) {
+				return false;
+			}
+
+			if (!ObjectUtils.nullSafeEquals(type, parameter.type)) {
+				return false;
+			}
+
+			if (!ObjectUtils.nullSafeEquals(key, parameter.key)) {
+				return false;
+			}
+
+			return ObjectUtils.nullSafeEquals(entity, parameter.entity);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			int result = ObjectUtils.nullSafeHashCode(name);
+			result = 31 * result + ObjectUtils.nullSafeHashCode(type);
+			result = 31 * result + ObjectUtils.nullSafeHashCode(key);
+			result = 31 * result + ObjectUtils.nullSafeHashCode(entity);
+			return result;
 		}
 
 		/**
 		 * Returns whether the {@link Parameter} maps the given {@link PersistentProperty}.
-		 * 
+		 *
 		 * @param property
 		 * @return
 		 */
 		boolean maps(PersistentProperty<?> property) {
 
-			//
-//
-			return name.map(s -> entity
-					.flatMap(it -> it.getPersistentProperty(s))
-					.map(property::equals).orElse(false)).orElse(false);
+			PersistentEntity<T, P> entity = this.entity;
+			String name = this.name;
+
+			P referencedProperty = entity == null ? null : name == null ? null : entity.getPersistentProperty(name);
+
+			return property != null && property.equals(referencedProperty);
 		}
 
 		private boolean isEnclosingClassParameter() {

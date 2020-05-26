@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2017 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,8 @@
  */
 package org.springframework.data.repository.query.parser;
 
-import lombok.EqualsAndHashCode;
 
+import java.beans.Introspector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,17 +27,17 @@ import java.util.regex.Pattern;
 
 import org.springframework.data.mapping.PropertyPath;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
+import org.springframework.util.ObjectUtils;
 
 /**
  * A single part of a method name that has to be transformed into a query part. The actual transformation is defined by
  * a {@link Type} that is determined from inspecting the given part. The query part can then be looked up via
  * {@link #getProperty()}.
- * 
+ *
  * @author Oliver Gierke
  * @author Martin Baumgartner
+ * @author Jens Schauder
  */
-@EqualsAndHashCode
 public class Part {
 
 	private static final Pattern IGNORE_CASE = Pattern.compile("Ignor(ing|e)Case");
@@ -50,7 +50,7 @@ public class Part {
 	/**
 	 * Creates a new {@link Part} from the given method name part, the {@link Class} the part originates from and the
 	 * start parameter index.
-	 * 
+	 *
 	 * @param source must not be {@literal null}.
 	 * @param clazz must not be {@literal null}.
 	 */
@@ -61,14 +61,14 @@ public class Part {
 	/**
 	 * Creates a new {@link Part} from the given method name part, the {@link Class} the part originates from and the
 	 * start parameter index.
-	 * 
+	 *
 	 * @param source must not be {@literal null}.
 	 * @param clazz must not be {@literal null}.
 	 * @param alwaysIgnoreCase
 	 */
 	public Part(String source, Class<?> clazz, boolean alwaysIgnoreCase) {
 
-		Assert.hasText(source, "Part source must not be null or emtpy!");
+		Assert.hasText(source, "Part source must not be null or empty!");
 		Assert.notNull(clazz, "Type must not be null!");
 
 		String partToUse = detectAndSetIgnoreCase(source);
@@ -100,7 +100,7 @@ public class Part {
 
 	/**
 	 * Returns how many method parameters are bound by this part.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getNumberOfArguments() {
@@ -123,11 +123,51 @@ public class Part {
 
 	/**
 	 * Returns whether the {@link PropertyPath} referenced should be matched ignoring case.
-	 * 
+	 *
 	 * @return
 	 */
 	public IgnoreCaseType shouldIgnoreCase() {
 		return ignoreCase;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object o) {
+
+		if (this == o) {
+			return true;
+		}
+
+		if (!(o instanceof Part)) {
+			return false;
+		}
+
+		Part part = (Part) o;
+
+		if (!ObjectUtils.nullSafeEquals(propertyPath, part.propertyPath)) {
+			return false;
+		}
+
+		if (type != part.type) {
+			return false;
+		}
+
+		return ignoreCase == part.ignoreCase;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		int result = ObjectUtils.nullSafeHashCode(propertyPath);
+		result = 31 * result + ObjectUtils.nullSafeHashCode(type);
+		result = 31 * result + ObjectUtils.nullSafeHashCode(ignoreCase);
+		return result;
 	}
 
 	/*
@@ -141,7 +181,7 @@ public class Part {
 
 	/**
 	 * The type of a method name part. Used to create query parts in various ways.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 * @author Thomas Darimont
 	 * @author Michael Cramer
@@ -150,14 +190,16 @@ public class Part {
 
 		BETWEEN(2, "IsBetween", "Between"), IS_NOT_NULL(0, "IsNotNull", "NotNull"), IS_NULL(0, "IsNull", "Null"), LESS_THAN(
 				"IsLessThan", "LessThan"), LESS_THAN_EQUAL("IsLessThanEqual", "LessThanEqual"), GREATER_THAN("IsGreaterThan",
-				"GreaterThan"), GREATER_THAN_EQUAL("IsGreaterThanEqual", "GreaterThanEqual"), BEFORE("IsBefore", "Before"), AFTER(
-				"IsAfter", "After"), NOT_LIKE("IsNotLike", "NotLike"), LIKE("IsLike", "Like"), STARTING_WITH("IsStartingWith",
-				"StartingWith", "StartsWith"), ENDING_WITH("IsEndingWith", "EndingWith", "EndsWith"), IS_NOT_EMPTY(0, "IsNotEmpty",
-				"NotEmpty"), IS_EMPTY(0, "IsEmpty", "Empty"), NOT_CONTAINING("IsNotContaining", "NotContaining", "NotContains"),
-				CONTAINING("IsContaining", "Containing", "Contains"), NOT_IN("IsNotIn", "NotIn"), IN("IsIn", "In"), NEAR("IsNear",
-				"Near"), WITHIN("IsWithin", "Within"), REGEX("MatchesRegex", "Matches", "Regex"), EXISTS(0, "Exists"), TRUE(0,
-				"IsTrue", "True"), FALSE(0, "IsFalse", "False"), NEGATING_SIMPLE_PROPERTY("IsNot", "Not"), SIMPLE_PROPERTY("Is",
-				"Equals");
+						"GreaterThan"), GREATER_THAN_EQUAL("IsGreaterThanEqual", "GreaterThanEqual"), BEFORE("IsBefore",
+								"Before"), AFTER("IsAfter", "After"), NOT_LIKE("IsNotLike", "NotLike"), LIKE("IsLike",
+										"Like"), STARTING_WITH("IsStartingWith", "StartingWith", "StartsWith"), ENDING_WITH("IsEndingWith",
+												"EndingWith", "EndsWith"), IS_NOT_EMPTY(0, "IsNotEmpty", "NotEmpty"), IS_EMPTY(0, "IsEmpty",
+														"Empty"), NOT_CONTAINING("IsNotContaining", "NotContaining", "NotContains"), CONTAINING(
+																"IsContaining", "Containing", "Contains"), NOT_IN("IsNotIn", "NotIn"), IN("IsIn",
+																		"In"), NEAR("IsNear", "Near"), WITHIN("IsWithin", "Within"), REGEX("MatchesRegex",
+																				"Matches", "Regex"), EXISTS(0, "Exists"), TRUE(0, "IsTrue", "True"), FALSE(0,
+																						"IsFalse", "False"), NEGATING_SIMPLE_PROPERTY("IsNot",
+																								"Not"), SIMPLE_PROPERTY("Is", "Equals");
 
 		// Need to list them again explicitly as the order is important
 		// (esp. for IS_NULL, IS_NOT_NULL)
@@ -182,7 +224,7 @@ public class Part {
 		/**
 		 * Creates a new {@link Type} using the given keyword, number of arguments to be bound and operator. Keyword and
 		 * operator can be {@literal null}.
-		 * 
+		 *
 		 * @param numberOfArguments
 		 * @param keywords
 		 */
@@ -200,7 +242,7 @@ public class Part {
 		 * Returns the {@link Type} of the {@link Part} for the given raw propertyPath. This will try to detect e.g.
 		 * keywords contained in the raw propertyPath that trigger special query creation. Returns {@link #SIMPLE_PROPERTY}
 		 * by default.
-		 * 
+		 *
 		 * @param rawProperty
 		 * @return
 		 */
@@ -217,7 +259,7 @@ public class Part {
 
 		/**
 		 * Returns all keywords supported by the current {@link Type}.
-		 * 
+		 *
 		 * @return
 		 */
 		public Collection<String> getKeywords() {
@@ -227,15 +269,11 @@ public class Part {
 		/**
 		 * Returns whether the the type supports the given raw property. Default implementation checks whether the property
 		 * ends with the registered keyword. Does not support the keyword if the property is a valid field as is.
-		 * 
+		 *
 		 * @param property
 		 * @return
 		 */
 		protected boolean supports(String property) {
-
-			if (keywords == null) {
-				return true;
-			}
 
 			for (String keyword : keywords) {
 				if (property.endsWith(keyword)) {
@@ -248,7 +286,7 @@ public class Part {
 
 		/**
 		 * Returns the number of arguments the propertyPath binds. By default this exactly one argument.
-		 * 
+		 *
 		 * @return
 		 */
 		public int getNumberOfArguments() {
@@ -258,13 +296,13 @@ public class Part {
 		/**
 		 * Callback method to extract the actual propertyPath to be bound from the given part. Strips the keyword from the
 		 * part's end if available.
-		 * 
+		 *
 		 * @param part
 		 * @return
 		 */
 		public String extractProperty(String part) {
 
-			String candidate = StringUtils.uncapitalize(part);
+			String candidate = Introspector.decapitalize(part);
 
 			for (String keyword : keywords) {
 				if (candidate.endsWith(keyword)) {
@@ -287,7 +325,7 @@ public class Part {
 
 	/**
 	 * The various types of ignore case that are supported.
-	 * 
+	 *
 	 * @author Phillip Webb
 	 */
 	public enum IgnoreCaseType {

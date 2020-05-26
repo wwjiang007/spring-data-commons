@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,19 +25,17 @@ import org.springframework.util.Assert;
 /**
  * Helper class to centralize common functionality that needs to be used in various places of the configuration
  * implementation.
- * 
+ *
  * @author Oliver Gierke
  */
-public abstract class RepositoryConfigurationUtils {
-
-	private RepositoryConfigurationUtils() {}
+public interface RepositoryConfigurationUtils {
 
 	/**
-	 * Registeres the given {@link RepositoryConfigurationExtension} to indicate the repository configuration for a
-	 * particular store (expressed through the extension's concrete type) has appened. Useful for downstream components
+	 * Registers the given {@link RepositoryConfigurationExtension} to indicate the repository configuration for a
+	 * particular store (expressed through the extension's concrete type) has happened. Useful for downstream components
 	 * that need to detect exactly that case. The bean definition is marked as lazy-init so that it doesn't get
 	 * instantiated if no one really cares.
-	 * 
+	 *
 	 * @param extension must not be {@literal null}.
 	 * @param registry must not be {@literal null}.
 	 * @param configurationSource must not be {@literal null}.

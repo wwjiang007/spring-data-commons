@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,27 +16,28 @@
 package org.springframework.data.convert;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import org.springframework.data.mapping.Alias;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.util.ClassTypeInformation;
-import org.springframework.data.util.Optionals;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * Default implementation of {@link TypeMapper}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @author Christoph Strobl
+ * @author Mark Paluch
  */
 public class DefaultTypeMapper<S> implements TypeMapper<S> {
 
@@ -44,10 +45,12 @@ public class DefaultTypeMapper<S> implements TypeMapper<S> {
 	private final List<? extends TypeInformationMapper> mappers;
 	private final Map<Alias, Optional<TypeInformation<?>>> typeCache;
 
+	private final Function<Alias, Optional<TypeInformation<?>>> getAlias;
+
 	/**
 	 * Creates a new {@link DefaultTypeMapper} using the given {@link TypeAliasAccessor}. It will use a
 	 * {@link SimpleTypeInformationMapper} to calculate type aliases.
-	 * 
+	 *
 	 * @param accessor must not be {@literal null}.
 	 */
 	public DefaultTypeMapper(TypeAliasAccessor<S> accessor) {
@@ -57,7 +60,7 @@ public class DefaultTypeMapper<S> implements TypeMapper<S> {
 	/**
 	 * Creates a new {@link DefaultTypeMapper} using the given {@link TypeAliasAccessor} and {@link TypeInformationMapper}
 	 * s.
-	 * 
+	 *
 	 * @param accessor must not be {@literal null}.
 	 * @param mappers must not be {@literal null}.
 	 */
@@ -69,13 +72,13 @@ public class DefaultTypeMapper<S> implements TypeMapper<S> {
 	 * Creates a new {@link DefaultTypeMapper} using the given {@link TypeAliasAccessor}, {@link MappingContext} and
 	 * additional {@link TypeInformationMapper}s. Will register a {@link MappingContextTypeInformationMapper} before the
 	 * given additional mappers.
-	 * 
+	 *
 	 * @param accessor must not be {@literal null}.
 	 * @param mappingContext
 	 * @param additionalMappers must not be {@literal null}.
 	 */
 	public DefaultTypeMapper(TypeAliasAccessor<S> accessor,
-			MappingContext<? extends PersistentEntity<?, ?>, ?> mappingContext,
+			@Nullable MappingContext<? extends PersistentEntity<?, ?>, ?> mappingContext,
 			List<? extends TypeInformationMapper> additionalMappers) {
 
 		Assert.notNull(accessor, "Accessor must not be null!");
@@ -90,13 +93,25 @@ public class DefaultTypeMapper<S> implements TypeMapper<S> {
 		this.mappers = Collections.unmodifiableList(mappers);
 		this.accessor = accessor;
 		this.typeCache = new ConcurrentHashMap<>();
+		this.getAlias = key -> {
+
+			for (TypeInformationMapper mapper : mappers) {
+				TypeInformation<?> typeInformation = mapper.resolveTypeFrom(key);
+
+				if (typeInformation != null) {
+					return Optional.of(typeInformation);
+				}
+			}
+			return Optional.empty();
+		};
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.convert.TypeMapper#readType(java.lang.Object)
 	 */
-	public Optional<TypeInformation<?>> readType(S source) {
+	@Nullable
+	public TypeInformation<?> readType(S source) {
 
 		Assert.notNull(source, "Source object must not be null!");
 
@@ -106,12 +121,20 @@ public class DefaultTypeMapper<S> implements TypeMapper<S> {
 	/**
 	 * Tries to lookup a {@link TypeInformation} for the given alias from the cache and return it if found. If none is
 	 * found it'll consult the {@link TypeInformationMapper}s and cache the value found.
-	 * 
+	 *
 	 * @param alias
 	 * @return
 	 */
-	private Optional<TypeInformation<?>> getFromCacheOrCreate(Alias alias) {
-		return typeCache.computeIfAbsent(alias, key -> Optionals.firstNonEmpty(mappers, it -> it.resolveTypeFrom(alias)));
+	@Nullable
+	private TypeInformation<?> getFromCacheOrCreate(Alias alias) {
+
+		Optional<TypeInformation<?>> typeInformation = typeCache.get(alias);
+
+		if (typeInformation == null) {
+			typeInformation = typeCache.computeIfAbsent(alias, getAlias);
+		}
+
+		return typeInformation.orElse(null);
 	}
 
 	/*
@@ -123,43 +146,51 @@ public class DefaultTypeMapper<S> implements TypeMapper<S> {
 		Assert.notNull(source, "Source must not be null!");
 		Assert.notNull(basicType, "Basic type must not be null!");
 
-		Optional<TypeInformation<? extends T>> calculated = getDefaultedTypeToBeUsed(source)//
-				.map(it -> specializeOrDefault(it, basicType));
+		Class<?> documentsTargetType = getDefaultedTypeToBeUsed(source);
 
-		return calculated.orElse(basicType);
-	}
+		if (documentsTargetType == null) {
+			return basicType;
+		}
 
-	private static <T> TypeInformation<? extends T> specializeOrDefault(Class<?> it, TypeInformation<T> type) {
+		Class<T> rawType = basicType.getType();
 
-		ClassTypeInformation<?> targetType = ClassTypeInformation.from(it);
-		Class<T> rawType = type.getType();
+		boolean isMoreConcreteCustomType = rawType == null
+				|| rawType.isAssignableFrom(documentsTargetType) && !rawType.equals(documentsTargetType);
 
-		return rawType.isAssignableFrom(it) && !rawType.equals(it) ? type.specialize(targetType) : type;
+		if (!isMoreConcreteCustomType) {
+			return basicType;
+		}
+
+		ClassTypeInformation<?> targetType = ClassTypeInformation.from(documentsTargetType);
+
+		return (TypeInformation<? extends T>) basicType.specialize(targetType);
 	}
 
 	/**
 	 * Returns the type discovered through {@link #readType(Object)} but defaulted to the one returned by
 	 * {@link #getFallbackTypeFor(Object)}.
-	 * 
+	 *
 	 * @param source
 	 * @return
 	 */
-	private Optional<Class<?>> getDefaultedTypeToBeUsed(S source) {
+	@Nullable
+	private Class<?> getDefaultedTypeToBeUsed(S source) {
 
-		return readType(source)//
-				.map(it -> readType(source))//
-				.orElseGet(() -> getFallbackTypeFor(source))//
-				.map(TypeInformation::getType);
+		TypeInformation<?> documentsTargetTypeInformation = readType(source);
+		documentsTargetTypeInformation = documentsTargetTypeInformation == null ? getFallbackTypeFor(source)
+				: documentsTargetTypeInformation;
+		return documentsTargetTypeInformation == null ? null : documentsTargetTypeInformation.getType();
 	}
 
 	/**
 	 * Returns the type fallback {@link TypeInformation} in case none could be extracted from the given source.
-	 * 
+	 *
 	 * @param source will never be {@literal null}.
 	 * @return
 	 */
-	protected Optional<TypeInformation<?>> getFallbackTypeFor(S source) {
-		return Optional.empty();
+	@Nullable
+	protected TypeInformation<?> getFallbackTypeFor(S source) {
+		return null;
 	}
 
 	/*
@@ -178,12 +209,15 @@ public class DefaultTypeMapper<S> implements TypeMapper<S> {
 
 		Assert.notNull(info, "TypeInformation must not be null!");
 
-		getAliasFor(info).getValue().ifPresent(it -> accessor.writeTypeTo(sink, it));
+		Alias alias = getAliasFor(info);
+		if (alias.isPresent()) {
+			accessor.writeTypeTo(sink, alias.getValue());
+		}
 	}
 
 	/**
 	 * Returns the alias to be used for the given {@link TypeInformation}.
-	 * 
+	 *
 	 * @param info must not be {@literal null}
 	 * @return the alias for the given {@link TypeInformation} or {@literal null} of none was found or all mappers
 	 *         returned {@literal null}.
@@ -192,6 +226,14 @@ public class DefaultTypeMapper<S> implements TypeMapper<S> {
 
 		Assert.notNull(info, "TypeInformation must not be null!");
 
-		return Optionals.firstNonEmpty(mappers, it -> it.createAliasFor(info), Alias.NONE);
+		for (TypeInformationMapper mapper : mappers) {
+
+			Alias alias = mapper.createAliasFor(info);
+			if (alias.isPresent()) {
+				return alias;
+			}
+		}
+
+		return Alias.NONE;
 	}
 }

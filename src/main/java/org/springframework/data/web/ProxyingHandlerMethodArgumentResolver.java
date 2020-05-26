@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,11 +23,10 @@ import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.context.ResourceLoaderAware;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.util.ClassUtils;
 import org.springframework.web.bind.WebDataBinder;
@@ -38,32 +37,33 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 
 /**
  * {@link HandlerMethodArgumentResolver} to create Proxy instances for interface based controller method parameters.
- * 
+ *
  * @author Oliver Gierke
  * @since 1.10
  */
 public class ProxyingHandlerMethodArgumentResolver extends ModelAttributeMethodProcessor
-		implements BeanFactoryAware, ResourceLoaderAware, BeanClassLoaderAware {
+		implements BeanFactoryAware, BeanClassLoaderAware {
 
 	private static final List<String> IGNORED_PACKAGES = Arrays.asList("java", "org.springframework");
 
 	private final SpelAwareProxyProjectionFactory proxyFactory;
-	private final ConversionService conversionService;
+	private final ObjectFactory<ConversionService> conversionService;
 
 	/**
 	 * Creates a new {@link PageableHandlerMethodArgumentResolver} using the given {@link ConversionService}.
-	 * 
+	 *
 	 * @param conversionService must not be {@literal null}.
 	 */
-	public ProxyingHandlerMethodArgumentResolver(ConversionService conversionService) {
+	public ProxyingHandlerMethodArgumentResolver(ObjectFactory<ConversionService> conversionService,
+			boolean annotationNotRequired) {
 
-		super(true);
+		super(annotationNotRequired);
 
 		this.proxyFactory = new SpelAwareProxyProjectionFactory();
 		this.conversionService = conversionService;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.beans.factory.BeanFactoryAware#setBeanFactory(org.springframework.beans.factory.BeanFactory)
 	 */
@@ -72,17 +72,7 @@ public class ProxyingHandlerMethodArgumentResolver extends ModelAttributeMethodP
 		this.proxyFactory.setBeanFactory(beanFactory);
 	}
 
-	/**
-	 * @see org.springframework.context.ResourceLoaderAware#setResourceLoader(org.springframework.core.io.ResourceLoader)
-	 * @deprecated rather set the {@link ClassLoader} via {@link #setBeanClassLoader(ClassLoader)}.
-	 */
-	@Override
-	@Deprecated
-	public void setResourceLoader(ResourceLoader resourceLoader) {
-		this.proxyFactory.setResourceLoader(resourceLoader);
-	}
-
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.beans.factory.BeanClassLoaderAware#setBeanClassLoader(java.lang.ClassLoader)
 	 */
@@ -91,12 +81,16 @@ public class ProxyingHandlerMethodArgumentResolver extends ModelAttributeMethodP
 		this.proxyFactory.setBeanClassLoader(classLoader);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.web.method.support.HandlerMethodArgumentResolver#supportsParameter(org.springframework.core.MethodParameter)
 	 */
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
+
+		if (!super.supportsParameter(parameter)) {
+			return false;
+		}
 
 		Class<?> type = parameter.getParameterType();
 
@@ -115,16 +109,12 @@ public class ProxyingHandlerMethodArgumentResolver extends ModelAttributeMethodP
 		}
 
 		// Fallback for only user defined interfaces
-		for (String prefix : IGNORED_PACKAGES) {
-			if (ClassUtils.getPackageName(type).startsWith(prefix)) {
-				return false;
-			}
-		}
+		String packageName = ClassUtils.getPackageName(type);
 
-		return true;
+		return !IGNORED_PACKAGES.stream().anyMatch(it -> packageName.startsWith(it));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.web.method.annotation.ModelAttributeMethodProcessor#createAttribute(java.lang.String, org.springframework.core.MethodParameter, org.springframework.web.bind.support.WebDataBinderFactory, org.springframework.web.context.request.NativeWebRequest)
 	 */
@@ -132,13 +122,13 @@ public class ProxyingHandlerMethodArgumentResolver extends ModelAttributeMethodP
 	protected Object createAttribute(String attributeName, MethodParameter parameter, WebDataBinderFactory binderFactory,
 			NativeWebRequest request) throws Exception {
 
-		MapDataBinder binder = new MapDataBinder(parameter.getParameterType(), conversionService);
+		MapDataBinder binder = new MapDataBinder(parameter.getParameterType(), conversionService.getObject());
 		binder.bind(new MutablePropertyValues(request.getParameterMap()));
 
 		return proxyFactory.createProjection(parameter.getParameterType(), binder.getTarget());
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.web.method.annotation.ModelAttributeMethodProcessor#bindRequestParameters(org.springframework.web.bind.WebDataBinder, org.springframework.web.context.request.NativeWebRequest)
 	 */

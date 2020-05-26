@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,6 @@
  */
 package org.springframework.data.util;
 
-import java.lang.ref.Reference;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -29,15 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.WeakHashMap;
 
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
+import org.springframework.util.ConcurrentReferenceHashMap;
+import org.springframework.util.ConcurrentReferenceHashMap.ReferenceType;
 
 /**
  * {@link TypeInformation} for a plain {@link Class}.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  */
@@ -50,20 +48,18 @@ public class ClassTypeInformation<S> extends TypeDiscoverer<S> {
 	public static final ClassTypeInformation<Map> MAP = new ClassTypeInformation(Map.class);
 	public static final ClassTypeInformation<Object> OBJECT = new ClassTypeInformation(Object.class);
 
-	private static final Map<Class<?>, Reference<ClassTypeInformation<?>>> CACHE = Collections
-			.synchronizedMap(new WeakHashMap<Class<?>, Reference<ClassTypeInformation<?>>>());
+	private static final Map<Class<?>, ClassTypeInformation<?>> CACHE = new ConcurrentReferenceHashMap<>(64,
+			ReferenceType.WEAK);
 
 	static {
-		for (ClassTypeInformation<?> info : Arrays.asList(COLLECTION, LIST, SET, MAP, OBJECT)) {
-			CACHE.put(info.getType(), new WeakReference<>(info));
-		}
+		Arrays.asList(COLLECTION, LIST, SET, MAP, OBJECT).forEach(it -> CACHE.put(it.getType(), it));
 	}
 
 	private final Class<S> type;
 
 	/**
 	 * Simple factory method to easily create new instances of {@link ClassTypeInformation}.
-	 * 
+	 *
 	 * @param <S>
 	 * @param type must not be {@literal null}.
 	 * @return
@@ -72,21 +68,12 @@ public class ClassTypeInformation<S> extends TypeDiscoverer<S> {
 
 		Assert.notNull(type, "Type must not be null!");
 
-		Reference<ClassTypeInformation<?>> cachedReference = CACHE.get(type);
-		TypeInformation<?> cachedTypeInfo = cachedReference == null ? null : cachedReference.get();
-
-		if (cachedTypeInfo != null) {
-			return (ClassTypeInformation<S>) cachedTypeInfo;
-		}
-
-		ClassTypeInformation<S> result = new ClassTypeInformation<>(type);
-		CACHE.put(type, new WeakReference<>(result));
-		return result;
+		return (ClassTypeInformation<S>) CACHE.computeIfAbsent(type, ClassTypeInformation::new);
 	}
 
 	/**
 	 * Creates a {@link TypeInformation} from the given method's return type.
-	 * 
+	 *
 	 * @param method must not be {@literal null}.
 	 * @return
 	 */
@@ -99,17 +86,17 @@ public class ClassTypeInformation<S> extends TypeDiscoverer<S> {
 
 	/**
 	 * Creates {@link ClassTypeInformation} for the given type.
-	 * 
+	 *
 	 * @param type
 	 */
 	ClassTypeInformation(Class<S> type) {
-		super(ClassUtils.getUserClass(type), getTypeVariableMap(type));
+		super(ProxyUtils.getUserClass(type), getTypeVariableMap(type));
 		this.type = type;
 	}
 
 	/**
 	 * Little helper to allow us to create a generified map, actually just to satisfy the compiler.
-	 * 
+	 *
 	 * @param type must not be {@literal null}.
 	 * @return
 	 */
@@ -117,7 +104,6 @@ public class ClassTypeInformation<S> extends TypeDiscoverer<S> {
 		return getTypeVariableMap(type, new HashSet<>());
 	}
 
-	@SuppressWarnings("deprecation")
 	private static Map<TypeVariable<?>, Type> getTypeVariableMap(Class<?> type, Collection<Type> visited) {
 
 		if (visited.contains(type)) {
@@ -156,7 +142,7 @@ public class ClassTypeInformation<S> extends TypeDiscoverer<S> {
 		return type;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.util.TypeDiscoverer#getRawTypeInformation()
 	 */
@@ -165,7 +151,7 @@ public class ClassTypeInformation<S> extends TypeDiscoverer<S> {
 		return this;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.util.TypeDiscoverer#isAssignableFrom(org.springframework.data.util.TypeInformation)
 	 */
@@ -183,7 +169,7 @@ public class ClassTypeInformation<S> extends TypeDiscoverer<S> {
 		return (TypeInformation<? extends S>) type;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */

@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-2017 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,14 +26,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.core.convert.converter.ConditionalGenericConverter;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.repository.util.QueryExecutionConverters.WrapperType;
+import org.springframework.lang.Nullable;
 
 /**
  * Converter implementations to map from and to Vavr collections.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  * @since 2.0
@@ -48,10 +51,11 @@ class VavrCollections {
 			return WrapperType.multiValue(io.vavr.collection.Traversable.class);
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
 		 */
+		@Nonnull
 		@Override
 		public Object convert(Object source) {
 
@@ -75,16 +79,17 @@ class VavrCollections {
 
 		INSTANCE {
 
-			/* 
+			/*
 			 * (non-Javadoc)
 			 * @see org.springframework.core.convert.converter.GenericConverter#getConvertibleTypes()
 			 */
+			@Nonnull
 			@Override
 			public java.util.Set<ConvertiblePair> getConvertibleTypes() {
 				return CONVERTIBLE_PAIRS;
 			}
 
-			/* 
+			/*
 			 * (non-Javadoc)
 			 * @see org.springframework.core.convert.converter.ConditionalConverter#matches(org.springframework.core.convert.TypeDescriptor, org.springframework.core.convert.TypeDescriptor)
 			 */
@@ -105,23 +110,41 @@ class VavrCollections {
 				return true;
 			}
 
-			/* 
+			/*
 			* (non-Javadoc)
 			* @see org.springframework.core.convert.converter.GenericConverter#convert(java.lang.Object, org.springframework.core.convert.TypeDescriptor, org.springframework.core.convert.TypeDescriptor)
 			*/
+			@Nullable
 			@Override
-			public Object convert(Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
+			public Object convert(@Nullable Object source, TypeDescriptor sourceDescriptor, TypeDescriptor targetDescriptor) {
+
+				Class<?> targetType = targetDescriptor.getType();
+
+				if (io.vavr.collection.Seq.class.isAssignableFrom(targetType)) {
+					return io.vavr.collection.List.ofAll((Iterable<?>) source);
+				}
+
+				if (io.vavr.collection.Set.class.isAssignableFrom(targetType)) {
+					return LinkedHashSet.ofAll((Iterable<?>) source);
+				}
+
+				if (io.vavr.collection.Map.class.isAssignableFrom(targetType)) {
+					return LinkedHashMap.ofAll((Map<?, ?>) source);
+				}
+
+				// No dedicated type asked for, probably Traversable.
+				// Try to stay as close to the source value.
 
 				if (source instanceof List) {
 					return io.vavr.collection.List.ofAll((Iterable<?>) source);
 				}
 
-				if (source instanceof java.util.Set) {
+				if (source instanceof Set) {
 					return LinkedHashSet.ofAll((Iterable<?>) source);
 				}
 
-				if (source instanceof java.util.Map) {
-					return LinkedHashMap.ofAll((java.util.Map<?, ?>) source);
+				if (source instanceof Map) {
+					return LinkedHashMap.ofAll((Map<?, ?>) source);
 				}
 
 				return source;

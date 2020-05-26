@@ -1,6 +1,1037 @@
 Spring Data Commons Changelog
 =============================
 
+Changes in version 2.3.0.RELEASE (2020-05-12)
+---------------------------------------------
+* DATACMNS-1722 - More defensive lookup of XmlBeamHttpMessageConverter in SpringDataWebConfiguration.
+* DATACMNS-1721 - Lazily evaluate potential property matches in PropertyReferenceException.
+* DATACMNS-1720 - Fix Javadoc for CustomAnnotationTransactionAttributeSource to correctly describe JTA support.
+* DATACMNS-1718 - Migrate tests to JUnit 5.
+* DATACMNS-1717 - Mention performance behavior of Lambda EntityCallbacks in reference documentation.
+* DATACMNS-1715 - Remove Travis CI.
+* DATACMNS-1713 - Release 2.3 GA (Neumann).
+* DATACMNS-1676 - Use shared ConversionService in DefaultAuditableBeanWrapperFactory.
+
+
+Changes in version 2.3.0.RC2 (2020-04-28)
+-----------------------------------------
+* DATACMNS-1710 - Avoid potentially expensive constructor parameter creation where possible.
+* DATACMNS-1707 - CoroutineCrudRepository misses suspend for deleteAll(entityStream: Flow<S>).
+* DATACMNS-1701 - Use JDK 14 for Java.NEXT CI testing.
+* DATACMNS-1698 - Reduce allocations in EntityCallbackDiscoverer.
+* DATACMNS-1694 - Release 2.3 RC2 (Neumann).
+
+
+Changes in version 2.2.7.RELEASE (2020-04-28)
+---------------------------------------------
+* DATACMNS-1710 - Avoid potentially expensive constructor parameter creation where possible.
+* DATACMNS-1691 - Update .gitignore to include STS specific config files.
+* DATACMNS-1690 - Release 2.2.7 (Moore SR7).
+
+
+Changes in version 2.1.17.RELEASE (2020-04-28)
+----------------------------------------------
+* DATACMNS-1710 - Avoid potentially expensive constructor parameter creation where possible.
+* DATACMNS-1691 - Update .gitignore to include STS specific config files.
+* DATACMNS-1684 - Fix grammar in reference documentation.
+* DATACMNS-1683 - SpelExtractor does not consider quotation offsets from rewritten query.
+* DATACMNS-1679 - ReactiveWrappers uses package-private types in its API.
+* DATACMNS-1674 - Release 2.1.17 (Lovelace SR17).
+
+
+Changes in version 2.3.0.RC1 (2020-03-31)
+-----------------------------------------
+* DATACMNS-1691 - Update .gitignore to include STS specific config files.
+* DATACMNS-1689 - RepositoryMetadata.getReturnedDomainClass(...) returns Object for suspended methods.
+* DATACMNS-1685 - Provide documentation for custom conversions.
+* DATACMNS-1684 - Fix grammar in reference documentation.
+* DATACMNS-1683 - SpelExtractor does not consider quotation offsets from rewritten query.
+* DATACMNS-1680 - Release 2.3 RC1 (Neumann).
+* DATACMNS-658 - Extend SortHandlerMethodArgument resolver to be able to detect the request for ignore-case.
+
+
+Changes in version 2.2.6.RELEASE (2020-03-25)
+---------------------------------------------
+* DATACMNS-1684 - Fix grammar in reference documentation.
+* DATACMNS-1683 - SpelExtractor does not consider quotation offsets from rewritten query.
+* DATACMNS-1679 - ReactiveWrappers uses package-private types in its API.
+* DATACMNS-1675 - Release 2.2.6 (Moore SR6).
+
+
+Changes in version 2.3.0.M4 (2020-03-11)
+----------------------------------------
+* DATACMNS-1679 - ReactiveWrappers uses package-private types in its API.
+* DATACMNS-1673 - Use Method.getParameterCount() where possible.
+* DATACMNS-1672 - Fix documentation typos.
+* DATACMNS-1667 - Release 2.3 M4 (Neumann).
+* DATACMNS-1610 - Improve auditing metadata detection.
+
+
+Changes in version 2.2.5.RELEASE (2020-02-26)
+---------------------------------------------
+* DATACMNS-1673 - Use Method.getParameterCount() where possible.
+* DATACMNS-1672 - Fix documentation typos.
+* DATACMNS-1671 - Auditor attempts to set created date on null object.
+* DATACMNS-1661 - Add missing parameter to object-mapping property population in reference documentation.
+* DATACMNS-1660 - Add anchor to section on mapping recommendations in reference documentation.
+* DATACMNS-1651 - Fix typo in Javadoc.
+* DATACMNS-1650 - Release 2.2.5 (Moore SR5).
+
+
+Changes in version 2.1.16.RELEASE (2020-02-26)
+----------------------------------------------
+* DATACMNS-1673 - Use Method.getParameterCount() where possible.
+* DATACMNS-1672 - Fix documentation typos.
+* DATACMNS-1671 - Auditor attempts to set created date on null object.
+* DATACMNS-1661 - Add missing parameter to object-mapping property population in reference documentation.
+* DATACMNS-1660 - Add anchor to section on mapping recommendations in reference documentation.
+* DATACMNS-1651 - Fix typo in Javadoc.
+* DATACMNS-1648 - Release 2.1.16 (Lovelace SR16).
+
+
+Changes in version 2.3.0.M3 (2020-02-12)
+----------------------------------------
+* DATACMNS-1666 - Deprecate Joda-Time and ThreeTenBackport support.
+* DATACMNS-1665 - Changed converter registration broke converter usage in Spring Data Elasticsearch.
+* DATACMNS-1661 - Add missing parameter to object-mapping property population in reference documentation.
+* DATACMNS-1660 - Add anchor to section on mapping recommendations in reference documentation.
+* DATACMNS-1655 - Release 2.3 M3 (Neumann).
+* DATACMNS-1615 - Allow fine grained store specific converter registration.
+* DATACMNS-1212 - Remove unnecessary conversion between Instant and ZonedDateTime.
+
+
+Changes in version 2.3.0.M2 (2020-01-17)
+----------------------------------------
+* DATACMNS-1652 - Release 2.3 M2 (Neumann).
+
+
+Changes in version 2.3.0.M1 (2020-01-16)
+----------------------------------------
+* DATACMNS-1651 - Fix typo in Javadoc.
+* DATACMNS-1647 - Switch to use factory methods of RepresentationModel classes.
+* DATACMNS-1645 - Add search prefix for part tree queries.
+* DATACMNS-1643 - Update copyright years to 2020.
+* DATACMNS-1635 - Allow dedicated expression of null handling for Querydsl Predicates in WebMVC integration.
+* DATACMNS-1631 - Fix spelling in reference documentation.
+* DATACMNS-1630 - Remove custom copy of ShadowingClassLoader.
+* DATACMNS-1629 - Log module name in RepositoryConfigurationDelegate during repository scanning.
+* DATACMNS-1626 - Add attribute to projection documentation for reuse with R2DBC.
+* DATACMNS-1620 - Improve resource description of repository bean definitions.
+* DATACMNS-1613 - PageImpl created from only a Collection returns invalid size.
+* DATACMNS-1609 - Auditing metadata should not detect paths containing map or collection like segments.
+* DATACMNS-1603 - Reword "wanna" exception messages.
+* DATACMNS-1602 - Reuse generated PropertyAccessor's and Entityinstantiator classes across EntityInstantiators and PersistentPropertyAccessorFactorys.
+* DATACMNS-1601 - Improve CrudRepository JavaDoc with the guarantees and exceptions of findAllById and deleteAllById.
+* DATACMNS-1598 - "Cannot create EnumSet for unknown element type".
+* DATACMNS-1596 - Module not exposing any entity identifying annotations claims all repositories.
+* DATACMNS-1593 - QuerydslPredicateArgumentResolver produces null result for empty form submission.
+* DATACMNS-1592 - Update documentation to use @With instead of @Wither.
+* DATACMNS-1591 - @Primary annotation not honored.
+* DATACMNS-1587 - Release 2.3 M1 (Neumann).
+* DATACMNS-1508 - Add support for Coroutines repositories.
+* DATACMNS-990 - Enable building with JDK11+.
+* DATACMNS-949 - Drop own Converters and use ReactiveAdapterRegistry directly where possible.
+
+
+Changes in version 2.2.4.RELEASE (2020-01-15)
+---------------------------------------------
+* DATACMNS-1643 - Update copyright years to 2020.
+* DATACMNS-1635 - Allow dedicated expression of null handling for Querydsl Predicates in WebMVC integration.
+* DATACMNS-1633 - Release 2.2.4 (Moore SR4).
+* DATACMNS-1593 - QuerydslPredicateArgumentResolver produces null result for empty form submission.
+
+
+Changes in version 2.1.15.RELEASE (2020-01-15)
+----------------------------------------------
+* DATACMNS-1643 - Update copyright years to 2020.
+* DATACMNS-1632 - Release 2.1.15 (Lovelace SR15).
+
+
+Changes in version 2.2.3.RELEASE (2019-12-04)
+---------------------------------------------
+* DATACMNS-1631 - Fix spelling in reference documentation.
+* DATACMNS-1629 - Log module name in RepositoryConfigurationDelegate during repository scanning.
+* DATACMNS-1626 - Add attribute to projection documentation for reuse with R2DBC.
+* DATACMNS-1622 - Release 2.2.3 (Moore SR3).
+* DATACMNS-1603 - Reword "wanna" exception messages.
+
+
+Changes in version 2.1.14.RELEASE (2019-12-04)
+----------------------------------------------
+* DATACMNS-1631 - Fix spelling in reference documentation.
+* DATACMNS-1629 - Log module name in RepositoryConfigurationDelegate during repository scanning.
+* DATACMNS-1621 - Release 2.1.14 (Lovelace SR14).
+* DATACMNS-1603 - Reword "wanna" exception messages.
+
+
+Changes in version 2.2.2.RELEASE (2019-11-18)
+---------------------------------------------
+* DATACMNS-1618 - Set loglevel for java.time converters to debug (temporary fix).
+* DATACMNS-1613 - PageImpl created from only a Collection returns invalid size.
+* DATACMNS-1609 - Auditing metadata should not detect paths containing map or collection like segments.
+* DATACMNS-1606 - Release 2.2.2 (Moore SR2).
+
+
+Changes in version 2.1.13.RELEASE (2019-11-18)
+----------------------------------------------
+* DATACMNS-1613 - PageImpl created from only a Collection returns invalid size.
+* DATACMNS-1605 - Release 2.1.13 (Lovelace SR13).
+
+
+Changes in version 2.2.1.RELEASE (2019-11-04)
+---------------------------------------------
+* DATACMNS-1602 - Reuse generated PropertyAccessor's and Entityinstantiator classes across EntityInstantiators and PersistentPropertyAccessorFactorys.
+* DATACMNS-1601 - Improve CrudRepository JavaDoc with the guarantees and exceptions of findAllById and deleteAllById.
+* DATACMNS-1598 - "Cannot create EnumSet for unknown element type".
+* DATACMNS-1596 - Module not exposing any entity identifying annotations claims all repositories.
+* DATACMNS-1591 - @Primary annotation not honored.
+* DATACMNS-1586 - Release 2.2.1 (Moore SR1).
+
+
+Changes in version 2.1.12.RELEASE (2019-11-04)
+----------------------------------------------
+* DATACMNS-1602 - Reuse generated PropertyAccessor's and Entityinstantiator classes across EntityInstantiators and PersistentPropertyAccessorFactorys.
+* DATACMNS-1601 - Improve CrudRepository JavaDoc with the guarantees and exceptions of findAllById and deleteAllById.
+* DATACMNS-1598 - "Cannot create EnumSet for unknown element type".
+* DATACMNS-1596 - Module not exposing any entity identifying annotations claims all repositories.
+* DATACMNS-1585 - Release 2.1.12 (Lovelace SR12).
+
+
+Changes in version 2.2.0.RELEASE (2019-09-30)
+---------------------------------------------
+* DATACMNS-1584 - Add documentation for Kotlin support.
+* DATACMNS-1583 - Introduce QPageRequest factory methods for consistency with PageRequest.
+* DATACMNS-1581 - Reject invalid null values for Sort in factory methods of PageRequest.
+* DATACMNS-1580 - Update documentation.
+* DATACMNS-1562 - Release 2.2 GA (Moore).
+* DATACMNS-1486 - HateoasSortHandlerMethodArgumentResolver is missing a @Nullable annotation.
+* DATACMNS-1211 - Provide WebFlux Pageable and Sort argument resolver.
+
+
+Changes in version 2.1.11.RELEASE (2019-09-30)
+----------------------------------------------
+* DATACMNS-1581 - Reject invalid null values for Sort in factory methods of PageRequest.
+* DATACMNS-1580 - Update documentation.
+* DATACMNS-1576 - Fix JavaDoc on CustomConversions.
+* DATACMNS-1574 - Partially populated PersistentEntity instances not properly removed from cache.
+* DATACMNS-1571 - TypeInformation.specialize(…) does not consider generics information in given type.
+* DATACMNS-1570 - Parsing of query method names is inconsistent for attributes beginning with a single lower case character followed by an upper case character.
+* DATACMNS-1569 - Revise nullability documentation in Querydsl APIs.
+* DATACMNS-1568 - Explicitly mention null-handling changes made for Sort and Pageable in 2.0 in reference docs.
+* DATACMNS-1567 - Fix license years in header of Repository.
+* DATACMNS-1565 - Add HTTPS entries into spring.schemas.
+* DATACMNS-1561 - Release 2.1.11 (Lovelace SR11).
+
+
+Changes in version 2.2.0.RC3 (2019-09-06)
+-----------------------------------------
+* DATACMNS-1578 - Properly bind null values to ….isNull() expressions in Querydsl.
+* DATACMNS-1576 - Fix JavaDoc on CustomConversions.
+* DATACMNS-1574 - Partially populated PersistentEntity instances not properly removed from cache.
+* DATACMNS-1571 - TypeInformation.specialize(…) does not consider generics information in given type.
+* DATACMNS-1570 - Parsing of query method names is inconsistent for attributes beginning with a single lower case character followed by an upper case character.
+* DATACMNS-1569 - Revise nullability documentation in Querydsl APIs.
+* DATACMNS-1568 - Explicitly mention null-handling changes made for Sort and Pageable in 2.0 in reference docs.
+* DATACMNS-1567 - Fix license years in header of Repository.
+* DATACMNS-1565 - Add HTTPS entries into spring.schemas.
+* DATACMNS-1563 - Release 2.2 RC3 (Moore).
+
+
+Changes in version 2.2.0.RC2 (2019-08-05)
+-----------------------------------------
+* DATACMNS-1560 - Upgrade to Vavr 0.10.2.
+* DATACMNS-1558 - Upgrade to Vavr 0.10.1.
+* DATACMNS-1557 - Sort Javadoc mentions wrong sorting order.
+* DATACMNS-1556 - Performance improvements in repository invocation handling.
+* DATACMNS-1555 - Add support in PersistentPropertyAccessor for multivalued properties.
+* DATACMNS-1554 - Migrate tests to AssertJ.
+* DATACMNS-1553 - Revise readme for a consistent structure.
+* DATACMNS-1552 - Invalid conversions for Option instances returned from custom repository methods.
+* DATACMNS-1551 - NullPointException throw rather than PropertyReferenceException if Sort property string is ".".
+* DATACMNS-1550 - Add RevisionType to RevisionMetadata.
+* DATACMNS-1548 - Fix JavaDoc on AuditingHandler.setModifyOnCreation(…).
+* DATACMNS-1545 - Fix anchors and callouts in entity callbacks documentation.
+* DATACMNS-1544 - Release 2.2 RC2 (Moore).
+* DATACMNS-1536 - Introduce Jenkins CI.
+* DATACMNS-1524 - Major invocation penalty of repository extension methods.
+
+
+Changes in version 2.1.10.RELEASE (2019-08-05)
+----------------------------------------------
+* DATACMNS-1557 - Sort Javadoc mentions wrong sorting order.
+* DATACMNS-1552 - Invalid conversions for Option instances returned from custom repository methods.
+* DATACMNS-1551 - NullPointException throw rather than PropertyReferenceException if Sort property string is ".".
+* DATACMNS-1549 - Fix NoHTTP errors.
+* DATACMNS-1548 - Fix JavaDoc on AuditingHandler.setModifyOnCreation(…).
+* DATACMNS-1543 - Release 2.1.10 (Lovelace SR10).
+* DATACMNS-1536 - Introduce Jenkins CI.
+* DATACMNS-1524 - Major invocation penalty of repository extension methods.
+
+
+Changes in version 1.13.23.RELEASE (2019-08-05)
+-----------------------------------------------
+* DATACMNS-1551 - NullPointException throw rather than PropertyReferenceException if Sort property string is ".".
+* DATACMNS-1548 - Fix JavaDoc on AuditingHandler.setModifyOnCreation(…).
+* DATACMNS-1540 - ConcurrentModificationException in QuerydslPredicateBuilder path cache.
+* DATACMNS-1536 - Introduce Jenkins CI.
+* DATACMNS-1533 - Release 1.13.23 (Ingalls SR23).
+
+
+Changes in version 2.2.0.RC1 (2019-06-14)
+-----------------------------------------
+* DATACMNS-1541 - Create security policy readme.
+* DATACMNS-1540 - ConcurrentModificationException in QuerydslPredicateBuilder path cache.
+* DATACMNS-1538 - Add support for custom repository proxy post processors in CDI.
+* DATACMNS-1534 - Cache BeanFactory lookup for EvaluationContextExtension.
+* DATACMNS-1514 - Release 2.2 RC1 (Moore).
+* DATACMNS-1467 - Add API for entity callbacks/change before save/after load.
+
+
+Changes in version 2.1.9.RELEASE (2019-06-14)
+---------------------------------------------
+* DATACMNS-1540 - ConcurrentModificationException in QuerydslPredicateBuilder path cache.
+* DATACMNS-1534 - Cache BeanFactory lookup for EvaluationContextExtension.
+* DATACMNS-1532 - Release 2.1.9 (Lovelace SR9).
+
+
+Changes in version 1.13.22.RELEASE (2019-05-13)
+-----------------------------------------------
+* DATACMNS-1531 - Release 1.13.22 (Ingalls SR22).
+
+
+Changes in version 2.1.8.RELEASE (2019-05-13)
+---------------------------------------------
+* DATACMNS-1530 - Release 2.1.8 (Lovelace SR8).
+
+
+Changes in version 2.2.0.M4 (2019-05-13)
+----------------------------------------
+* DATACMNS-1529 - Reactivate Travis builds for Spring Framework 5.2 snapshots.
+* DATACMNS-1526 - Adapt to API changes in Spring HATEOAS 1.0 M2.
+* DATACMNS-1520 - Fix typo in Javadoc of PagedResourcesAssembler.
+* DATACMNS-1518 - Unable to resolve methods with variable number of arguments in SpEL.
+* DATACMNS-1515 - Release 2.2 M4 (Moore).
+* DATACMNS-1510 - Javadoc phrasing in Param.
+
+
+Changes in version 1.13.21.RELEASE (2019-05-10)
+-----------------------------------------------
+* DATACMNS-1527 - Enable builds against Spring 5.1 and 5.2 for Travis.
+* DATACMNS-1520 - Fix typo in Javadoc of PagedResourcesAssembler.
+* DATACMNS-1510 - Javadoc phrasing in Param.
+* DATACMNS-1505 - Release 1.13.21 (Ingalls SR21).
+
+
+Changes in version 2.1.7.RELEASE (2019-05-10)
+---------------------------------------------
+* DATACMNS-1528 - Reactivate Travis build profile execution for Spring 5.2.
+* DATACMNS-1520 - Fix typo in Javadoc of PagedResourcesAssembler.
+* DATACMNS-1518 - Unable to resolve methods with variable number of arguments in SpEL.
+* DATACMNS-1511 - Upgrade to XMLBeam 1.4.16.
+* DATACMNS-1510 - Javadoc phrasing in Param.
+* DATACMNS-1507 - Release 2.1.7 (Lovelace SR7).
+
+
+Changes in version 2.2.0.M3 (2019-04-11)
+----------------------------------------
+* DATACMNS-1511 - Upgrade to XMLBeam 1.4.16.
+* DATACMNS-1499 - Add convenience factory methods to Range.
+* DATACMNS-1498 - Improve attribute lookups from RepositoryConfigurationSources.
+* DATACMNS-1497 - Custom BeanNameGenerators are not considered for repository bean name generation.
+* DATACMNS-1496 - Remove deprecations introduced in Lovelace.
+* DATACMNS-1493 - Release 2.2 M3 (Moore).
+
+
+Changes in version 2.1.6.RELEASE (2019-04-01)
+---------------------------------------------
+* DATACMNS-1491 - Slice JavaDoc states Pageable constructor arg can be null, but it can't.
+* DATACMNS-1490 - Exclude Lombok generated code from code coverage calculation.
+* DATACMNS-1483 - Migrate Kotlin tests to Mockk.
+* DATACMNS-1482 - Conversion don't seem to properly handle conversion of Lists.
+* DATACMNS-1480 - Release 2.1.6 (Lovelace SR6).
+* DATACMNS-1451 - ClassGeneratingPropertyAccessorFactory considers only first 16 immutable Kotlin properties.
+
+
+Changes in version 2.0.14.RELEASE (2019-04-01)
+----------------------------------------------
+* DATACMNS-1491 - Slice JavaDoc states Pageable constructor arg can be null, but it can't.
+* DATACMNS-1490 - Exclude Lombok generated code from code coverage calculation.
+* DATACMNS-1482 - Conversion don't seem to properly handle conversion of Lists.
+* DATACMNS-1479 - Fix usage of PageRequest in reference documentation.
+* DATACMNS-1475 - Javadoc of Slice.nextPageable() and ….previousPageable() incorrect about nullability.
+* DATACMNS-1464 - Release 2.0.14 (Kay SR14).
+
+
+Changes in version 1.13.20.RELEASE (2019-04-01)
+-----------------------------------------------
+* DATACMNS-1504 - Release 1.13.20 (Ingalls SR20).
+
+
+Changes in version 1.13.19.RELEASE (2019-04-01)
+-----------------------------------------------
+* DATACMNS-1490 - Exclude Lombok generated code from code coverage calculation.
+* DATACMNS-1463 - Release 1.13.19 (Ingalls SR19).
+
+
+Changes in version 2.2.0.M2 (2019-03-07)
+----------------------------------------
+* DATACMNS-1492 - Upgrade to Spring HATEOAS 1.0 M1.
+* DATACMNS-1491 - Slice JavaDoc states Pageable constructor arg can be null, but it can't.
+* DATACMNS-1490 - Exclude Lombok generated code from code coverage calculation.
+* DATACMNS-1485 - Remove version for managed Kotlin dependencies.
+* DATACMNS-1484 - IterableToStreamableConverter converts to Streamable too aggressively.
+* DATACMNS-1483 - Migrate Kotlin tests to Mockk.
+* DATACMNS-1482 - Conversion don't seem to properly handle conversion of Lists.
+* DATACMNS-1479 - Fix usage of PageRequest in reference documentation.
+* DATACMNS-1476 - Add Slice.nextOrLastPageable() and ....previousOrFirstPageable().
+* DATACMNS-1475 - Javadoc of Slice.nextPageable() and ….previousPageable() incorrect about nullability.
+* DATACMNS-1471 - Upgrade to Vavr 0.10.
+* DATACMNS-1470 - Upgrade to Spring HATEOAS 1.0.0 API.
+* DATACMNS-1462 - Introduce Concourse CI.
+* DATACMNS-1461 - Auditor attempts to set created date on null object.
+* DATACMNS-1460 - Upgrade to Vavr 0.9.3.
+* DATACMNS-1459 - Update copyright years to 2019.
+* DATACMNS-1456 - ConcurrentModificationException in ExtensionAwareEvaluationContextProvider.
+* DATACMNS-1455 - HateoasPageableHandlerMethodArgumentResolver doesn't handle Pageable.unpaged() correctly.
+* DATACMNS-1453 - Wrong assertion in AuditingBeanDefinitionRegistrarSupport.
+* DATACMNS-1451 - ClassGeneratingPropertyAccessorFactory considers only first 16 immutable Kotlin properties.
+* DATACMNS-1447 - Add Collector methods to Streamable.
+* DATACMNS-1445 - Release 2.2 M2 (Moore).
+* DATACMNS-1439 - DefaultImplementationLookupConfiguration class should use Introspector.decapitalize(…) to generate the bean name.
+* DATACMNS-1438 - Annotation based auditing fails for annotation properties underneath collection valued subpath.
+* DATACMNS-1081 - Add Querydsl support for reactive repositories.
+
+
+Changes in version 2.1.5.RELEASE (2019-02-13)
+---------------------------------------------
+* DATACMNS-1479 - Fix usage of PageRequest in reference documentation.
+* DATACMNS-1475 - Javadoc of Slice.nextPageable() and ….previousPageable() incorrect about nullability.
+* DATACMNS-1465 - Release 2.1.5 (Lovelace SR5).
+
+
+Changes in version 2.1.4.RELEASE (2019-01-10)
+---------------------------------------------
+* DATACMNS-1461 - Auditor attempts to set created date on null object.
+* DATACMNS-1460 - Upgrade to Vavr 0.9.3.
+* DATACMNS-1459 - Update copyright years to 2019.
+* DATACMNS-1456 - ConcurrentModificationException in ExtensionAwareEvaluationContextProvider.
+* DATACMNS-1455 - HateoasPageableHandlerMethodArgumentResolver doesn't handle Pageable.unpaged() correctly.
+* DATACMNS-1453 - Wrong assertion in AuditingBeanDefinitionRegistrarSupport.
+* DATACMNS-1443 - QuerydslPredicateBuilder#isSingleElementCollectionWithoutText is too restrictive.
+* DATACMNS-1438 - Annotation based auditing fails for annotation properties underneath collection valued subpath.
+* DATACMNS-1436 - Remove explicit installation of Oracle JDK from Travis build.
+* DATACMNS-1435 - Map component and value type detection fails for Vavr Map.
+* DATACMNS-1426 - Release 2.1.4 (Lovelace SR4).
+* DATACMNS-1346 - Add a findByIdOrNull(…) Kotlin extension to CrudRepository.
+
+
+Changes in version 2.0.13.RELEASE (2019-01-10)
+----------------------------------------------
+* DATACMNS-1460 - Upgrade to Vavr 0.9.3.
+* DATACMNS-1459 - Update copyright years to 2019.
+* DATACMNS-1455 - HateoasPageableHandlerMethodArgumentResolver doesn't handle Pageable.unpaged() correctly.
+* DATACMNS-1453 - Wrong assertion in AuditingBeanDefinitionRegistrarSupport.
+* DATACMNS-1443 - QuerydslPredicateBuilder#isSingleElementCollectionWithoutText is too restrictive.
+* DATACMNS-1436 - Remove explicit installation of Oracle JDK from Travis build.
+* DATACMNS-1435 - Map component and value type detection fails for Vavr Map.
+* DATACMNS-1425 - Release 2.0.13 (Kay SR13).
+
+
+Changes in version 1.13.18.RELEASE (2019-01-10)
+-----------------------------------------------
+* DATACMNS-1460 - Upgrade to Vavr 0.9.3.
+* DATACMNS-1459 - Update copyright years to 2019.
+* DATACMNS-1443 - QuerydslPredicateBuilder#isSingleElementCollectionWithoutText is too restrictive.
+* DATACMNS-1436 - Remove explicit installation of Oracle JDK from Travis build.
+* DATACMNS-1435 - Map component and value type detection fails for Vavr Map.
+* DATACMNS-1424 - Release 1.13.18 (Ingalls SR18).
+
+
+Changes in version 2.2.0.M1 (2018-12-11)
+----------------------------------------
+* DATACMNS-1444 - Add documentation section on Streamable and collection return types.
+* DATACMNS-1443 - QuerydslPredicateBuilder#isSingleElementCollectionWithoutText is too restrictive.
+* DATACMNS-1442 - Simplify reference documentation setup.
+* DATACMNS-1441 - Release 2.2 M1 (Moore).
+* DATACMNS-1440 - Add converters to create LocalDate(Time) and Instant instances from UTC formatted strings.
+* DATACMNS-1436 - Remove explicit installation of Oracle JDK from Travis build.
+* DATACMNS-1434 - Remove Javaslang support.
+* DATACMNS-1433 - Add Streamable.and(Iterable<? extends T>) and ….and(T...).
+* DATACMNS-1432 - Add Streamable.toList() and ….toSet() for convenience.
+* DATACMNS-1422 - ClassGeneratingPropertyAccessorFactory needs custom ClassLoader for defineClass().
+* DATACMNS-1421 - Property sometimes unable to find wither.
+* DATACMNS-1419 - Introduce TypeInformation.isSubtypeOf(Class).
+* DATACMNS-1415 - ConcurrentModificationException in SpelAwareProxyProjectionFactory.
+* DATACMNS-1411 - Simplify TravisCI build definition.
+* DATACMNS-1403 - Fixed example source in reference documentation.
+* DATACMNS-1402 - Cannot instantiate Kotlin entity with 32 parameter constructor.
+* DATACMNS-1401 - Warning about illegal reflective access in Spring Data Commons / MongoDB.
+* DATACMNS-1400 - KotlinCopyMethod.findSyntheticCopyMethod(…) does not find default copy method with Kotlin 1.3.
+* DATACMNS-1399 - Incorrect Error message from RepositoryFragement at line 178.
+* DATACMNS-1396 - Locking overhead on Java 8 caused by ConcurrentHashMap.computeIfAbsent(…).
+* DATACMNS-1346 - Add a findByIdOrNull(…) Kotlin extension to CrudRepository.
+
+
+Changes in version 2.1.3.RELEASE (2018-11-27)
+---------------------------------------------
+* DATACMNS-1422 - ClassGeneratingPropertyAccessorFactory needs custom ClassLoader for defineClass().
+* DATACMNS-1421 - Property sometimes unable to find wither.
+* DATACMNS-1415 - ConcurrentModificationException in SpelAwareProxyProjectionFactory.
+* DATACMNS-1414 - Release 2.1.3 (Lovelace SR3).
+
+
+Changes in version 2.0.12.RELEASE (2018-11-27)
+----------------------------------------------
+* DATACMNS-1415 - ConcurrentModificationException in SpelAwareProxyProjectionFactory.
+* DATACMNS-1411 - Simplify TravisCI build definition.
+* DATACMNS-1407 - Release 2.0.12 (Kay SR12).
+* DATACMNS-1403 - Fixed example source in reference documentation.
+
+
+Changes in version 1.13.17.RELEASE (2018-11-27)
+-----------------------------------------------
+* DATACMNS-1415 - ConcurrentModificationException in SpelAwareProxyProjectionFactory.
+* DATACMNS-1411 - Simplify TravisCI build definition.
+* DATACMNS-1408 - Release 1.13.17 (Ingalls SR17).
+
+
+Changes in version 2.1.2.RELEASE (2018-10-29)
+---------------------------------------------
+* DATACMNS-1411 - Simplify TravisCI build definition.
+* DATACMNS-1406 - Release 2.1.2 (Lovelace SR2).
+* DATACMNS-1403 - Fixed example source in reference documentation.
+
+
+Changes in version 1.13.16.RELEASE (2018-10-15)
+-----------------------------------------------
+* DATACMNS-1392 - Fix typo in Parameters.getParameter(…) exception message.
+* DATACMNS-1388 - Release 1.13.16 (Ingalls SR16).
+
+
+Changes in version 2.0.11.RELEASE (2018-10-15)
+----------------------------------------------
+* DATACMNS-1402 - Cannot instantiate Kotlin entity with 32 parameter constructor.
+* DATACMNS-1399 - Incorrect Error message from RepositoryFragement at line 178.
+* DATACMNS-1396 - Locking overhead on Java 8 caused by ConcurrentHashMap.computeIfAbsent(…).
+* DATACMNS-1392 - Fix typo in Parameters.getParameter(…) exception message.
+* DATACMNS-1390 - Release 2.0.11 (Kay SR11).
+
+
+Changes in version 2.1.1.RELEASE (2018-10-15)
+---------------------------------------------
+* DATACMNS-1402 - Cannot instantiate Kotlin entity with 32 parameter constructor.
+* DATACMNS-1401 - Warning about illegal reflective access in Spring Data Commons / MongoDB.
+* DATACMNS-1400 - KotlinCopyMethod.findSyntheticCopyMethod(…) does not find default copy method with Kotlin 1.3.
+* DATACMNS-1399 - Incorrect Error message from RepositoryFragement at line 178.
+* DATACMNS-1396 - Locking overhead on Java 8 caused by ConcurrentHashMap.computeIfAbsent(…).
+* DATACMNS-1395 - Release 2.1.1 (Lovelace SR1).
+
+
+Changes in version 2.1.0.RELEASE (2018-09-21)
+---------------------------------------------
+* DATACMNS-1392 - Fix typo in Parameters.getParameter(…) exception message.
+* DATACMNS-1391 - Generated Kotlin PropertyAccessor uses wrong copy method.
+* DATACMNS-1389 - RepositoryConfigurationExtensionSupport.useRepositoryConfiguration(...) fails in strict configuration mode.
+* DATACMNS-1387 - Wrong description for CurrentDateTimeProvider.
+* DATACMNS-1386 - SpringDataWebConfiguration cannot be introspected when Jackson is not available.
+* DATACMNS-1384 - Add support for java.sql.Timestamp in AnnotationRevisionMetadata.
+* DATACMNS-1383 - Custom extension of Pageable as parameter causes query method to be rejected.
+* DATACMNS-1378 - Release 2.1 GA (Lovelace).
+* DATACMNS-1374 - Document requirements and supported modes for mutable and immutable types.
+* DATACMNS-1174 - Improve error reporting for not supported repository interfaces.
+* DATACMNS-1032 - Deprecate UserCredentials and downstream clients.
+
+
+Changes in version 2.0.10.RELEASE (2018-09-10)
+----------------------------------------------
+* DATACMNS-1389 - RepositoryConfigurationExtensionSupport.useRepositoryConfiguration(...) fails in strict configuration mode.
+* DATACMNS-1387 - Wrong description for CurrentDateTimeProvider.
+* DATACMNS-1386 - SpringDataWebConfiguration cannot be introspected when Jackson is not available.
+* DATACMNS-1384 - Add support for java.sql.Timestamp in AnnotationRevisionMetadata.
+* DATACMNS-1383 - Custom extension of Pageable as parameter causes query method to be rejected.
+* DATACMNS-1376 - Assure JDK 11 compatibility for DefaultMethodInvokingMethodInterceptor.
+* DATACMNS-1375 - In case of failures, AnnotationRepositoryMetadata should be explicit about the offending repository interface.
+* DATACMNS-1373 - Align class loading in ClassGeneratingEntityInstantiator with ClassGeneratingPropertyAccessorFactory.
+* DATACMNS-1370 - Avoid superflous regex type checks while scanning for custom implementations.
+* DATACMNS-1369 - Repository initialization should make sure the aggregate root type gets added to the mapping context.
+* DATACMNS-1367 - Add debug logging to better identify repository scanning and initialization.
+* DATACMNS-1366 - Investigate performance regressions between 2.0 GA and 2.1 RC2.
+* DATACMNS-1364 - BasicPersistentEntity.getPersistentProperty(…) returns the unchecked value in ConcurrentReferenceHashMap.
+* DATACMNS-1362 - Broken Links in the Docs 404.
+* DATACMNS-1360 - Release 2.0.10 (Kay SR10).
+* DATACMNS-1359 - Improve exception message for missing accessors and fields.
+* DATACMNS-1351 - Fix typos in reference documentation.
+* DATACMNS-1174 - Improve error reporting for not supported repository interfaces.
+
+
+Changes in version 1.13.15.RELEASE (2018-09-10)
+-----------------------------------------------
+* DATACMNS-1383 - Custom extension of Pageable as parameter causes query method to be rejected.
+* DATACMNS-1370 - Avoid superflous regex type checks while scanning for custom implementations.
+* DATACMNS-1367 - Add debug logging to better identify repository scanning and initialization.
+* DATACMNS-1362 - Broken Links in the Docs 404.
+* DATACMNS-1361 - Release 1.13.15 (Ingalls SR15).
+* DATACMNS-1351 - Fix typos in reference documentation.
+
+
+Changes in version 2.1.0.RC2 (2018-08-20)
+-----------------------------------------
+* DATACMNS-1377 - ConvertingPropertyAccessor loses its converting power for nested properties.
+* DATACMNS-1376 - Assure JDK 11 compatibility for DefaultMethodInvokingMethodInterceptor.
+* DATACMNS-1375 - In case of failures, AnnotationRepositoryMetadata should be explicit about the offending repository interface.
+* DATACMNS-1373 - Align class loading in ClassGeneratingEntityInstantiator with ClassGeneratingPropertyAccessorFactory.
+* DATACMNS-1371 - Avoid excessive component scanning for repository fragments.
+* DATACMNS-1370 - Avoid superflous regex type checks while scanning for custom implementations.
+* DATACMNS-1369 - Repository initialization should make sure the aggregate root type gets added to the mapping context.
+* DATACMNS-1368 - Add support for deferred initialization of repositories.
+* DATACMNS-1367 - Add debug logging to better identify repository scanning and initialization.
+* DATACMNS-1366 - Investigate performance regressions between 2.0 GA and 2.1 RC2.
+* DATACMNS-1364 - BasicPersistentEntity.getPersistentProperty(…) returns the unchecked value in ConcurrentReferenceHashMap.
+* DATACMNS-1362 - Broken Links in the Docs 404.
+* DATACMNS-1359 - Improve exception message for missing accessors and fields.
+* DATACMNS-1358 - Release 2.1 RC2 (Lovelace).
+* DATACMNS-1351 - Fix typos in reference documentation.
+
+
+Changes in version 1.13.14.RELEASE (2018-07-27)
+-----------------------------------------------
+* DATACMNS-1352 - AbstractMappingContext.getPersistentPropertyPath(…) fails on Object typed properties.
+* DATACMNS-1341 - Detect JDK proxy target class in ProxyUtils.
+* DATACMNS-1339 - Release 1.13.14 (Ingalls SR14).
+
+
+Changes in version 2.0.9.RELEASE (2018-07-26)
+---------------------------------------------
+* DATACMNS-1357 - Use shared DefaultConversionService in ProxyProjectionFactory and ResultProcessor.
+* DATACMNS-1345 - Nullpointer Exception for optional mappingContext in the RepositoryFactoryBeanSupport.
+* DATACMNS-1342 - TypeInformation.isCollectionLike() does not consider Streamable.
+* DATACMNS-1341 - Detect JDK proxy target class in ProxyUtils.
+* DATACMNS-1340 - Release 2.0.9 (Kay SR9).
+
+
+Changes in version 2.1.0.RC1 (2018-07-26)
+-----------------------------------------
+* DATACMNS-1357 - Use shared DefaultConversionService in ProxyProjectionFactory and ResultProcessor.
+* DATACMNS-1354 - Allow overriding the fallback IsNewStrategy for a BasicPersistentEntity.
+* DATACMNS-1345 - Nullpointer Exception for optional mappingContext in the RepositoryFactoryBeanSupport.
+* DATACMNS-1342 - TypeInformation.isCollectionLike() does not consider Streamable.
+* DATACMNS-1341 - Detect JDK proxy target class in ProxyUtils.
+* DATACMNS-1338 - Unable to use secondary @PersistenceConstructor with Kotlin data classes.
+* DATACMNS-1336 - Warning logs for JodaTime converters.
+* DATACMNS-1333 - Unify is-new-detection for entities in mapping package.
+* DATACMNS-1328 - DefaultRepositoryInvokerFactory throws ConcurrentModificationException with Java9.
+* DATACMNS-1327 - int overflow in AbstractPageRequest#getOffset().
+* DATACMNS-1326 - PersistentPropertyInspectingIsNewStrategy does not consider primitive defaults new.
+* DATACMNS-1325 - Add IdentifierAccessor for Persistable.
+* DATACMNS-1324 - Add extensible proxy detection infrastructure.
+* DATACMNS-1322 - Add support for immutable objects in PersistentPropertyAccessor.
+* DATACMNS-1321 - Release 2.1 RC1 (Lovelace).
+* DATACMNS-1318 - Support for primitive aggregate references.
+* DATACMNS-1304 - PropertyPath is created wrong for property with uppercase letters at the end.
+* DATACMNS-983 - Support for Vavr's Try as query method return value.
+
+
+Changes in version 2.0.8.RELEASE (2018-06-13)
+---------------------------------------------
+* DATACMNS-1338 - Unable to use secondary @PersistenceConstructor with Kotlin data classes.
+* DATACMNS-1336 - Warning logs for JodaTime converters.
+* DATACMNS-1328 - DefaultRepositoryInvokerFactory throws ConcurrentModificationException with Java9.
+* DATACMNS-1327 - int overflow in AbstractPageRequest#getOffset().
+* DATACMNS-1326 - PersistentPropertyInspectingIsNewStrategy does not consider primitive defaults new.
+* DATACMNS-1325 - Add IdentifierAccessor for Persistable.
+* DATACMNS-1324 - Add extensible proxy detection infrastructure.
+* DATACMNS-1315 - Add coverpage for epub documentation output.
+* DATACMNS-1313 - Release 2.0.8 (Kay SR8).
+* DATACMNS-1304 - PropertyPath is created wrong for property with uppercase letters at the end.
+
+
+Changes in version 1.13.13.RELEASE (2018-06-13)
+-----------------------------------------------
+* DATACMNS-1328 - DefaultRepositoryInvokerFactory throws ConcurrentModificationException with Java9.
+* DATACMNS-1326 - PersistentPropertyInspectingIsNewStrategy does not consider primitive defaults new.
+* DATACMNS-1325 - Add IdentifierAccessor for Persistable.
+* DATACMNS-1324 - Add extensible proxy detection infrastructure.
+* DATACMNS-1315 - Add coverpage for epub documentation output.
+* DATACMNS-1312 - Release 1.13.13 (Ingalls SR13).
+* DATACMNS-1304 - PropertyPath is created wrong for property with uppercase letters at the end.
+
+
+Changes in version 2.1.0.M3 (2018-05-17)
+----------------------------------------
+* DATACMNS-1315 - Add coverpage for epub documentation output.
+* DATACMNS-1311 - Upgrade to XMLBeam 1.4.15.
+* DATACMNS-1300 - ConverterNotFoundException or ClassCastException if an entity implements Iterable<OtherType>.
+* DATACMNS-1299 - Repository metadata obtains an incorrect return type of repository methods returning Iterables.
+* DATACMNS-1295 - Release 2.1 M3 (Lovelace).
+* DATACMNS-1294 - Consider types in java.time to be simple.
+* DATACMNS-1292 - Improve projection-based XML request data binding.
+* DATACMNS-1260 - Extract EvaluationContextProvider and SPIs into dedicated package.
+* DATACMNS-1258 - Provide API to detect SpEL expression in repository query strings.
+
+
+Changes in version 2.0.7.RELEASE (2018-05-08)
+---------------------------------------------
+* DATACMNS-1311 - Upgrade to XMLBeam 1.4.15.
+* DATACMNS-1300 - ConverterNotFoundException or ClassCastException if an entity implements Iterable<OtherType>.
+* DATACMNS-1299 - Repository metadata obtains an incorrect return type of repository methods returning Iterables.
+* DATACMNS-1294 - Consider types in java.time to be simple.
+* DATACMNS-1293 - QuerydslPredicateArgumentResolver Javadoc points to outdated Querydsl package.
+* DATACMNS-1292 - Improve projection-based XML request data binding.
+* DATACMNS-1291 - Editing pass on documentation.
+* DATACMNS-1290 - AnnotationRevisionMetadata assumes field with revisionTimeStampAnnotation is of type TemporalAccessor.
+* DATACMNS-1289 - Call to save(…) on customized intermediate repository fails with "Object is not an instance of declaring class.".
+* DATACMNS-1288 - Release 2.0.7 (Kay SR7).
+* DATACMNS-1285 - PropertyPath should limit the depth of its input parsing.
+
+
+Changes in version 1.13.12.RELEASE (2018-05-08)
+-----------------------------------------------
+* DATACMNS-1311 - Upgrade to XMLBeam 1.4.15.
+* DATACMNS-1308 - Application context fails to start when using a custom class loader is used.
+* DATACMNS-1301 - SimpleTypeInformationMapper.resolveTypeFrom(…) should cache type lookup failures to prevent repeated lookups.
+* DATACMNS-1300 - ConverterNotFoundException or ClassCastException if an entity implements Iterable<OtherType>.
+* DATACMNS-1299 - Repository metadata obtains an incorrect return type of repository methods returning Iterables.
+* DATACMNS-1294 - Consider types in java.time to be simple.
+* DATACMNS-1293 - QuerydslPredicateArgumentResolver Javadoc points to outdated Querydsl package.
+* DATACMNS-1292 - Improve projection-based XML request data binding.
+* DATACMNS-1291 - Editing pass on documentation.
+* DATACMNS-1287 - Release 1.13.12 (Ingalls SR12).
+* DATACMNS-1285 - PropertyPath should limit the depth of its input parsing.
+
+
+Changes in version 2.1.0.M2 (2018-04-13)
+----------------------------------------
+* DATACMNS-1293 - QuerydslPredicateArgumentResolver Javadoc points to outdated Querydsl package.
+* DATACMNS-1291 - Editing pass on documentation.
+* DATACMNS-1290 - AnnotationRevisionMetadata assumes field with revisionTimeStampAnnotation is of type TemporalAccessor.
+* DATACMNS-1289 - Call to save(…) on customized intermediate repository fails with "Object is not an instance of declaring class.".
+* DATACMNS-1285 - PropertyPath should limit the depth of its input parsing.
+* DATACMNS-1283 - Remove explicit declaration of Jackson libraries.
+* DATACMNS-1282 - Use SimpleEvaluationContext in MapDataBinder.
+* DATACMNS-1281 - ConcurrentModificationException in MappingAuditableBeanWrapperFactory.
+* DATACMNS-1280 - Fix letter-casing in documentation of Querydsl Extension.
+* DATACMNS-1278 - SimpleTypeHolder.isSimpleType(…) returns different results for enums implementing interfaces.
+* DATACMNS-1277 - ReflectionRepositoryInvoker does not properly trigger delete(T) for invokeDeleteById(…).
+* DATACMNS-1275 - Add ability to find PersistentPropertyPaths based on arbitrary filter.
+* DATACMNS-1274 - Allow the usage of auditing annotation in nested types.
+* DATACMNS-1271 - NPE in AnnotationBasedPersistentProperty.isAnnotationPresent() because the annotation cache is not thread-safe.
+* DATACMNS-1264 - MapDataBinder should reject type expressions in SpEL expressions.
+* DATACMNS-1263 - Allow configuration inspection-classloader customization.
+* DATACMNS-1259 - Invalid date type for member Long when using @LastModifiedDate and @CreatedDate.
+* DATACMNS-1257 - Release 2.1 M2 (Lovelace).
+* DATACMNS-1255 - Extend configuration of CDI repository settings.
+* DATACMNS-1251 - Wrong usage of LocalDateTime.
+* DATACMNS-1233 - Add CDI support for repository fragments (mixins).
+
+
+Changes in version 2.0.6.RELEASE (2018-04-04)
+---------------------------------------------
+* DATACMNS-1284 - Backport ASM-based property detection for projections.
+* DATACMNS-1283 - Remove explicit declaration of Jackson libraries.
+* DATACMNS-1282 - Use SimpleEvaluationContext in MapDataBinder.
+* DATACMNS-1281 - ConcurrentModificationException in MappingAuditableBeanWrapperFactory.
+* DATACMNS-1280 - Fix letter-casing in documentation of Querydsl Extension.
+* DATACMNS-1278 - SimpleTypeHolder.isSimpleType(…) returns different results for enums implementing interfaces.
+* DATACMNS-1277 - ReflectionRepositoryInvoker does not properly trigger delete(T) for invokeDeleteById(…).
+* DATACMNS-1271 - NPE in AnnotationBasedPersistentProperty.isAnnotationPresent() because the annotation cache is not thread-safe.
+* DATACMNS-1267 - Release 2.0.6 (Kay SR6).
+* DATACMNS-1263 - Allow configuration inspection-classloader customization.
+
+
+Changes in version 1.13.11.RELEASE (2018-04-04)
+-----------------------------------------------
+* DATACMNS-1284 - Backport ASM-based property detection for projections.
+* DATACMNS-1283 - Remove explicit declaration of Jackson libraries.
+* DATACMNS-1282 - Use SimpleEvaluationContext in MapDataBinder.
+* DATACMNS-1281 - ConcurrentModificationException in MappingAuditableBeanWrapperFactory.
+* DATACMNS-1273 - AnnotationBasedPersistentProperty does not consider @AliasFor with own, revised annotations.
+* DATACMNS-1271 - NPE in AnnotationBasedPersistentProperty.isAnnotationPresent() because the annotation cache is not thread-safe.
+* DATACMNS-1264 - MapDataBinder should reject type expressions in SpEL expressions.
+* DATACMNS-1252 - Repository method returning Vavr Set results in cast exception if source value is not a Set.
+* DATACMNS-1249 - Fix line endings.
+* DATACMNS-1248 - Release 1.13.11 (Ingalls SR11).
+* DATACMNS-1243 - Add converters Instant <-> LocalDateTime.
+
+
+Changes in version 2.0.5.RELEASE (2018-02-28)
+---------------------------------------------
+* DATACMNS-1264 - MapDataBinder should reject type expressions in SpEL expressions.
+* DATACMNS-1262 - Release 2.0.5 (Kay SR5).
+
+
+Changes in version 2.0.4.RELEASE (2018-02-19)
+---------------------------------------------
+* DATACMNS-1259 - Invalid date type for member Long when using @LastModifiedDate and @CreatedDate.
+* DATACMNS-1252 - Repository method returning Vavr Set results in cast exception if source value is not a Set.
+* DATACMNS-1250 - Release 2.0.4 (Kay SR4).
+* DATACMNS-1243 - Add converters Instant <-> LocalDateTime.
+
+
+Changes in version 2.1.0.M1 (2018-02-06)
+----------------------------------------
+* DATACMNS-1252 - Repository method returning Vavr Set results in cast exception if source value is not a Set.
+* DATACMNS-1249 - Fix line endings.
+* DATACMNS-1246 - Investigate optimizing the happy path in QueryExecutorMethodInterceptor.invoke(…).
+* DATACMNS-1245 - Consider Kotlin metadata annotation for Kotlin class kind retrieval.
+* DATACMNS-1243 - Add converters Instant <-> LocalDateTime.
+* DATACMNS-1242 - Reduce log output in test execution.
+* DATACMNS-1241 - Polish Lazy implementation.
+* DATACMNS-1240 - Update copyright years to 2018.
+* DATACMNS-1238 - Use Environment specific ClassPathScanningCandidateComponentProvider constructor.
+* DATACMNS-1237 - Projecting form binding does not work with @ModelAttribute.
+* DATACMNS-1236 - Inconsistent nullability constraints in PageImpl Javadoc.
+* DATACMNS-1235 - Additional implementations of EntityPathResolver for supporting Querydsls packageSuffix.
+* DATACMNS-1229 - Upgrade to XmlBeam 1.4.14.
+* DATACMNS-1227 - Document web projection binding mechanism.
+* DATACMNS-1224 - Nullable polishing.
+* DATACMNS-1218 - Upgrade to Vavr 0.9.2.
+* DATACMNS-1215 - Repositories does not expose registered repository for proxy type.
+* DATACMNS-1214 - MappingContext.getPersistentEntity(PersistentProperty) must only return an entity if the given property is one.
+* DATACMNS-1210 - Thread-safetey issue in annotation detection in BasicPersistentEntity.
+* DATACMNS-1208 - AbstractMappingContext.hasPersistentEntity(…) does not consider cached abscence.
+* DATACMNS-1206 - Introduce abstraction to detect declared methods in declaration order.
+* DATACMNS-1201 - ClassGeneratingPropertyAccessorFactory.isTypeInjectable(…) fails with NPE for entities in default packages.
+* DATACMNS-1200 - Absent parameters cause NPE in ClassGeneratingEntityInstantiator.
+* DATACMNS-1199 - Add PropertyPath.nested(…).
+* DATACMNS-1198 - Add PropertyPath.getLeafType().
+* DATACMNS-1197 - Adding kotlin property to (extension) interface yields IllegalArgumentException on invocation.
+* DATACMNS-1196 - Failing generic type resolution of generic types within nested generic fields.
+* DATACMNS-1193 - Typo in documentation and JavaDoc of PageableDefaults.
+* DATACMNS-1191 - Avoid unnecessary conversion invocation after Optional unwrapping.
+* DATACMNS-1190 - Add documentation section about ways to enforce nullability constraints in repositories.
+* DATACMNS-1188 - Reflect CrudRepository naming and API changes in reference documentation.
+* DATACMNS-1187 - Broken links in query-by-example sections in reference documentation.
+* DATACMNS-1186 - Release 2.1 M1 (Lovelace).
+* DATACMNS-1180 - AbstractPersistentProperty.getGetter() returns null if the return type of the getter is a generic type.
+* DATACMNS-1158 - Make ProjectionFactory configurable by module implementations.
+* DATACMNS-901 - Potential deadlock in AbstractMappingContext when creating bean while application event is being fired.
+* DATACMNS-563 - When true setOneIndexedParameters still behaves as false in the links of the json response.
+
+
+Changes in version 2.0.3.RELEASE (2018-01-24)
+---------------------------------------------
+* DATACMNS-1249 - Fix line endings.
+* DATACMNS-1246 - Investigate optimizing the happy path in QueryExecutorMethodInterceptor.invoke(…).
+* DATACMNS-1245 - Consider Kotlin metadata annotation for Kotlin class kind retrieval.
+* DATACMNS-1242 - Reduce log output in test execution.
+* DATACMNS-1238 - Use Environment specific ClassPathScanningCandidateComponentProvider constructor.
+* DATACMNS-1237 - Projecting form binding does not work with @ModelAttribute.
+* DATACMNS-1236 - Inconsistent nullability constraints in PageImpl Javadoc.
+* DATACMNS-1229 - Upgrade to XmlBeam 1.4.14.
+* DATACMNS-1227 - Document web projection binding mechanism.
+* DATACMNS-1224 - Nullable polishing.
+* DATACMNS-1220 - Release 2.0.3 (Kay SR3).
+* DATACMNS-563 - When true setOneIndexedParameters still behaves as false in the links of the json response.
+
+
+Changes in version 1.13.10.RELEASE (2018-01-24)
+-----------------------------------------------
+* DATACMNS-1246 - Investigate optimizing the happy path in QueryExecutorMethodInterceptor.invoke(…).
+* DATACMNS-1242 - Reduce log output in test execution.
+* DATACMNS-1238 - Use Environment specific ClassPathScanningCandidateComponentProvider constructor.
+* DATACMNS-1237 - Projecting form binding does not work with @ModelAttribute.
+* DATACMNS-1229 - Upgrade to XmlBeam 1.4.14.
+* DATACMNS-1227 - Document web projection binding mechanism.
+* DATACMNS-1219 - Release 1.13.10 (Ingalls SR10).
+* DATACMNS-563 - When true setOneIndexedParameters still behaves as false in the links of the json response.
+
+
+Changes in version 2.0.2.RELEASE (2017-11-27)
+---------------------------------------------
+* DATACMNS-1218 - Upgrade to Vavr 0.9.2.
+* DATACMNS-1215 - Repositories does not expose registered repository for proxy type.
+* DATACMNS-1214 - MappingContext.getPersistentEntity(PersistentProperty) must only return an entity if the given property is one.
+* DATACMNS-1210 - Thread-safetey issue in annotation detection in BasicPersistentEntity.
+* DATACMNS-1208 - AbstractMappingContext.hasPersistentEntity(…) does not consider cached abscence.
+* DATACMNS-1202 - Release 2.0.2 (Kay SR2).
+* DATACMNS-1158 - Make ProjectionFactory configurable by module implementations.
+
+
+Changes in version 1.13.9.RELEASE (2017-11-27)
+----------------------------------------------
+* DATACMNS-1218 - Upgrade to Vavr 0.9.2.
+* DATACMNS-1215 - Repositories does not expose registered repository for proxy type.
+* DATACMNS-1214 - MappingContext.getPersistentEntity(PersistentProperty) must only return an entity if the given property is one.
+* DATACMNS-1201 - ClassGeneratingPropertyAccessorFactory.isTypeInjectable(…) fails with NPE for entities in default packages.
+* DATACMNS-1196 - Failing generic type resolution of generic types within nested generic fields.
+* DATACMNS-1195 - Release 1.13.9 (Ingalls SR9).
+* DATACMNS-1158 - Make ProjectionFactory configurable by module implementations.
+
+
+Changes in version 2.0.1.RELEASE (2017-10-27)
+---------------------------------------------
+* DATACMNS-1201 - ClassGeneratingPropertyAccessorFactory.isTypeInjectable(…) fails with NPE for entities in default packages.
+* DATACMNS-1200 - Absent parameters cause NPE in ClassGeneratingEntityInstantiator.
+* DATACMNS-1197 - Adding kotlin property to (extension) interface yields IllegalArgumentException on invocation.
+* DATACMNS-1196 - Failing generic type resolution of generic types within nested generic fields.
+* DATACMNS-1193 - Typo in documentation and JavaDoc of PageableDefaults.
+* DATACMNS-1191 - Avoid unnecessary conversion invocation after Optional unwrapping.
+* DATACMNS-1190 - Add documentation section about ways to enforce nullability constraints in repositories.
+* DATACMNS-1188 - Reflect CrudRepository naming and API changes in reference documentation.
+* DATACMNS-1187 - Broken links in query-by-example sections in reference documentation.
+* DATACMNS-1185 - Release 2.0.1 (Kay SR1).
+* DATACMNS-901 - Potential deadlock in AbstractMappingContext when creating bean while application event is being fired.
+
+
+Changes in version 1.13.8.RELEASE (2017-10-11)
+----------------------------------------------
+* DATACMNS-1193 - Typo in documentation and JavaDoc of PageableDefaults.
+* DATACMNS-1182 - Java 6 compatibility broken in QueryExecutionConverters in post Ingalls SR7 snapshots.
+* DATACMNS-1177 - Parameter.isDynamicProjectionParameter() does not handle wrapper types properly.
+* DATACMNS-1172 - Too excessive component scanning for repository implementation fragments causing slow bootstrap.
+* DATACMNS-1166 - Upgrade to Vavr 0.9.1.
+* DATACMNS-1163 - Aggregate event publishing should prefer parameters instead of returned values from save(…).
+* DATACMNS-1155 - Release 1.13.8 (Ingalls SR8).
+* DATACMNS-901 - Potential deadlock in AbstractMappingContext when creating bean while application event is being fired.
+
+
+Changes in version 2.0.0.RELEASE (2017-10-02)
+---------------------------------------------
+* DATACMNS-1184 - QuerydslPredicateExecutor Javadoc allows null predicates.
+* DATACMNS-1179 - Adapt to changed Spring Framework 5 documentation structure.
+* DATACMNS-1177 - Parameter.isDynamicProjectionParameter() does not handle wrapper types properly.
+* DATACMNS-1175 - EntityInstantiators deallocate params required for instantiation of parent object.
+* DATACMNS-1173 - AnnotationRevisionMetadata throws ClassCastException.
+* DATACMNS-1172 - Too excessive component scanning for repository implementation fragments causing slow bootstrap.
+* DATACMNS-1171 - PreferredConstructorDiscoverer attempts constructor discovery on synthetic Kotlin class.
+* DATACMNS-1170 - PreferredConstructor discovery fails for Kotlin types without primary constructor.
+* DATACMNS-1168 - QuerydslPredicateBuilder must not return null for empty predicate.
+* DATACMNS-1167 - Add explicit automatic module name for Java 9.
+* DATACMNS-1166 - Upgrade to Vavr 0.9.1.
+* DATACMNS-1165 - Add support for using Streamable as return type in repository methods.
+* DATACMNS-1163 - Aggregate event publishing should prefer parameters instead of returned values from save(…).
+* DATACMNS-1162 - Improve AbstractAggregateRoot to support immutable aggregates.
+* DATACMNS-1161 - Rename PersistentProperty.getPersistentEntityType() to a plural name since it returns an Iterable..
+* DATACMNS-1159 - Upgrade to OpenWebBeans 2.0.1.
+* DATACMNS-1157 - Enforce nullable/non-null API constraints on repository query methods.
+* DATACMNS-1156 - Release 2.0 GA (Kay).
+
+
+Changes in version 2.0.0.RC3 (2017-09-11)
+-----------------------------------------
+* DATACMNS-1153 - Remove unreachable assertion in XmlRepositoryConfigurationSource.
+* DATACMNS-1152 - Jackson configuration is not used by ProjectingJackson2HttpMessageConverter.
+* DATACMNS-1150 - Support parameters in @Value-backed methods of projection interfaces.
+* DATACMNS-1148 - Return primitive boolean in PartTree.isExistsProjection(...).
+* DATACMNS-1147 - @NoRepositoryBean interfaces are considered as fragment interfaces.
+* DATACMNS-1144 - @JsonPath should support multiple paths.
+* DATACMNS-1143 - Improve design of AbstractAggregateRoot.
+* DATACMNS-1141 - Add missing NonNullApi annotations.
+* DATACMNS-1140 - Open up Query by Example to allow extension in module implementations.
+* DATACMNS-1139 - AbstractPersistentProperty.getRawType() does not consider generics.
+* DATACMNS-1138 - Invalid generics resolution for locally declared wildcard and fully resolved target type.
+* DATACMNS-1136 - Update reference documentation for composite repositories.
+* DATACMNS-1135 - Incorrect generic type resolution for multiply nested types of same wrapper.
+* DATACMNS-1130 - Release 2.0 RC3 (Kay).
+* DATACMNS-1126 - Assert compatibility with Kotlin classes using default constructor arguments.
+* DATACMNS-1080 - Inject generated property accessor classes via ReflectUtils.defineClass(…).
+* DATACMNS-1077 - Remove RxJava1CrudRepository and RxJava1SortingRepository interfaces.
+* DATACMNS-1011 - Improve documentation for projections.
+
+
+Changes in version 1.13.7.RELEASE (2017-09-11)
+----------------------------------------------
+* DATACMNS-1153 - Remove unreachable assertion in XmlRepositoryConfigurationSource.
+* DATACMNS-1152 - Jackson configuration is not used by ProjectingJackson2HttpMessageConverter.
+* DATACMNS-1151 - Generated property accessors fail to load when using with signed jars.
+* DATACMNS-1145 - @JsonPath value lookups should return null for non-existent paths.
+* DATACMNS-1143 - Improve design of AbstractAggregateRoot.
+* DATACMNS-1139 - AbstractPersistentProperty.getRawType() does not consider generics.
+* DATACMNS-1138 - Invalid generics resolution for locally declared wildcard and fully resolved target type.
+* DATACMNS-1135 - Incorrect generic type resolution for multiply nested types of same wrapper.
+* DATACMNS-1131 - Release 1.13.7 (Ingalls SR7).
+
+
+Changes in version 1.13.6.RELEASE (2017-07-26)
+----------------------------------------------
+* DATACMNS-1127 - Release 1.13.6 (Ingalls SR6).
+
+
+Changes in version 2.0.0.RC2 (2017-07-25)
+-----------------------------------------
+* DATACMNS-1129 - PartTree for empty predicate should be empty iterable.
+* DATACMNS-1128 - Release 2.0 RC2 (Kay).
+
+
+Changes in version 2.0.0.RC1 (2017-07-25)
+-----------------------------------------
+* DATACMNS-1124 - Upgrade to Javaslang 2.0.6.
+* DATACMNS-1123 - Make sure XmlBeamHttpMessageConverter still works on XmlBeam > 1.4.10.
+* DATACMNS-1122 - PersistentEntity.getRequiredPersistentProperty() does not report property name.
+* DATACMNS-1121 - Avoid unnecessary proxy creation if target instance already implements projection interface.
+* DATACMNS-1120 - Introduce caching for PropertyPath.
+* DATACMNS-1119 - Switch to ConcurrentReferenceHashMap for ClassTypeInformation caching.
+* DATACMNS-1118 - Inherit Project Reactor version from dependency management.
+* DATACMNS-1117 - RepositoryFactoryBeanSupport.getRepositoryInformation() does not set up RepositoryComposition correctly.
+* DATACMNS-1116 - Cache PersistentPropertyPath instances in AbstractMappingContext.
+* DATACMNS-1115 - RepositoryBeanNameGenerator fails to resolve bean names for custom implementations detected via Spring's component index.
+* DATACMNS-1114 - Introduce nullable annotations.
+* DATACMNS-1113 - API polishing in MappingContext.
+* DATACMNS-1112 - Cache instances of ReturnedType to avoid inspection overhead on creation.
+* DATACMNS-1110 - Introduce StreamUtils.createStreamFromIterator(CloseableIterator) to avoid instance of check.
+* DATACMNS-1109 - Allow any TemporalAccessor to be used as last modified date in auditing.
+* DATACMNS-1107 - Cache ProjectionInformation instances created.
+* DATACMNS-1106 - Remove deprecations in ProjectionFactory.
+* DATACMNS-1104 - Degraph dependency has wrong scope.
+* DATACMNS-1102 - Avoid superfluous recreation of DefaultConversionService in ResultProcessor.
+* DATACMNS-1101 - Improve mapping performance caused by overuse of Optional and Stream.
+* DATACMNS-1097 - Move classes to better matching packages.
+* DATACMNS-1096 - Remove references to Spring's converter from domain package.
+* DATACMNS-1095 - ClassGeneratingEntityInstantiator never gets used as ObjectInstantiator is not visible.
+* DATACMNS-1091 - Sporadic test failures in tests for JSR-310 conversions.
+* DATACMNS-1090 - Release 2.0 RC1 (Kay).
+* DATACMNS-1085 - Small documentation improvements.
+
+
+Changes in version 1.13.5.RELEASE (2017-07-24)
+----------------------------------------------
+* DATACMNS-1124 - Upgrade to Javaslang 2.0.6.
+* DATACMNS-1123 - Make sure XmlBeamHttpMessageConverter still works on XmlBeam > 1.4.10.
+* DATACMNS-1121 - Avoid unnecessary proxy creation if target instance already implements projection interface.
+* DATACMNS-1115 - RepositoryBeanNameGenerator fails to resolve bean names for custom implementations detected via Spring's component index.
+* DATACMNS-1102 - Avoid superfluous recreation of DefaultConversionService in ResultProcessor.
+* DATACMNS-1095 - ClassGeneratingEntityInstantiator never gets used as ObjectInstantiator is not visible.
+* DATACMNS-1087 - Converting to Vavr Option fails for present value.
+* DATACMNS-1085 - Small documentation improvements.
+* DATACMNS-1084 - Release 1.13.5 (Ingalls SR5).
+
+
+Changes in version 2.0.0.M4 (2017-06-14)
+----------------------------------------
+* DATACMNS-1089 - Prepare upgrade to AssertJ 3.8.
+* DATACMNS-1082 - Synthetic constructors should not be considered persistence constructors.
+* DATACMNS-1079 - ClassGeneratingPropertyAccessorFactory fails on Java 9.
+* DATACMNS-1076 - Deprecate RxJava1CrudRepository and RxJava1SortingRepository interfaces.
+* DATACMNS-1074 - Avoid hidden exceptions from Lookup.unreflectSpecial(…) in default method invocations.
+* DATACMNS-1071 - Redundant <S extends Sort> on findAll().
+* DATACMNS-1067 - EventPublishingRepositoryProxyPostProcessor tries to call clearing method on plain method argument.
+* DATACMNS-1066 - AccessControlException from ClassGeneratingPropertyAccessorFactory.
+* DATACMNS-1065 - Add support for Vavr (successor of Javaslang).
+* DATACMNS-1064 - Remove obsolete Travis build profiles.
+* DATACMNS-1063 - Accept Publisher instead of Mono in findById(…), existsById(…) and deleteById(…).
+* DATACMNS-1062 - Make sure Travis builds always use fresh dependencies.
+* DATACMNS-1060 - Release 2.0 M4 (Kay).
+* DATACMNS-1059 - QuerydslPredicateExecutor.findOne should return Optional<T>.
+* DATACMNS-1058 - QueryByExampleExecutor.find one should return Optional<S>.
+* DATACMNS-1026 - ExtensionAwareEvaluationContextProvider should return all overloaded methods as functions.
+* DATACMNS-995 - Create ReactiveQueryByExampleExecutor allowing reactive query by example.
+* DATACMNS-991 - Update DefaultMethodInvokingMethodInterceptor to Java 9 compatible method handle invocation.
+* DATACMNS-822 - Provide a simple way to customize configuration of default pageable and sort resolvers.
+* DATACMNS-764 - Disambiguate custom repository implementation for implementations with same name in different packages.
+* DATACMNS-102 - Allow Repositories to be composed of an arbitrary number of implementation classes.
+
+
+Changes in version 1.13.4.RELEASE (2017-06-08)
+----------------------------------------------
+* DATACMNS-1082 - Synthetic constructors should not be considered persistence constructors.
+* DATACMNS-1074 - Avoid hidden exceptions from Lookup.unreflectSpecial(…) in default method invocations.
+* DATACMNS-1067 - EventPublishingRepositoryProxyPostProcessor tries to call clearing method on plain method argument.
+* DATACMNS-1066 - AccessControlException from ClassGeneratingPropertyAccessorFactory.
+* DATACMNS-1065 - Add support for Vavr (successor of Javaslang).
+* DATACMNS-1062 - Make sure Travis builds always use fresh dependencies.
+* DATACMNS-1047 - Release 1.13.4 (Ingalls SR4).
+
+
 Changes in version 1.12.11.RELEASE (2017-06-07)
 -----------------------------------------------
 * DATACMNS-1082 - Synthetic constructors should not be considered persistence constructors.
@@ -1681,4 +2712,20 @@ Aspects
 Repository
 * Base classes for the repository support
 * Pagination support
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2010-2014 the original author or authors.
+ * Copyright 2010-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,11 +15,12 @@
  */
 package org.springframework.data.geo;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * Represents a geospatial box value
- * 
+ *
  * @author Mark Pollack
  * @author Oliver Gierke
  * @author Thomas Darimont
@@ -34,7 +35,7 @@ public class Box implements Shape {
 
 	/**
 	 * Creates a new Box spanning from the given first to the second {@link Point}.
-	 * 
+	 *
 	 * @param first must not be {@literal null}.
 	 * @param second must not be {@literal null}.
 	 */
@@ -49,7 +50,7 @@ public class Box implements Shape {
 
 	/**
 	 * Creates a new Box from the given {@code first} to the {@code second} point represented as the {@literal double[]}.
-	 * 
+	 *
 	 * @param first must not be {@literal null} and contain exactly 2 doubles.
 	 * @param second must not be {@literal null} and contain exactly 2 doubles.
 	 */
@@ -64,7 +65,7 @@ public class Box implements Shape {
 
 	/**
 	 * Returns the first {@link Point} making up the {@link Box}.
-	 * 
+	 *
 	 * @return
 	 */
 	public Point getFirst() {
@@ -73,7 +74,7 @@ public class Box implements Shape {
 
 	/**
 	 * Returns the second {@link Point} making up the {@link Box}.
-	 * 
+	 *
 	 * @return
 	 */
 	public Point getSecond() {
@@ -109,7 +110,7 @@ public class Box implements Shape {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 
 		if (this == obj) {
 			return true;

@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +16,6 @@
 package org.springframework.data.auditing;
 
 import java.time.temporal.TemporalAccessor;
-import java.util.Collections;
 import java.util.Optional;
 
 import org.joda.time.DateTime;
@@ -34,7 +33,7 @@ import org.springframework.util.Assert;
 
 /**
  * Auditing handler to mark entity objects created and modified.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  * @since 1.5
@@ -53,7 +52,7 @@ public class AuditingHandler implements InitializingBean {
 	/**
 	 * Creates a new {@link AuditableBeanWrapper} using the given {@link MappingContext} when looking up auditing metadata
 	 * via reflection.
-	 * 
+	 *
 	 * @param mappingContext must not be {@literal null}.
 	 * @since 1.8
 	 * @deprecated use {@link AuditingHandler(PersistentEntities)} instead.
@@ -61,13 +60,13 @@ public class AuditingHandler implements InitializingBean {
 	@Deprecated
 	public AuditingHandler(
 			MappingContext<? extends PersistentEntity<?, ?>, ? extends PersistentProperty<?>> mappingContext) {
-		this(new PersistentEntities(Collections.singletonList(mappingContext)));
+		this(PersistentEntities.of(mappingContext));
 	}
 
 	/**
 	 * Creates a new {@link AuditableBeanWrapper} using the given {@link PersistentEntities} when looking up auditing
 	 * metadata via reflection.
-	 * 
+	 *
 	 * @param entities must not be {@literal null}.
 	 * @since 1.10
 	 */
@@ -81,7 +80,7 @@ public class AuditingHandler implements InitializingBean {
 
 	/**
 	 * Setter to inject a {@code AuditorAware} component to retrieve the current auditor.
-	 * 
+	 *
 	 * @param auditorAware must not be {@literal null}.
 	 */
 	public void setAuditorAware(AuditorAware<?> auditorAware) {
@@ -94,7 +93,7 @@ public class AuditingHandler implements InitializingBean {
 	 * Setter do determine if {@link Auditable#setCreatedDate(DateTime)} and
 	 * {@link Auditable#setLastModifiedDate(DateTime)} shall be filled with the current Java time. Defaults to
 	 * {@code true}. One might set this to {@code false} to use database features to set entity time.
-	 * 
+	 *
 	 * @param dateTimeForNow the dateTimeForNow to set
 	 */
 	public void setDateTimeForNow(boolean dateTimeForNow) {
@@ -102,9 +101,9 @@ public class AuditingHandler implements InitializingBean {
 	}
 
 	/**
-	 * Set this to false if you want to treat entity creation as modification and thus set the current date as
-	 * modification date, too. Defaults to {@code true}.
-	 * 
+	 * Set this to true if you want to treat entity creation as modification and thus setting the current date as
+	 * modification date during creation, too. Defaults to {@code true}.
+	 *
 	 * @param modifyOnCreation if modification information shall be set on creation, too
 	 */
 	public void setModifyOnCreation(boolean modifyOnCreation) {
@@ -113,7 +112,7 @@ public class AuditingHandler implements InitializingBean {
 
 	/**
 	 * Sets the {@link DateTimeProvider} to be used to determine the dates to be set.
-	 * 
+	 *
 	 * @param dateTimeProvider
 	 */
 	public void setDateTimeProvider(DateTimeProvider dateTimeProvider) {
@@ -122,26 +121,26 @@ public class AuditingHandler implements InitializingBean {
 
 	/**
 	 * Marks the given object as created.
-	 * 
+	 *
 	 * @param source
 	 */
-	public void markCreated(Object source) {
+	public <T> T markCreated(T source) {
 
 		Assert.notNull(source, "Entity must not be null!");
 
-		touch(source, true);
+		return touch(source, true);
 	}
 
 	/**
 	 * Marks the given object as modified.
-	 * 
+	 *
 	 * @param source
 	 */
-	public void markModified(Object source) {
+	public <T> T markModified(T source) {
 
 		Assert.notNull(source, "Entity must not be null!");
 
-		touch(source, false);
+		return touch(source, false);
 	}
 
 	/**
@@ -157,9 +156,11 @@ public class AuditingHandler implements InitializingBean {
 		return factory.getBeanWrapperFor(source).isPresent();
 	}
 
-	private void touch(Object target, boolean isNew) {
+	private <T> T touch(T target, boolean isNew) {
 
-		factory.getBeanWrapperFor(target).ifPresent(it -> {
+		Optional<AuditableBeanWrapper<T>> wrapper = factory.getBeanWrapperFor(target);
+
+		return wrapper.map(it -> {
 
 			Optional<Object> auditor = touchAuditor(it, isNew);
 			Optional<TemporalAccessor> now = dateTimeForNow ? touchDate(it, isNew) : Optional.empty();
@@ -169,19 +170,21 @@ public class AuditingHandler implements InitializingBean {
 				Object defaultedNow = now.map(Object::toString).orElse("not set");
 				Object defaultedAuditor = auditor.map(Object::toString).orElse("unknown");
 
-				LOGGER.debug("Touched {} - Last modification at {} by {}",
-						new Object[] { target, defaultedNow, defaultedAuditor });
+				LOGGER.debug("Touched {} - Last modification at {} by {}", target, defaultedNow, defaultedAuditor);
 			}
-		});
+
+			return it.getBean();
+
+		}).orElse(target);
 	}
 
 	/**
 	 * Sets modifying and creating auditor. Creating auditor is only set on new auditables.
-	 * 
+	 *
 	 * @param auditable
 	 * @return
 	 */
-	private Optional<Object> touchAuditor(AuditableBeanWrapper wrapper, boolean isNew) {
+	private Optional<Object> touchAuditor(AuditableBeanWrapper<?> wrapper, boolean isNew) {
 
 		Assert.notNull(wrapper, "AuditableBeanWrapper must not be null!");
 
@@ -197,16 +200,15 @@ public class AuditingHandler implements InitializingBean {
 
 			return auditor;
 		});
-
 	}
 
 	/**
 	 * Touches the auditable regarding modification and creation date. Creation date is only set on new auditables.
-	 * 
+	 *
 	 * @param wrapper
 	 * @return
 	 */
-	private Optional<TemporalAccessor> touchDate(AuditableBeanWrapper wrapper, boolean isNew) {
+	private Optional<TemporalAccessor> touchDate(AuditableBeanWrapper<?> wrapper, boolean isNew) {
 
 		Assert.notNull(wrapper, "AuditableBeanWrapper must not be null!");
 
@@ -226,7 +228,7 @@ public class AuditingHandler implements InitializingBean {
 	 */
 	public void afterPropertiesSet() {
 
-		if (auditorAware == null) {
+		if (!auditorAware.isPresent()) {
 			LOGGER.debug("No AuditorAware set! Auditing will not be applied!");
 		}
 	}

@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,12 +16,12 @@
 package org.springframework.data.convert;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.springframework.data.util.ClassTypeInformation.*;
+import static org.springframework.data.util.ClassTypeInformation.from;
 
 import java.util.Collections;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mapping.Alias;
 import org.springframework.data.mapping.PersistentEntity;
@@ -32,26 +32,26 @@ import org.springframework.data.util.ClassTypeInformation;
 
 /**
  * Unit tests for {@link MappingContextTypeInformationMapper}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class MappingContextTypeInformationMapperUnitTests {
+class MappingContextTypeInformationMapperUnitTests {
 
 	SampleMappingContext mappingContext;
 	TypeInformationMapper mapper;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		mappingContext = new SampleMappingContext();
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNullMappingContext() {
-		new MappingContextTypeInformationMapper(null);
+	@Test
+	void rejectsNullMappingContext() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new MappingContextTypeInformationMapper(null));
 	}
 
 	@Test
-	public void extractsAliasInfoFromMappingContext() {
+	void extractsAliasInfoFromMappingContext() {
 
 		mappingContext.setInitialEntitySet(Collections.singleton(Entity.class));
 		mappingContext.initialize();
@@ -62,7 +62,7 @@ public class MappingContextTypeInformationMapperUnitTests {
 	}
 
 	@Test
-	public void extractsAliasForUnknownType() {
+	void extractsAliasForUnknownType() {
 
 		SampleMappingContext mappingContext = new SampleMappingContext();
 		mappingContext.initialize();
@@ -73,7 +73,7 @@ public class MappingContextTypeInformationMapperUnitTests {
 	}
 
 	@Test
-	public void doesNotReturnTypeAliasForSimpleType() {
+	void doesNotReturnTypeAliasForSimpleType() {
 
 		SampleMappingContext mappingContext = new SampleMappingContext();
 		mappingContext.initialize();
@@ -83,23 +83,23 @@ public class MappingContextTypeInformationMapperUnitTests {
 	}
 
 	@Test
-	public void detectsTypeForUnknownEntity() {
+	void detectsTypeForUnknownEntity() {
 
 		SampleMappingContext mappingContext = new SampleMappingContext();
 		mappingContext.initialize();
 
 		mapper = new MappingContextTypeInformationMapper(mappingContext);
-		assertThat(mapper.resolveTypeFrom(Alias.of("foo"))).isEmpty();
+		assertThat(mapper.resolveTypeFrom(Alias.of("foo"))).isNull();
 
 		PersistentEntity<?, SamplePersistentProperty> entity = mappingContext.getRequiredPersistentEntity(Entity.class);
 
 		assertThat(entity).isNotNull();
-		assertThat(mapper.resolveTypeFrom(Alias.of("foo"))).hasValue(from(Entity.class));
+		assertThat(mapper.resolveTypeFrom(Alias.of("foo"))).isEqualTo(from(Entity.class));
 	}
 
 	@Test // DATACMNS-485
 	@SuppressWarnings("unchecked")
-	public void createsTypeMapperForGenericTypesWithDifferentBindings() {
+	void createsTypeMapperForGenericTypesWithDifferentBindings() {
 
 		AnnotatedTypeScanner scanner = new AnnotatedTypeScanner(TypeAlias.class);
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,8 +35,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.custommonkey.xmlunit.Diff;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -45,14 +45,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
 
 /**
  * Unit test for custom JAXB conversions for Spring Data value objects.
- * 
+ *
  * @author Oliver Gierke
  */
-public class SpringDataJaxbUnitTests {
+class SpringDataJaxbUnitTests {
 
 	Marshaller marshaller;
 	Unmarshaller unmarshaller;
@@ -64,8 +65,8 @@ public class SpringDataJaxbUnitTests {
 
 	String reference = readFile(resource);
 
-	@Before
-	public void setUp() throws Exception {
+	@BeforeEach
+	void setUp() throws Exception {
 
 		JAXBContext context = JAXBContext.newInstance("org.springframework.data.domain.jaxb");
 
@@ -76,7 +77,7 @@ public class SpringDataJaxbUnitTests {
 	}
 
 	@Test
-	public void usesCustomTypeAdapterForPageRequests() throws Exception {
+	void usesCustomTypeAdapterForPageRequests() throws Exception {
 
 		StringWriter writer = new StringWriter();
 		Wrapper wrapper = new Wrapper();
@@ -89,7 +90,7 @@ public class SpringDataJaxbUnitTests {
 	}
 
 	@Test
-	public void readsPageRequest() throws Exception {
+	void readsPageRequest() throws Exception {
 
 		Object result = unmarshaller.unmarshal(resource.getFile());
 
@@ -99,7 +100,7 @@ public class SpringDataJaxbUnitTests {
 	}
 
 	@Test
-	public void writesPlainPage() throws Exception {
+	void writesPlainPage() throws Exception {
 
 		PageWrapper wrapper = new PageWrapper();
 		Content content = new Content();
@@ -159,7 +160,8 @@ public class SpringDataJaxbUnitTests {
 
 		@Override
 		protected List<Link> getLinks(Page<?> source) {
-			return Arrays.asList(new Link(Link.REL_NEXT, "next"), new Link(Link.REL_PREVIOUS, "previous"));
+			return Arrays.asList(Link.of(IanaLinkRelations.NEXT.value(), IanaLinkRelations.NEXT),
+					Link.of(IanaLinkRelations.PREV.value(), IanaLinkRelations.PREV));
 		}
 	}
 }

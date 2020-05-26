@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2013 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,29 +18,30 @@ package org.springframework.data.transaction;
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.data.transaction.ChainedTransactionManagerTests.TestPlatformTransactionManager.*;
 
-import org.hamcrest.Factory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.transaction.HeuristicCompletionException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.UnexpectedRollbackException;
+import org.springframework.transaction.support.AbstractTransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 /**
  * Integration tests for {@link ChainedTransactionManager}.
- * 
+ *
  * @author Michael Hunger
  * @author Oliver Gierke
  * @since 1.6
  */
-public class ChainedTransactionManagerTests {
+class ChainedTransactionManagerTests {
 
 	ChainedTransactionManager tm;
 
 	@Test
-	public void shouldCompleteSuccessfully() throws Exception {
+	void shouldCompleteSuccessfully() {
 
 		TestPlatformTransactionManager transactionManager = createNonFailingTransactionManager("single");
 		setupTransactionManagers(transactionManager);
@@ -51,7 +52,7 @@ public class ChainedTransactionManagerTests {
 	}
 
 	@Test
-	public void shouldThrowRolledBackExceptionForSingleTMFailure() throws Exception {
+	void shouldThrowRolledBackExceptionForSingleTMFailure() {
 
 		setupTransactionManagers(createFailingTransactionManager("single"));
 
@@ -61,7 +62,7 @@ public class ChainedTransactionManagerTests {
 	}
 
 	@Test
-	public void shouldCommitAllRegisteredTransactionManagers() {
+	void shouldCommitAllRegisteredTransactionManagers() {
 
 		TestPlatformTransactionManager first = createNonFailingTransactionManager("first");
 		TestPlatformTransactionManager second = createNonFailingTransactionManager("second");
@@ -74,7 +75,7 @@ public class ChainedTransactionManagerTests {
 	}
 
 	@Test
-	public void shouldCommitInReverseOrder() {
+	void shouldCommitInReverseOrder() {
 
 		TestPlatformTransactionManager first = createNonFailingTransactionManager("first");
 		TestPlatformTransactionManager second = createNonFailingTransactionManager("second");
@@ -86,7 +87,7 @@ public class ChainedTransactionManagerTests {
 	}
 
 	@Test
-	public void shouldThrowMixedRolledBackExceptionForNonFirstTMFailure() throws Exception {
+	void shouldThrowMixedRolledBackExceptionForNonFirstTMFailure() {
 
 		setupTransactionManagers(TestPlatformTransactionManager.createFailingTransactionManager("first"),
 				createNonFailingTransactionManager("second"));
@@ -97,7 +98,7 @@ public class ChainedTransactionManagerTests {
 	}
 
 	@Test
-	public void shouldRollbackAllTransactionManagers() throws Exception {
+	void shouldRollbackAllTransactionManagers() {
 
 		TestPlatformTransactionManager first = createNonFailingTransactionManager("first");
 		TestPlatformTransactionManager second = createNonFailingTransactionManager("second");
@@ -110,12 +111,13 @@ public class ChainedTransactionManagerTests {
 
 	}
 
-	@Test(expected = UnexpectedRollbackException.class)
-	public void shouldThrowExceptionOnFailingRollback() throws Exception {
+	@Test
+	void shouldThrowExceptionOnFailingRollback() {
 
 		PlatformTransactionManager first = createFailingTransactionManager("first");
 		setupTransactionManagers(first);
-		createAndRollbackTransaction();
+
+		assertThatExceptionOfType(UnexpectedRollbackException.class).isThrownBy(this::createAndRollbackTransaction);
 	}
 
 	private void setupTransactionManagers(PlatformTransactionManager... transactionManagers) {
@@ -155,11 +157,10 @@ public class ChainedTransactionManagerTests {
 		private Long commitTime;
 		private Long rollbackTime;
 
-		public TestPlatformTransactionManager(String name) {
+		TestPlatformTransactionManager(String name) {
 			this.name = name;
 		}
 
-		@Factory
 		static TestPlatformTransactionManager createFailingTransactionManager(String name) {
 			return new TestPlatformTransactionManager(name + "-failing") {
 				@Override
@@ -174,7 +175,6 @@ public class ChainedTransactionManagerTests {
 			};
 		}
 
-		@Factory
 		static TestPlatformTransactionManager createNonFailingTransactionManager(String name) {
 			return new TestPlatformTransactionManager(name + "-non-failing");
 		}
@@ -196,57 +196,26 @@ public class ChainedTransactionManagerTests {
 			rollbackTime = System.currentTimeMillis();
 		}
 
-		public boolean isCommitted() {
+		boolean isCommitted() {
 			return commitTime != null;
 		}
 
-		public boolean wasRolledBack() {
+		boolean wasRolledBack() {
 			return rollbackTime != null;
 		}
 
-		public Long getCommitTime() {
+		Long getCommitTime() {
 			return commitTime;
 		}
 
-		static class TestTransactionStatus implements org.springframework.transaction.TransactionStatus {
+	}
 
-			public TestTransactionStatus(TransactionDefinition definition) {}
+	static class TestTransactionStatus extends AbstractTransactionStatus {
 
-			public boolean isNewTransaction() {
-				return false;
-			}
+		TestTransactionStatus(TransactionDefinition definition) {}
 
-			public boolean hasSavepoint() {
-				return false;
-			}
-
-			public void setRollbackOnly() {
-
-			}
-
-			public boolean isRollbackOnly() {
-				return false;
-			}
-
-			public void flush() {
-
-			}
-
-			public boolean isCompleted() {
-				return false;
-			}
-
-			public Object createSavepoint() throws TransactionException {
-				return null;
-			}
-
-			public void rollbackToSavepoint(Object savepoint) throws TransactionException {
-
-			}
-
-			public void releaseSavepoint(Object savepoint) throws TransactionException {
-
-			}
+		public boolean isNewTransaction() {
+			return false;
 		}
 	}
 }

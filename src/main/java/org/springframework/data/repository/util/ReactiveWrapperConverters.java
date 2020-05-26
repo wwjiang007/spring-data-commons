@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-2017 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,15 +15,12 @@
  */
 package org.springframework.data.repository.util;
 
-import static org.springframework.data.repository.util.ReactiveWrapperConverters.RegistryHolder.*;
-
-import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
-import lombok.experimental.UtilityClass;
+import kotlinx.coroutines.flow.Flow;
+import kotlinx.coroutines.reactive.ReactiveFlowKt;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import rx.Completable;
 import rx.Observable;
 import rx.Single;
 
@@ -31,13 +28,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import javax.annotation.Nonnull;
+
 import org.reactivestreams.Publisher;
+
+import org.springframework.core.ReactiveAdapter;
 import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.core.convert.converter.ConditionalConverter;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.core.convert.converter.ConverterFactory;
 import org.springframework.core.convert.support.ConfigurableConversionService;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.data.repository.util.ReactiveWrappers.ReactiveLibrary;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -47,15 +52,14 @@ import org.springframework.util.ClassUtils;
  * <p>
  * This class discovers reactive wrapper availability and their conversion support based on the class path. Reactive
  * wrapper types might be supported/on the class path but conversion may require additional dependencies.
- * 
+ *
  * @author Mark Paluch
  * @author Oliver Gierke
  * @since 2.0
  * @see ReactiveWrappers
  * @see ReactiveAdapterRegistry
  */
-@UtilityClass
-public class ReactiveWrapperConverters {
+public abstract class ReactiveWrapperConverters {
 
 	private static final List<ReactiveTypeWrapper<?>> REACTIVE_WRAPPERS = new ArrayList<>();
 	private static final GenericConversionService GENERIC_CONVERSION_SERVICE = new GenericConversionService();
@@ -86,6 +90,8 @@ public class ReactiveWrapperConverters {
 		registerConvertersIn(GENERIC_CONVERSION_SERVICE);
 	}
 
+	private ReactiveWrapperConverters() {}
+
 	/**
 	 * Registers converters for wrapper types found on the classpath.
 	 *
@@ -97,60 +103,15 @@ public class ReactiveWrapperConverters {
 
 		if (ReactiveWrappers.isAvailable(ReactiveLibrary.PROJECT_REACTOR)) {
 
-			if (ReactiveWrappers.isAvailable(ReactiveLibrary.RXJAVA1)) {
-
-				conversionService.addConverter(PublisherToRxJava1CompletableConverter.INSTANCE);
-				conversionService.addConverter(RxJava1CompletableToPublisherConverter.INSTANCE);
-				conversionService.addConverter(RxJava1CompletableToMonoConverter.INSTANCE);
-
-				conversionService.addConverter(PublisherToRxJava1SingleConverter.INSTANCE);
-				conversionService.addConverter(RxJava1SingleToPublisherConverter.INSTANCE);
-				conversionService.addConverter(RxJava1SingleToMonoConverter.INSTANCE);
-				conversionService.addConverter(RxJava1SingleToFluxConverter.INSTANCE);
-
-				conversionService.addConverter(PublisherToRxJava1ObservableConverter.INSTANCE);
-				conversionService.addConverter(RxJava1ObservableToPublisherConverter.INSTANCE);
-				conversionService.addConverter(RxJava1ObservableToMonoConverter.INSTANCE);
-				conversionService.addConverter(RxJava1ObservableToFluxConverter.INSTANCE);
-			}
-
-			if (ReactiveWrappers.isAvailable(ReactiveLibrary.RXJAVA2)) {
-
-				conversionService.addConverter(PublisherToRxJava2CompletableConverter.INSTANCE);
-				conversionService.addConverter(RxJava2CompletableToPublisherConverter.INSTANCE);
-				conversionService.addConverter(RxJava2CompletableToMonoConverter.INSTANCE);
-
-				conversionService.addConverter(PublisherToRxJava2SingleConverter.INSTANCE);
-				conversionService.addConverter(RxJava2SingleToPublisherConverter.INSTANCE);
-				conversionService.addConverter(RxJava2SingleToMonoConverter.INSTANCE);
-				conversionService.addConverter(RxJava2SingleToFluxConverter.INSTANCE);
-
-				conversionService.addConverter(PublisherToRxJava2ObservableConverter.INSTANCE);
-				conversionService.addConverter(RxJava2ObservableToPublisherConverter.INSTANCE);
-				conversionService.addConverter(RxJava2ObservableToMonoConverter.INSTANCE);
-				conversionService.addConverter(RxJava2ObservableToFluxConverter.INSTANCE);
-
-				conversionService.addConverter(PublisherToRxJava2FlowableConverter.INSTANCE);
-				conversionService.addConverter(RxJava2FlowableToPublisherConverter.INSTANCE);
-
-				conversionService.addConverter(PublisherToRxJava2MaybeConverter.INSTANCE);
-				conversionService.addConverter(RxJava2MaybeToPublisherConverter.INSTANCE);
-				conversionService.addConverter(RxJava2MaybeToMonoConverter.INSTANCE);
-				conversionService.addConverter(RxJava2MaybeToFluxConverter.INSTANCE);
-			}
-
 			conversionService.addConverter(PublisherToMonoConverter.INSTANCE);
 			conversionService.addConverter(PublisherToFluxConverter.INSTANCE);
 
-			if (ReactiveWrappers.isAvailable(ReactiveLibrary.RXJAVA1)) {
-				conversionService.addConverter(RxJava1SingleToObservableConverter.INSTANCE);
-				conversionService.addConverter(RxJava1ObservableToSingleConverter.INSTANCE);
+			if (ReactiveWrappers.isAvailable(ReactiveLibrary.KOTLIN_COROUTINES)) {
+				conversionService.addConverter(PublisherToFlowConverter.INSTANCE);
 			}
 
-			if (ReactiveWrappers.isAvailable(ReactiveLibrary.RXJAVA2)) {
-				conversionService.addConverter(RxJava2SingleToObservableConverter.INSTANCE);
-				conversionService.addConverter(RxJava2ObservableToSingleConverter.INSTANCE);
-				conversionService.addConverter(RxJava2ObservableToMaybeConverter.INSTANCE);
+			if (RegistryHolder.REACTIVE_ADAPTER_REGISTRY != null) {
+				conversionService.addConverterFactory(ReactiveAdapterConverterFactory.INSTANCE);
 			}
 		}
 
@@ -163,7 +124,7 @@ public class ReactiveWrapperConverters {
 	 * NOTE: A reactive wrapper type might be supported in general by {@link ReactiveWrappers#supports(Class)} but not
 	 * necessarily for conversion using this method.
 	 * </p>
-	 * 
+	 *
 	 * @param type must not be {@literal null}.
 	 * @return {@literal true} if the {@code type} is a supported reactive wrapper type.
 	 */
@@ -174,11 +135,12 @@ public class ReactiveWrapperConverters {
 
 	/**
 	 * Casts or adopts the given wrapper type to a target wrapper type.
-	 * 
+	 *
 	 * @param reactiveObject the stream, must not be {@literal null}.
 	 * @param targetWrapperType must not be {@literal null}.
 	 * @return
 	 */
+	@Nullable
 	@SuppressWarnings("unchecked")
 	public static <T> T toWrapper(Object reactiveObject, Class<? extends T> targetWrapperType) {
 
@@ -194,7 +156,7 @@ public class ReactiveWrapperConverters {
 
 	/**
 	 * Maps elements of a reactive element stream to other elements.
-	 * 
+	 *
 	 * @param reactiveObject must not be {@literal null}.
 	 * @param converter must not be {@literal null}.
 	 * @return
@@ -237,7 +199,7 @@ public class ReactiveWrapperConverters {
 	 * @author Mark Paluch
 	 * @author Christoph Strobl
 	 */
-	private interface ReactiveTypeWrapper<T> {
+	private static interface ReactiveTypeWrapper<T> {
 
 		/**
 		 * @return the wrapper class.
@@ -257,7 +219,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for Project Reactor's {@link Mono}.
 	 */
-	private enum MonoWrapper implements ReactiveTypeWrapper<Mono<?>> {
+	private static enum MonoWrapper implements ReactiveTypeWrapper<Mono<?>> {
 
 		INSTANCE;
 
@@ -275,7 +237,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for Project Reactor's {@link Flux}.
 	 */
-	private enum FluxWrapper implements ReactiveTypeWrapper<Flux<?>> {
+	private static enum FluxWrapper implements ReactiveTypeWrapper<Flux<?>> {
 
 		INSTANCE;
 
@@ -292,7 +254,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for Reactive Stream's {@link Publisher}.
 	 */
-	private enum PublisherWrapper implements ReactiveTypeWrapper<Publisher<?>> {
+	private static enum PublisherWrapper implements ReactiveTypeWrapper<Publisher<?>> {
 
 		INSTANCE;
 
@@ -319,7 +281,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for RxJava 1's {@link Single}.
 	 */
-	private enum RxJava1SingleWrapper implements ReactiveTypeWrapper<Single<?>> {
+	private static enum RxJava1SingleWrapper implements ReactiveTypeWrapper<Single<?>> {
 
 		INSTANCE;
 
@@ -337,7 +299,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for RxJava 1's {@link Observable}.
 	 */
-	private enum RxJava1ObservableWrapper implements ReactiveTypeWrapper<Observable<?>> {
+	private static enum RxJava1ObservableWrapper implements ReactiveTypeWrapper<Observable<?>> {
 
 		INSTANCE;
 
@@ -355,7 +317,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for RxJava 2's {@link io.reactivex.Single}.
 	 */
-	private enum RxJava2SingleWrapper implements ReactiveTypeWrapper<io.reactivex.Single<?>> {
+	private static enum RxJava2SingleWrapper implements ReactiveTypeWrapper<io.reactivex.Single<?>> {
 
 		INSTANCE;
 
@@ -373,7 +335,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for RxJava 2's {@link io.reactivex.Maybe}.
 	 */
-	private enum RxJava2MaybeWrapper implements ReactiveTypeWrapper<Maybe<?>> {
+	private static enum RxJava2MaybeWrapper implements ReactiveTypeWrapper<Maybe<?>> {
 
 		INSTANCE;
 
@@ -391,7 +353,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for RxJava 2's {@link io.reactivex.Observable}.
 	 */
-	private enum RxJava2ObservableWrapper implements ReactiveTypeWrapper<io.reactivex.Observable<?>> {
+	private static enum RxJava2ObservableWrapper implements ReactiveTypeWrapper<io.reactivex.Observable<?>> {
 
 		INSTANCE;
 
@@ -409,7 +371,7 @@ public class ReactiveWrapperConverters {
 	/**
 	 * Wrapper for RxJava 2's {@link io.reactivex.Flowable}.
 	 */
-	private enum RxJava2FlowableWrapper implements ReactiveTypeWrapper<Flowable<?>> {
+	private static enum RxJava2FlowableWrapper implements ReactiveTypeWrapper<Flowable<?>> {
 
 		INSTANCE;
 
@@ -434,10 +396,11 @@ public class ReactiveWrapperConverters {
 	 * @author Mark Paluch
 	 * @author 2.0
 	 */
-	private enum PublisherToFluxConverter implements Converter<Publisher<?>, Flux<?>> {
+	private static enum PublisherToFluxConverter implements Converter<Publisher<?>, Flux<?>> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Flux<?> convert(Publisher<?> source) {
 			return Flux.from(source);
@@ -450,10 +413,11 @@ public class ReactiveWrapperConverters {
 	 * @author Mark Paluch
 	 * @author 2.0
 	 */
-	private enum PublisherToMonoConverter implements Converter<Publisher<?>, Mono<?>> {
+	private static enum PublisherToMonoConverter implements Converter<Publisher<?>, Mono<?>> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Mono<?> convert(Publisher<?> source) {
 			return Mono.from(source);
@@ -461,544 +425,56 @@ public class ReactiveWrapperConverters {
 	}
 
 	// -------------------------------------------------------------------------
-	// RxJava 1 converters
+	// Coroutine converters
 	// -------------------------------------------------------------------------
 
 	/**
-	 * A {@link Converter} to convert a {@link Publisher} to {@link Single}.
+	 * A {@link Converter} to convert a {@link Publisher} to {@link Flow}.
 	 *
 	 * @author Mark Paluch
-	 * @author 2.0
+	 * @author 2.3
 	 */
-	private enum PublisherToRxJava1SingleConverter implements Converter<Publisher<?>, Single<?>> {
+	private static enum PublisherToFlowConverter implements Converter<Publisher<?>, Flow<?>> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
-		public Single<?> convert(Publisher<?> source) {
-			return (Single<?>) REACTIVE_ADAPTER_REGISTRY.getAdapter(Single.class).fromPublisher(Mono.from(source));
+		public Flow<?> convert(Publisher<?> source) {
+			return ReactiveFlowKt.asFlow(source);
 		}
 	}
 
 	/**
-	 * A {@link Converter} to convert a {@link Publisher} to {@link Completable}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
+	 * A {@link ConverterFactory} that adapts between reactive types using {@link ReactiveAdapterRegistry}.
 	 */
-	private enum PublisherToRxJava1CompletableConverter implements Converter<Publisher<?>, Completable> {
+	private static enum ReactiveAdapterConverterFactory
+			implements ConverterFactory<Object, Object>, ConditionalConverter {
 
 		INSTANCE;
 
 		@Override
-		public Completable convert(Publisher<?> source) {
-			return (Completable) REACTIVE_ADAPTER_REGISTRY.getAdapter(Completable.class).fromPublisher(source);
+		public boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType) {
+			return isSupported(sourceType) || isSupported(targetType);
 		}
-	}
 
-	/**
-	 * A {@link Converter} to convert a {@link Publisher} to {@link Observable}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum PublisherToRxJava1ObservableConverter implements Converter<Publisher<?>, Observable<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Observable<?> convert(Publisher<?> source) {
-			return (Observable<?>) REACTIVE_ADAPTER_REGISTRY.getAdapter(Observable.class).fromPublisher(Flux.from(source));
+		private boolean isSupported(TypeDescriptor typeDescriptor) {
+			return RegistryHolder.REACTIVE_ADAPTER_REGISTRY != null
+					&& RegistryHolder.REACTIVE_ADAPTER_REGISTRY.getAdapter(typeDescriptor.getType()) != null;
 		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Single} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1SingleToPublisherConverter implements Converter<Single<?>, Publisher<?>> {
-
-		INSTANCE;
 
 		@Override
-		public Publisher<?> convert(Single<?> source) {
-			return Flux.defer(() -> REACTIVE_ADAPTER_REGISTRY.getAdapter(Single.class).toPublisher(source));
-		}
-	}
+		@SuppressWarnings({ "ConstantConditions", "unchecked" })
+		public <T> Converter<Object, T> getConverter(Class<T> targetType) {
+			return source -> {
 
-	/**
-	 * A {@link Converter} to convert a {@link Single} to {@link Mono}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1SingleToMonoConverter implements Converter<Single<?>, Mono<?>> {
+				Publisher<?> publisher = source instanceof Publisher ? (Publisher<?>) source
+						: RegistryHolder.REACTIVE_ADAPTER_REGISTRY.getAdapter(Publisher.class, source).toPublisher(source);
 
-		INSTANCE;
+				ReactiveAdapter adapter = RegistryHolder.REACTIVE_ADAPTER_REGISTRY.getAdapter(targetType);
 
-		@Override
-		public Mono<?> convert(Single<?> source) {
-			return Mono.defer(() -> Mono.from(REACTIVE_ADAPTER_REGISTRY.getAdapter(Single.class).toPublisher(source)));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Single} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1SingleToFluxConverter implements Converter<Single<?>, Flux<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Flux<?> convert(Single<?> source) {
-			return Flux.defer(() -> REACTIVE_ADAPTER_REGISTRY.getAdapter(Single.class).toPublisher(source));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Completable} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1CompletableToPublisherConverter implements Converter<Completable, Publisher<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Publisher<?> convert(Completable source) {
-			return Flux.defer(() -> REACTIVE_ADAPTER_REGISTRY.getAdapter(Completable.class).toPublisher(source));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Completable} to {@link Mono}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1CompletableToMonoConverter implements Converter<Completable, Mono<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Mono<?> convert(Completable source) {
-			return Mono.from(RxJava1CompletableToPublisherConverter.INSTANCE.convert(source));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert an {@link Observable} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1ObservableToPublisherConverter implements Converter<Observable<?>, Publisher<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Publisher<?> convert(Observable<?> source) {
-			return Flux.defer(() -> REACTIVE_ADAPTER_REGISTRY.getAdapter(Observable.class).toPublisher(source));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Observable} to {@link Mono}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1ObservableToMonoConverter implements Converter<Observable<?>, Mono<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Mono<?> convert(Observable<?> source) {
-			return Mono.defer(() -> Mono.from(REACTIVE_ADAPTER_REGISTRY.getAdapter(Observable.class).toPublisher(source)));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Observable} to {@link Flux}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1ObservableToFluxConverter implements Converter<Observable<?>, Flux<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Flux<?> convert(Observable<?> source) {
-			return Flux.defer(() -> REACTIVE_ADAPTER_REGISTRY.getAdapter(Observable.class).toPublisher(source));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Observable} to {@link Single}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1ObservableToSingleConverter implements Converter<Observable<?>, Single<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Single<?> convert(Observable<?> source) {
-			return source.toSingle();
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Single} to {@link Single}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava1SingleToObservableConverter implements Converter<Single<?>, Observable<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Observable<?> convert(Single<?> source) {
-			return source.toObservable();
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// RxJava 2 converters
-	// -------------------------------------------------------------------------
-
-	/**
-	 * A {@link Converter} to convert a {@link Publisher} to {@link io.reactivex.Single}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum PublisherToRxJava2SingleConverter implements Converter<Publisher<?>, io.reactivex.Single<?>> {
-
-		INSTANCE;
-
-		@Override
-		public io.reactivex.Single<?> convert(Publisher<?> source) {
-			return (io.reactivex.Single<?>) REACTIVE_ADAPTER_REGISTRY.getAdapter(io.reactivex.Single.class)
-					.fromPublisher(source);
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Publisher} to {@link io.reactivex.Completable}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum PublisherToRxJava2CompletableConverter implements Converter<Publisher<?>, io.reactivex.Completable> {
-
-		INSTANCE;
-
-		@Override
-		public io.reactivex.Completable convert(Publisher<?> source) {
-			return (io.reactivex.Completable) REACTIVE_ADAPTER_REGISTRY.getAdapter(io.reactivex.Completable.class)
-					.fromPublisher(source);
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Publisher} to {@link io.reactivex.Observable}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum PublisherToRxJava2ObservableConverter implements Converter<Publisher<?>, io.reactivex.Observable<?>> {
-
-		INSTANCE;
-
-		@Override
-		public io.reactivex.Observable<?> convert(Publisher<?> source) {
-			return (io.reactivex.Observable<?>) REACTIVE_ADAPTER_REGISTRY.getAdapter(io.reactivex.Observable.class)
-					.fromPublisher(source);
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Single} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2SingleToPublisherConverter implements Converter<io.reactivex.Single<?>, Publisher<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Publisher<?> convert(io.reactivex.Single<?> source) {
-			return REACTIVE_ADAPTER_REGISTRY.getAdapter(io.reactivex.Single.class).toPublisher(source);
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Single} to {@link Mono}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2SingleToMonoConverter implements Converter<io.reactivex.Single<?>, Mono<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Mono<?> convert(io.reactivex.Single<?> source) {
-			return Mono.from(REACTIVE_ADAPTER_REGISTRY.getAdapter(io.reactivex.Single.class).toPublisher(source));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Single} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2SingleToFluxConverter implements Converter<io.reactivex.Single<?>, Flux<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Flux<?> convert(io.reactivex.Single<?> source) {
-			return Flux.from(REACTIVE_ADAPTER_REGISTRY.getAdapter(io.reactivex.Single.class).toPublisher(source));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Completable} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2CompletableToPublisherConverter implements Converter<io.reactivex.Completable, Publisher<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Publisher<?> convert(io.reactivex.Completable source) {
-			return REACTIVE_ADAPTER_REGISTRY.getAdapter(io.reactivex.Completable.class).toPublisher(source);
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Completable} to {@link Mono}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2CompletableToMonoConverter implements Converter<io.reactivex.Completable, Mono<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Mono<?> convert(io.reactivex.Completable source) {
-			return Mono.from(RxJava2CompletableToPublisherConverter.INSTANCE.convert(source));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert an {@link io.reactivex.Observable} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2ObservableToPublisherConverter implements Converter<io.reactivex.Observable<?>, Publisher<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Publisher<?> convert(io.reactivex.Observable<?> source) {
-			return source.toFlowable(BackpressureStrategy.BUFFER);
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Observable} to {@link Mono}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2ObservableToMonoConverter implements Converter<io.reactivex.Observable<?>, Mono<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Mono<?> convert(io.reactivex.Observable<?> source) {
-			return Mono.from(source.toFlowable(BackpressureStrategy.BUFFER));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Observable} to {@link Flux}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2ObservableToFluxConverter implements Converter<io.reactivex.Observable<?>, Flux<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Flux<?> convert(io.reactivex.Observable<?> source) {
-			return Flux.from(source.toFlowable(BackpressureStrategy.BUFFER));
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Publisher} to {@link io.reactivex.Flowable}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum PublisherToRxJava2FlowableConverter implements Converter<Publisher<?>, io.reactivex.Flowable<?>> {
-
-		INSTANCE;
-
-		@Override
-		public io.reactivex.Flowable<?> convert(Publisher<?> source) {
-			return Flowable.fromPublisher(source);
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Flowable} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2FlowableToPublisherConverter implements Converter<io.reactivex.Flowable<?>, Publisher<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Publisher<?> convert(io.reactivex.Flowable<?> source) {
-			return source;
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Publisher} to {@link io.reactivex.Flowable}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum PublisherToRxJava2MaybeConverter implements Converter<Publisher<?>, io.reactivex.Maybe<?>> {
-
-		INSTANCE;
-
-		@Override
-		public io.reactivex.Maybe<?> convert(Publisher<?> source) {
-			return (io.reactivex.Maybe<?>) REACTIVE_ADAPTER_REGISTRY.getAdapter(Maybe.class).fromPublisher(source);
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Maybe} to {@link Publisher}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2MaybeToPublisherConverter implements Converter<io.reactivex.Maybe<?>, Publisher<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Publisher<?> convert(io.reactivex.Maybe<?> source) {
-			return source.toFlowable();
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Maybe} to {@link Mono}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2MaybeToMonoConverter implements Converter<io.reactivex.Maybe<?>, Mono<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Mono<?> convert(io.reactivex.Maybe<?> source) {
-			return Mono.from(source.toFlowable());
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link io.reactivex.Maybe} to {@link Flux}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2MaybeToFluxConverter implements Converter<io.reactivex.Maybe<?>, Flux<?>> {
-
-		INSTANCE;
-
-		@Override
-		public Flux<?> convert(io.reactivex.Maybe<?> source) {
-			return Flux.from(source.toFlowable());
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Observable} to {@link Single}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2ObservableToSingleConverter
-			implements Converter<io.reactivex.Observable<?>, io.reactivex.Single<?>> {
-
-		INSTANCE;
-
-		@Override
-		public io.reactivex.Single<?> convert(io.reactivex.Observable<?> source) {
-			return source.singleOrError();
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Observable} to {@link Maybe}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2ObservableToMaybeConverter
-			implements Converter<io.reactivex.Observable<?>, io.reactivex.Maybe<?>> {
-
-		INSTANCE;
-
-		@Override
-		public io.reactivex.Maybe<?> convert(io.reactivex.Observable<?> source) {
-			return source.singleElement();
-		}
-	}
-
-	/**
-	 * A {@link Converter} to convert a {@link Single} to {@link Single}.
-	 *
-	 * @author Mark Paluch
-	 * @author 2.0
-	 */
-	private enum RxJava2SingleToObservableConverter
-			implements Converter<io.reactivex.Single<?>, io.reactivex.Observable<?>> {
-
-		INSTANCE;
-
-		@Override
-		public io.reactivex.Observable<?> convert(io.reactivex.Single<?> source) {
-			return source.toObservable();
+				return (T) adapter.fromPublisher(publisher);
+			};
 		}
 	}
 
@@ -1010,7 +486,7 @@ public class ReactiveWrapperConverters {
 	 */
 	static class RegistryHolder {
 
-		static final ReactiveAdapterRegistry REACTIVE_ADAPTER_REGISTRY;
+		static final @Nullable ReactiveAdapterRegistry REACTIVE_ADAPTER_REGISTRY;
 
 		static {
 

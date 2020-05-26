@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,13 +28,13 @@ import org.springframework.aop.framework.ProxyFactory;
 /**
  * Utility methods to create {@link RepositoryInvoker} instances that get a verifying proxy attached so that the
  * invocation of a given target methods or type can be verified.
- * 
+ *
  * @author Oliver Gierke
  */
 class RepositoryInvocationTestUtils {
 
 	@SuppressWarnings("unchecked")
-	public static <T> T getVerifyingRepositoryProxy(T target, VerifyingMethodInterceptor interceptor) {
+	static <T> T getVerifyingRepositoryProxy(T target, VerifyingMethodInterceptor interceptor) {
 
 		ProxyFactory factory = new ProxyFactory();
 		factory.setInterfaces(target.getClass().getInterfaces());
@@ -44,21 +44,21 @@ class RepositoryInvocationTestUtils {
 		return (T) factory.getProxy();
 	}
 
-	public static VerifyingMethodInterceptor expectInvocationOnType(Class<?> type) {
+	static VerifyingMethodInterceptor expectInvocationOnType(Class<?> type) {
 		return new VerifyingMethodInterceptor(type, new Method[0]);
 	}
 
-	public static VerifyingMethodInterceptor expectInvocationOf(Method... methods) {
+	static VerifyingMethodInterceptor expectInvocationOf(Method... methods) {
 		return new VerifyingMethodInterceptor(null, methods);
 	}
 
 	/**
 	 * {@link MethodInterceptor} to verify the invocation was triggered on the given type.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	@SuppressWarnings("rawtypes")
-	public static final class VerifyingMethodInterceptor implements MethodInterceptor {
+	static final class VerifyingMethodInterceptor implements MethodInterceptor {
 
 		private final Class expectedInvocationTarget;
 		private final List<Method> methods;

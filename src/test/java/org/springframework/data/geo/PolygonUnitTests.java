@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,28 +17,28 @@ package org.springframework.data.geo;
 
 import static org.assertj.core.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.SerializationUtils;
 
 /**
  * Unit tests for {@link Polygon}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  */
-public class PolygonUnitTests {
+class PolygonUnitTests {
 
 	Point first = new Point(1, 1);
 	Point second = new Point(2, 2);
 	Point third = new Point(3, 3);
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-437
-	public void rejectsNullPoints() {
-		new Polygon(null, null, null);
+	@Test // DATACMNS-437
+	void rejectsNullPoints() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new Polygon(null, null, null));
 	}
 
 	@Test // DATACMNS-437
-	public void createsSimplePolygon() {
+	void createsSimplePolygon() {
 
 		Polygon polygon = new Polygon(third, second, first);
 
@@ -46,7 +46,7 @@ public class PolygonUnitTests {
 	}
 
 	@Test // DATACMNS-437
-	public void isEqualForSamePoints() {
+	void isEqualForSamePoints() {
 
 		Polygon left = new Polygon(third, second, first);
 		Polygon right = new Polygon(third, second, first);
@@ -56,14 +56,14 @@ public class PolygonUnitTests {
 	}
 
 	@Test // DATACMNS-437
-	public void testToString() {
+	void testToString() {
 
 		assertThat(new Polygon(third, second, first).toString()).isEqualTo(
 				"Polygon: [Point [x=3.000000, y=3.000000],Point [x=2.000000, y=2.000000],Point [x=1.000000, y=1.000000]]");
 	}
 
 	@Test // DATACMNS-482
-	public void testSerialization() {
+	void testSerialization() {
 
 		Polygon polygon = new Polygon(third, second, first);
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,7 @@
 package org.springframework.data.querydsl.binding;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assumptions.*;
 import static org.springframework.test.util.ReflectionTestUtils.*;
 
 import java.text.ParseException;
@@ -24,8 +25,8 @@ import java.util.List;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.querydsl.QSpecialUser;
 import org.springframework.data.querydsl.QUser;
 import org.springframework.data.querydsl.QUserWrapper;
@@ -33,6 +34,7 @@ import org.springframework.data.querydsl.SimpleEntityPathResolver;
 import org.springframework.data.querydsl.User;
 import org.springframework.data.querydsl.Users;
 import org.springframework.data.util.ClassTypeInformation;
+import org.springframework.data.util.Version;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -43,11 +45,12 @@ import com.querydsl.core.types.Predicate;
 
 /**
  * Unit tests for {@link QuerydslPredicateBuilder}.
- * 
+ *
  * @author Christoph Strobl
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
-public class QuerydslPredicateBuilderUnitTests {
+class QuerydslPredicateBuilderUnitTests {
 
 	static final ClassTypeInformation<User> USER_TYPE = ClassTypeInformation.from(User.class);
 	static final QuerydslBindings DEFAULT_BINDINGS = new QuerydslBindings();
@@ -55,36 +58,40 @@ public class QuerydslPredicateBuilderUnitTests {
 	QuerydslPredicateBuilder builder;
 	MultiValueMap<String, String> values;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		this.builder = new QuerydslPredicateBuilder(new DefaultFormattingConversionService(),
 				SimpleEntityPathResolver.INSTANCE);
 		this.values = new LinkedMultiValueMap<>();
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-669
-	public void rejectsNullConversionService() {
-		new QuerydslPredicateBuilder(null, SimpleEntityPathResolver.INSTANCE);
-	}
-
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-669
-	public void getPredicateShouldThrowErrorWhenBindingContextIsNull() {
-		builder.getPredicate(null, values, null);
+	@Test // DATACMNS-669
+	void rejectsNullConversionService() {
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> new QuerydslPredicateBuilder(null, SimpleEntityPathResolver.INSTANCE));
 	}
 
 	@Test // DATACMNS-669
-	public void getPredicateShouldReturnEmptyPredicateWhenPropertiesAreEmpty() {
+	void getPredicateShouldThrowErrorWhenBindingContextIsNull() {
+		assertThatIllegalArgumentException().isThrownBy(() -> builder.getPredicate(null, values, null));
+	}
+
+	@Test // DATACMNS-669, DATACMNS-1168
+	void getPredicateShouldReturnNullWhenPropertiesAreEmpty() {
 		assertThat(builder.getPredicate(ClassTypeInformation.OBJECT, values, DEFAULT_BINDINGS)).isNull();
 	}
 
 	@Test // DATACMNS-669
-	public void resolveArgumentShouldCreateSingleStringParameterPredicateCorrectly() throws Exception {
+	void resolveArgumentShouldCreateSingleStringParameterPredicateCorrectly() throws Exception {
+
+		assumeThat(Version.javaVersion().toString())
+				.as("QueryDSL isn't Java 11 ready https://github.com/querydsl/querydsl/issues/2151").startsWith("1.8");
 
 		values.add("firstname", "Oliver");
 
 		Predicate predicate = builder.getPredicate(USER_TYPE, values, DEFAULT_BINDINGS);
 
-		assertThat(predicate).isEqualTo((Predicate) QUser.user.firstname.eq("Oliver"));
+		assertThat(predicate).isEqualTo(QUser.user.firstname.eq("Oliver"));
 
 		List<User> result = CollQueryFactory.from(QUser.user, Users.USERS).where(predicate).fetchResults().getResults();
 
@@ -92,7 +99,10 @@ public class QuerydslPredicateBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-669
-	public void resolveArgumentShouldCreateNestedStringParameterPredicateCorrectly() throws Exception {
+	void resolveArgumentShouldCreateNestedStringParameterPredicateCorrectly() throws Exception {
+
+		assumeThat(Version.javaVersion().toString())
+				.as("QueryDSL isn't Java 11 ready https://github.com/querydsl/querydsl/issues/2151").startsWith("1.8");
 
 		values.add("address.city", "Linz");
 
@@ -106,7 +116,7 @@ public class QuerydslPredicateBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-669
-	public void ignoresNonDomainTypeProperties() {
+	void ignoresNonDomainTypeProperties() {
 
 		values.add("firstname", "rand");
 		values.add("lastname".toUpperCase(), "al'thor");
@@ -117,7 +127,7 @@ public class QuerydslPredicateBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-669
-	public void forwardsNullForEmptyParameterToSingleValueBinder() {
+	void forwardsNullForEmptyParameterToSingleValueBinder() {
 
 		values.add("lastname", null);
 
@@ -129,7 +139,7 @@ public class QuerydslPredicateBuilderUnitTests {
 
 	@Test // DATACMNS-734
 	@SuppressWarnings("unchecked")
-	public void resolvesCommaSeparatedArgumentToArrayCorrectly() {
+	void resolvesCommaSeparatedArgumentToArrayCorrectly() {
 
 		values.add("address.lonLat", "40.740337,-73.995146");
 
@@ -142,7 +152,7 @@ public class QuerydslPredicateBuilderUnitTests {
 
 	@Test // DATACMNS-734
 	@SuppressWarnings("unchecked")
-	public void leavesCommaSeparatedArgumentUntouchedWhenTargetIsNotAnArray() {
+	void leavesCommaSeparatedArgumentUntouchedWhenTargetIsNotAnArray() {
 
 		values.add("address.city", "rivers,two");
 
@@ -154,7 +164,7 @@ public class QuerydslPredicateBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-734
-	public void bindsDateCorrectly() throws ParseException {
+	void bindsDateCorrectly() throws ParseException {
 
 		DateTimeFormatter format = DateTimeFormat.forPattern("yyyy-MM-dd");
 		String date = format.print(new DateTime());
@@ -167,7 +177,7 @@ public class QuerydslPredicateBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-883
-	public void automaticallyInsertsAnyStepInCollectionReference() {
+	void automaticallyInsertsAnyStepInCollectionReference() {
 
 		values.add("addresses.street", "VALUE");
 
@@ -177,7 +187,7 @@ public class QuerydslPredicateBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-941
-	public void buildsPredicateForBindingUsingDowncast() {
+	void buildsPredicateForBindingUsingDowncast() {
 
 		values.add("specialProperty", "VALUE");
 
@@ -190,7 +200,7 @@ public class QuerydslPredicateBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-941
-	public void buildsPredicateForBindingUsingNestedDowncast() {
+	void buildsPredicateForBindingUsingNestedDowncast() {
 
 		values.add("user.specialProperty", "VALUE");
 
@@ -202,5 +212,22 @@ public class QuerydslPredicateBuilderUnitTests {
 
 		assertThat(builder.getPredicate(USER_TYPE, values, bindings))//
 				.isEqualTo($.user.as(QSpecialUser.class).specialProperty.contains("VALUE"));
+	}
+
+	@Test // DATACMNS-1443
+	void doesNotDropValuesContainingABlank() {
+
+		values.add("firstname", " ");
+
+		assertThat(builder.getPredicate(USER_TYPE, values, DEFAULT_BINDINGS)) //
+				.isEqualTo(QUser.user.firstname.eq(" "));
+	}
+
+	@Test // DATACMNS-1443
+	void dropsValuesContainingAnEmptyString() {
+
+		values.add("firstname", "");
+
+		assertThat(builder.getPredicate(USER_TYPE, values, DEFAULT_BINDINGS)).isNull();
 	}
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,33 +22,60 @@ import java.beans.PropertyDescriptor;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * Unit tests for {@link DefaultProjectionInformation}.
- * 
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
-public class DefaultProjectionInformationUnitTests {
+class DefaultProjectionInformationUnitTests {
 
 	@Test // DATACMNS-89
-	public void discoversInputProperties() {
+	void discoversInputProperties() {
 
 		ProjectionInformation information = new DefaultProjectionInformation(CustomerProjection.class);
 
 		assertThat(toNames(information.getInputProperties())).contains("firstname", "lastname");
 	}
 
+	@Test // DATACMNS-1206
+	void omitsInputPropertiesAcceptingArguments() {
+
+		ProjectionInformation information = new DefaultProjectionInformation(ProjectionAcceptingArguments.class);
+
+		assertThat(toNames(information.getInputProperties())).containsOnly("lastname");
+	}
+
 	@Test // DATACMNS-89
-	public void discoversAllInputProperties() {
+	void discoversAllInputProperties() {
 
 		ProjectionInformation information = new DefaultProjectionInformation(ExtendedProjection.class);
 
 		assertThat(toNames(information.getInputProperties())).containsExactly("age", "firstname", "lastname");
 	}
 
+	@Test // DATACMNS-1206
+	void discoversInputPropertiesInOrder() {
+
+		ProjectionInformation information = new DefaultProjectionInformation(SameMethodNamesInAlternateOrder.class);
+
+		assertThat(toNames(information.getInputProperties())).containsExactly("firstname", "lastname");
+	}
+
+	@Test // DATACMNS-1206
+	void discoversAllInputPropertiesInOrder() {
+
+		assertThat(toNames(new DefaultProjectionInformation(CompositeProjection.class).getInputProperties()))
+				.containsExactly("firstname", "lastname", "age");
+		assertThat(toNames(new DefaultProjectionInformation(ReorderedCompositeProjection.class).getInputProperties()))
+				.containsExactly("age", "firstname", "lastname");
+	}
+
 	@Test // DATACMNS-967
-	public void doesNotConsiderDefaultMethodInputProperties() throws Exception {
+	void doesNotConsiderDefaultMethodInputProperties() {
 
 		ProjectionInformation information = new DefaultProjectionInformation(WithDefaultMethod.class);
 
@@ -71,7 +98,33 @@ public class DefaultProjectionInformationUnitTests {
 		String getLastname();
 	}
 
+	interface ProjectionAcceptingArguments {
+
+		@Value("foo")
+		String getFirstname(int i);
+
+		String getLastname();
+	}
+
 	interface ExtendedProjection extends CustomerProjection {
+
+		int getAge();
+	}
+
+	interface SameMethodNamesInAlternateOrder {
+
+		String getFirstname();
+
+		String getLastname();
+
+		String getFirstname(String foo);
+	}
+
+	interface CompositeProjection extends CustomerProjection, AgeProjection {}
+
+	interface ReorderedCompositeProjection extends AgeProjection, CustomerProjection {}
+
+	interface AgeProjection {
 
 		int getAge();
 	}

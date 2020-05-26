@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,7 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Collection;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.CrudRepository;
@@ -33,34 +33,34 @@ import com.google.common.base.Optional;
 
 /**
  * Unit tests for {@link DefaultRepositoryMetadata}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  */
-public class DefaultRepositoryMetadataUnitTests {
+class DefaultRepositoryMetadataUnitTests {
 
-	@Test(expected = IllegalArgumentException.class)
-	public void preventsNullRepositoryInterface() {
-		new DefaultRepositoryMetadata(null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNonInterface() {
-		new DefaultRepositoryMetadata(Object.class);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNonRepositoryInterface() {
-		new DefaultRepositoryMetadata(Collection.class);
-	}
-
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-406
-	public void rejectsUnparameterizedRepositoryInterface() {
-		new DefaultRepositoryMetadata(Repository.class);
+	@Test
+	void preventsNullRepositoryInterface() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new DefaultRepositoryMetadata(null));
 	}
 
 	@Test
-	public void looksUpDomainClassCorrectly() throws Exception {
+	void rejectsNonInterface() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new DefaultRepositoryMetadata(Object.class));
+	}
+
+	@Test
+	void rejectsNonRepositoryInterface() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new DefaultRepositoryMetadata(Collection.class));
+	}
+
+	@Test // DATACMNS-406
+	void rejectsUnparameterizedRepositoryInterface() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new DefaultRepositoryMetadata(Repository.class));
+	}
+
+	@Test
+	void looksUpDomainClassCorrectly() throws Exception {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(UserRepository.class);
 		assertThat(metadata.getDomainType()).isEqualTo(User.class);
@@ -70,35 +70,35 @@ public class DefaultRepositoryMetadataUnitTests {
 	}
 
 	@Test
-	public void findsDomainClassOnExtensionOfDaoInterface() throws Exception {
+	void findsDomainClassOnExtensionOfDaoInterface() throws Exception {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(ExtensionOfUserCustomExtendedDao.class);
 		assertThat(metadata.getDomainType()).isEqualTo(User.class);
 	}
 
 	@Test
-	public void detectsParameterizedEntitiesCorrectly() {
+	void detectsParameterizedEntitiesCorrectly() {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(GenericEntityRepository.class);
 		assertThat(metadata.getDomainType()).isEqualTo(GenericEntity.class);
 	}
 
 	@Test
-	public void looksUpIdClassCorrectly() throws Exception {
+	void looksUpIdClassCorrectly() throws Exception {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(UserRepository.class);
 		assertThat(metadata.getIdType()).isEqualTo(Integer.class);
 	}
 
 	@Test // DATACMNS-442
-	public void detectsIdTypeOnIntermediateRepository() {
+	void detectsIdTypeOnIntermediateRepository() {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(ConcreteRepository.class);
 		assertThat(metadata.getIdType()).isEqualTo(Long.class);
 	}
 
 	@Test // DATACMNS-483
-	public void discoversDomainTypeOnReturnTypeWrapper() throws Exception {
+	void discoversDomainTypeOnReturnTypeWrapper() throws Exception {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(OptionalRepository.class);
 
@@ -107,7 +107,7 @@ public class DefaultRepositoryMetadataUnitTests {
 	}
 
 	@Test // DATACMNS-483
-	public void discoversDomainTypeOnNestedReturnTypeWrapper() throws Exception {
+	void discoversDomainTypeOnNestedReturnTypeWrapper() throws Exception {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(OptionalRepository.class);
 
@@ -116,7 +116,7 @@ public class DefaultRepositoryMetadataUnitTests {
 	}
 
 	@Test // DATACMNS-501
-	public void discoversDomainAndIdTypeForIntermediateRepository() {
+	void discoversDomainAndIdTypeForIntermediateRepository() {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(IdTypeFixingRepository.class);
 
@@ -129,7 +129,7 @@ public class DefaultRepositoryMetadataUnitTests {
 
 		private String firstname;
 
-		public String getAddress() {
+		String getAddress() {
 
 			return null;
 		}
@@ -145,7 +145,7 @@ public class DefaultRepositoryMetadataUnitTests {
 	 * <li>Check that {@link ClassUtils#getDomainClass(Class)} skips non {@link GenericDao} interfaces</li>
 	 * <li>Check that {@link ClassUtils#getDomainClass(Class)} traverses interface hierarchy</li>
 	 * </ol>
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	private interface SomeDao extends Serializable, UserRepository {
@@ -155,7 +155,7 @@ public class DefaultRepositoryMetadataUnitTests {
 
 	/**
 	 * Sample interface to test recursive lookup of domain class.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	static interface ExtensionOfUserCustomExtendedDao extends UserCustomExtendedRepository {
@@ -175,7 +175,7 @@ public class DefaultRepositoryMetadataUnitTests {
 
 	/**
 	 * Helper class to reproduce #256.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	static class GenericEntity<T> {}

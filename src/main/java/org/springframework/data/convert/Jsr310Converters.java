@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,24 +34,31 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.lang.NonNull;
 import org.springframework.util.ClassUtils;
 
 /**
  * Helper class to register JSR-310 specific {@link Converter} implementations in case the we're running on Java 8.
- * 
+ *
  * @author Oliver Gierke
  * @author Barak Schoster
  * @author Christoph Strobl
+ * @author Jens Schauder
+ * @author Mark Paluch
  */
 public abstract class Jsr310Converters {
 
 	private static final boolean JAVA_8_IS_PRESENT = ClassUtils.isPresent("java.time.LocalDateTime",
 			Jsr310Converters.class.getClassLoader());
+	private static final List<Class<?>> CLASSES = Arrays.asList(LocalDateTime.class, LocalDate.class, LocalTime.class,
+			Instant.class, ZoneId.class, Duration.class, Period.class);
 
 	/**
 	 * Returns the converters to be registered. Will only return converters in case we're running on Java 8.
-	 * 
+	 *
 	 * @return
 	 */
 	public static Collection<Converter<?, ?>> getConvertersToRegister() {
@@ -68,12 +76,17 @@ public abstract class Jsr310Converters {
 		converters.add(LocalTimeToDateConverter.INSTANCE);
 		converters.add(DateToInstantConverter.INSTANCE);
 		converters.add(InstantToDateConverter.INSTANCE);
+		converters.add(LocalDateTimeToInstantConverter.INSTANCE);
+		converters.add(InstantToLocalDateTimeConverter.INSTANCE);
 		converters.add(ZoneIdToStringConverter.INSTANCE);
 		converters.add(StringToZoneIdConverter.INSTANCE);
 		converters.add(DurationToStringConverter.INSTANCE);
 		converters.add(StringToDurationConverter.INSTANCE);
 		converters.add(PeriodToStringConverter.INSTANCE);
 		converters.add(StringToPeriodConverter.INSTANCE);
+		converters.add(StringToLocalDateConverter.INSTANCE);
+		converters.add(StringToLocalDateTimeConverter.INSTANCE);
+		converters.add(StringToInstantConverter.INSTANCE);
 
 		return converters;
 	}
@@ -84,87 +97,126 @@ public abstract class Jsr310Converters {
 			return false;
 		}
 
-		return Arrays.<Class<?>> asList(LocalDateTime.class, LocalDate.class, LocalTime.class, Instant.class)
-				.contains(type);
+		return CLASSES.contains(type);
 	}
 
+	@ReadingConverter
 	public static enum DateToLocalDateTimeConverter implements Converter<Date, LocalDateTime> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public LocalDateTime convert(Date source) {
-			return source == null ? null : ofInstant(source.toInstant(), systemDefault());
+			return ofInstant(source.toInstant(), systemDefault());
 		}
 	}
 
+	@WritingConverter
 	public static enum LocalDateTimeToDateConverter implements Converter<LocalDateTime, Date> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Date convert(LocalDateTime source) {
-			return source == null ? null : Date.from(source.atZone(systemDefault()).toInstant());
+			return Date.from(source.atZone(systemDefault()).toInstant());
 		}
 	}
 
+	@ReadingConverter
 	public static enum DateToLocalDateConverter implements Converter<Date, LocalDate> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public LocalDate convert(Date source) {
-			return source == null ? null : ofInstant(ofEpochMilli(source.getTime()), systemDefault()).toLocalDate();
+			return ofInstant(ofEpochMilli(source.getTime()), systemDefault()).toLocalDate();
 		}
 	}
 
+	@WritingConverter
 	public static enum LocalDateToDateConverter implements Converter<LocalDate, Date> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Date convert(LocalDate source) {
-			return source == null ? null : Date.from(source.atStartOfDay(systemDefault()).toInstant());
+			return Date.from(source.atStartOfDay(systemDefault()).toInstant());
 		}
 	}
 
+	@ReadingConverter
 	public static enum DateToLocalTimeConverter implements Converter<Date, LocalTime> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public LocalTime convert(Date source) {
-			return source == null ? null : ofInstant(ofEpochMilli(source.getTime()), systemDefault()).toLocalTime();
+			return ofInstant(ofEpochMilli(source.getTime()), systemDefault()).toLocalTime();
 		}
 	}
 
+	@WritingConverter
 	public static enum LocalTimeToDateConverter implements Converter<LocalTime, Date> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Date convert(LocalTime source) {
-			return source == null ? null : Date.from(source.atDate(LocalDate.now()).atZone(systemDefault()).toInstant());
+			return Date.from(source.atDate(LocalDate.now()).atZone(systemDefault()).toInstant());
 		}
 	}
 
+	@ReadingConverter
 	public static enum DateToInstantConverter implements Converter<Date, Instant> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Instant convert(Date source) {
-			return source == null ? null : source.toInstant();
+			return source.toInstant();
 		}
 	}
 
+	@WritingConverter
 	public static enum InstantToDateConverter implements Converter<Instant, Date> {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Date convert(Instant source) {
-			return source == null ? null : Date.from(source.atZone(systemDefault()).toInstant());
+			return Date.from(source);
+		}
+	}
+
+	@ReadingConverter
+	public static enum LocalDateTimeToInstantConverter implements Converter<LocalDateTime, Instant> {
+
+		INSTANCE;
+
+		@Nonnull
+		@Override
+		public Instant convert(LocalDateTime source) {
+			return source.atZone(systemDefault()).toInstant();
+		}
+	}
+
+	@ReadingConverter
+	public static enum InstantToLocalDateTimeConverter implements Converter<Instant, LocalDateTime> {
+
+		INSTANCE;
+
+		@Nonnull
+		@Override
+		public LocalDateTime convert(Instant source) {
+			return LocalDateTime.ofInstant(source, systemDefault());
 		}
 	}
 
@@ -173,6 +225,7 @@ public abstract class Jsr310Converters {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public String convert(ZoneId source) {
 			return source.toString();
@@ -184,6 +237,7 @@ public abstract class Jsr310Converters {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public ZoneId convert(String source) {
 			return ZoneId.of(source);
@@ -195,6 +249,7 @@ public abstract class Jsr310Converters {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public String convert(Duration duration) {
 			return duration.toString();
@@ -206,6 +261,7 @@ public abstract class Jsr310Converters {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Duration convert(String s) {
 			return Duration.parse(s);
@@ -217,6 +273,7 @@ public abstract class Jsr310Converters {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public String convert(Period period) {
 			return period.toString();
@@ -228,9 +285,58 @@ public abstract class Jsr310Converters {
 
 		INSTANCE;
 
+		@Nonnull
 		@Override
 		public Period convert(String s) {
 			return Period.parse(s);
+		}
+	}
+
+	@ReadingConverter
+	public static enum StringToLocalDateConverter implements Converter<String, LocalDate> {
+
+		INSTANCE;
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
+		 */
+		@NonNull
+		@Override
+		public LocalDate convert(String source) {
+			return LocalDate.parse(source, DateTimeFormatter.ISO_DATE);
+		}
+	}
+
+	@ReadingConverter
+	public static enum StringToLocalDateTimeConverter implements Converter<String, LocalDateTime> {
+
+		INSTANCE;
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
+		 */
+		@NonNull
+		@Override
+		public LocalDateTime convert(String source) {
+			return LocalDateTime.parse(source, DateTimeFormatter.ISO_DATE_TIME);
+		}
+	}
+
+	@ReadingConverter
+	public static enum StringToInstantConverter implements Converter<String, Instant> {
+
+		INSTANCE;
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
+		 */
+		@NonNull
+		@Override
+		public Instant convert(String source) {
+			return Instant.parse(source);
 		}
 	}
 }

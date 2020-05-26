@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,20 +19,20 @@ import static org.assertj.core.api.Assertions.*;
 
 import lombok.Value;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.ReflectionUtils;
 
 /**
  * Unit tests for {@link AnnotationDetectionFieldCallback}.
- * 
+ *
  * @author Oliver Gierke
  */
 public class AnnotationDetectionFieldCallbackUnitTests {
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-616
+	@Test // DATACMNS-616
 	public void rejectsNullAnnotationType() {
-		new AnnotationDetectionFieldCallback(null);
+		assertThatIllegalArgumentException().isThrownBy(() -> new AnnotationDetectionFieldCallback(null));
 	}
 
 	@Test // DATACMNS-616
@@ -41,8 +41,8 @@ public class AnnotationDetectionFieldCallbackUnitTests {
 		AnnotationDetectionFieldCallback callback = new AnnotationDetectionFieldCallback(Autowired.class);
 		ReflectionUtils.doWithFields(Sample.class, callback);
 
-		assertThat(callback.getType()).hasValue(String.class);
-		assertThat(callback.getValue(new Sample("foo"))).hasValue("foo");
+		assertThat(callback.getType()).isEqualTo(String.class);
+		assertThat(callback.<Object> getValue(new Sample("foo"))).isEqualTo("foo");
 	}
 
 	@Test // DATACMNS-616
@@ -51,8 +51,8 @@ public class AnnotationDetectionFieldCallbackUnitTests {
 		AnnotationDetectionFieldCallback callback = new AnnotationDetectionFieldCallback(Autowired.class);
 		ReflectionUtils.doWithFields(Empty.class, callback);
 
-		assertThat(callback.getType()).isNotPresent();
-		assertThat(callback.getValue(new Empty())).isNotPresent();
+		assertThat(callback.getType()).isNull();
+		assertThat(callback.<Object> getValue(new Empty())).isNull();
 	}
 
 	@Value

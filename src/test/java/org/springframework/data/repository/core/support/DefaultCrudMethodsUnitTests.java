@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.CrudRepository;
@@ -35,14 +35,15 @@ import org.springframework.data.repository.core.RepositoryMetadata;
 
 /**
  * Unit tests dor {@link DefaultCrudMethods}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
+ * @author Mark Paluch
  */
-public class DefaultCrudMethodsUnitTests {
+class DefaultCrudMethodsUnitTests {
 
 	@Test
-	public void detectsMethodsOnCrudRepository() throws Exception {
+	void detectsMethodsOnCrudRepository() throws Exception {
 
 		Class<DomainCrudRepository> type = DomainCrudRepository.class;
 
@@ -52,7 +53,7 @@ public class DefaultCrudMethodsUnitTests {
 	}
 
 	@Test
-	public void detectsMethodsOnPagingAndSortingRepository() throws Exception {
+	void detectsMethodsOnPagingAndSortingRepository() throws Exception {
 
 		Class<DomainPagingAndSortingRepository> type = DomainPagingAndSortingRepository.class;
 
@@ -62,7 +63,7 @@ public class DefaultCrudMethodsUnitTests {
 	}
 
 	@Test
-	public void detectsFindAllWithSortParameterOnSortingRepository() throws Exception {
+	void detectsFindAllWithSortParameterOnSortingRepository() throws Exception {
 
 		Class<RepositoryWithCustomSortingFindAll> type = RepositoryWithCustomSortingFindAll.class;
 
@@ -71,7 +72,7 @@ public class DefaultCrudMethodsUnitTests {
 	}
 
 	@Test // DATACMNS-393
-	public void selectsFindAllWithSortParameterOnRepositoryAmongUnsuitableAlternatives() throws Exception {
+	void selectsFindAllWithSortParameterOnRepositoryAmongUnsuitableAlternatives() throws Exception {
 
 		Class<RepositoryWithInvalidPagingFallbackToSortFindAll> type = RepositoryWithInvalidPagingFallbackToSortFindAll.class;
 
@@ -80,7 +81,7 @@ public class DefaultCrudMethodsUnitTests {
 	}
 
 	@Test
-	public void detectsMethodsOnCustomRepository() throws Exception {
+	void detectsMethodsOnCustomRepository() throws Exception {
 
 		Class<RepositoryWithCustomSortingAndPagingFindAll> type = RepositoryWithCustomSortingAndPagingFindAll.class;
 		assertFindAllMethodOn(type, type.getMethod("findAll", Pageable.class));
@@ -90,14 +91,14 @@ public class DefaultCrudMethodsUnitTests {
 	}
 
 	@Test
-	public void doesNotDetectInvalidlyDeclaredMethods() throws Exception {
+	void doesNotDetectInvalidlyDeclaredMethods() throws Exception {
 
 		Class<RepositoryWithInvalidPagingFindAll> type = RepositoryWithInvalidPagingFindAll.class;
 		assertFindAllMethodOn(type, Optional.empty());
 	}
 
 	@Test // DATACMNS-393
-	public void detectsOverloadedMethodsCorrectly() throws Exception {
+	void detectsOverloadedMethodsCorrectly() throws Exception {
 
 		Class<RepositoryWithAllCrudMethodOverloaded> type = RepositoryWithAllCrudMethodOverloaded.class;
 		assertFindOneMethodOn(type, type.getDeclaredMethod("findById", Long.class));
@@ -107,7 +108,7 @@ public class DefaultCrudMethodsUnitTests {
 	}
 
 	@Test // DATACMNS-393
-	public void ignoresWrongOverloadedMethods() throws Exception {
+	void ignoresWrongOverloadedMethods() throws Exception {
 
 		Class<RepositoryWithAllCrudMethodOverloadedWrong> type = RepositoryWithAllCrudMethodOverloadedWrong.class;
 		assertFindOneMethodOn(type, CrudRepository.class.getDeclaredMethod("findById", Object.class));
@@ -117,19 +118,19 @@ public class DefaultCrudMethodsUnitTests {
 	}
 
 	@Test // DATACMNS-464
-	public void detectsCustomSaveMethod() throws Exception {
+	void detectsCustomSaveMethod() throws Exception {
 		assertSaveMethodOn(RepositoryWithCustomSave.class, RepositoryWithCustomSave.class.getMethod("save", Domain.class));
 	}
 
 	@Test // DATACMNS-539
-	public void detectsOverriddenDeleteMethodForEntity() throws Exception {
+	void detectsOverriddenDeleteMethodForEntity() throws Exception {
 
 		assertDeleteMethodOn(RepositoryWithDeleteMethodForEntityOverloaded.class,
 				RepositoryWithDeleteMethodForEntityOverloaded.class.getMethod("delete", Domain.class));
 	}
 
 	@Test // DATACMNS-619
-	public void exposedMethodsAreAccessible() {
+	void exposedMethodsAreAccessible() {
 
 		CrudMethods methods = getMethodsFor(RepositoryWithAllCrudMethodOverloaded.class);
 
@@ -143,7 +144,7 @@ public class DefaultCrudMethodsUnitTests {
 
 		RepositoryMetadata metadata = new DefaultRepositoryMetadata(repositoryInterface);
 		RepositoryInformation information = new DefaultRepositoryInformation(metadata, PagingAndSortingRepository.class,
-				Optional.empty());
+				RepositoryComposition.empty());
 
 		return new DefaultCrudMethods(information);
 	}

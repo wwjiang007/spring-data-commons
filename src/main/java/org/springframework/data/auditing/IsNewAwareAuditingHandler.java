@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,34 +15,31 @@
  */
 package org.springframework.data.auditing;
 
-import java.util.Collections;
 import java.util.Optional;
 
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.context.MappingContext;
-import org.springframework.data.mapping.context.MappingContextIsNewStrategyFactory;
 import org.springframework.data.mapping.context.PersistentEntities;
 import org.springframework.data.support.IsNewStrategy;
-import org.springframework.data.support.IsNewStrategyFactory;
 import org.springframework.util.Assert;
 
 /**
- * {@link AuditingHandler} extension that uses an {@link IsNewStrategyFactory} to expose a generic
+ * {@link AuditingHandler} extension that uses {@link PersistentEntity#isNew(Object)} to expose a generic
  * {@link #markAudited(Optional)} method that will route calls to {@link #markCreated(Optional)} or
  * {@link #markModified(Optional)} based on the {@link IsNewStrategy} determined from the factory.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  * @since 1.5
  */
 public class IsNewAwareAuditingHandler extends AuditingHandler {
 
-	private final IsNewStrategyFactory isNewStrategyFactory;
+	private final PersistentEntities entities;
 
 	/**
 	 * Creates a new {@link IsNewAwareAuditingHandler} for the given {@link MappingContext}.
-	 * 
+	 *
 	 * @param mappingContext must not be {@literal null}.
 	 * @since 1.8
 	 * @deprecated use {@link IsNewAwareAuditingHandler(PersistentEntities)} instead.
@@ -50,12 +47,12 @@ public class IsNewAwareAuditingHandler extends AuditingHandler {
 	@Deprecated
 	public IsNewAwareAuditingHandler(
 			MappingContext<? extends PersistentEntity<?, ?>, ? extends PersistentProperty<?>> mappingContext) {
-		this(new PersistentEntities(Collections.singletonList(mappingContext)));
+		this(PersistentEntities.of(mappingContext));
 	}
 
 	/**
 	 * Creates a new {@link IsNewAwareAuditingHandler} for the given {@link MappingContext}.
-	 * 
+	 *
 	 * @param entities must not be {@literal null}.
 	 * @since 1.10
 	 */
@@ -63,30 +60,26 @@ public class IsNewAwareAuditingHandler extends AuditingHandler {
 
 		super(entities);
 
-		this.isNewStrategyFactory = new MappingContextIsNewStrategyFactory(entities);
+		this.entities = entities;
 	}
 
 	/**
-	 * Marks the given object created or modified based on the {@link IsNewStrategy} returned by the
-	 * {@link IsNewStrategyFactory} configured. Will rout the calls to {@link #markCreated(Optional)} and
-	 * {@link #markModified(Optional)} accordingly.
-	 * 
-	 * @param object
+	 * Marks the given object created or modified based on {@link PersistentEntity#isNew(Object)}. Will route the calls to
+	 * {@link #markCreated(Optional)} and {@link #markModified(Optional)} accordingly.
+	 *
+	 * @param object must not be {@literal null}.
 	 */
-	public void markAudited(Object object) {
+	public Object markAudited(Object object) {
 
 		Assert.notNull(object, "Source object must not be null!");
 
 		if (!isAuditable(object)) {
-			return;
+			return object;
 		}
 
-		IsNewStrategy strategy = isNewStrategyFactory.getIsNewStrategy(object.getClass());
+		PersistentEntity<?, ? extends PersistentProperty<?>> entity = entities
+				.getRequiredPersistentEntity(object.getClass());
 
-		if (strategy.isNew(object)) {
-			markCreated(object);
-		} else {
-			markModified(object);
-		}
+		return entity.isNew(object) ? markCreated(object) : markModified(object);
 	}
 }

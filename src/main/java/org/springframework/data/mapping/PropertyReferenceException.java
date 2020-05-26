@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,14 +22,17 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.PropertyMatches;
+import org.springframework.data.util.Lazy;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
  * Exception being thrown when creating {@link PropertyPath} instances.
- * 
+ *
  * @author Oliver Gierke
+ * @author Christoph Strobl
  */
 public class PropertyReferenceException extends RuntimeException {
 
@@ -40,11 +43,11 @@ public class PropertyReferenceException extends RuntimeException {
 	private final String propertyName;
 	private final TypeInformation<?> type;
 	private final List<PropertyPath> alreadyResolvedPath;
-	private final Set<String> propertyMatches;
+	private final Lazy<Set<String>> propertyMatches;
 
 	/**
 	 * Creates a new {@link PropertyReferenceException}.
-	 * 
+	 *
 	 * @param propertyName the name of the property not found on the given type, must not be {@literal null} or empty.
 	 * @param type the type the property could not be found on, must not be {@literal null}.
 	 * @param alreadyResolvedPah the previously calculated {@link PropertyPath}s, must not be {@literal null}.
@@ -59,12 +62,12 @@ public class PropertyReferenceException extends RuntimeException {
 		this.propertyName = propertyName;
 		this.type = type;
 		this.alreadyResolvedPath = alreadyResolvedPah;
-		this.propertyMatches = detectPotentialMatches(propertyName, type.getType());
+		this.propertyMatches = Lazy.of(() -> detectPotentialMatches(propertyName, type.getType()));
 	}
 
 	/**
 	 * Returns the name of the property not found.
-	 * 
+	 *
 	 * @return will not be {@literal null} or empty.
 	 */
 	public String getPropertyName() {
@@ -73,7 +76,7 @@ public class PropertyReferenceException extends RuntimeException {
 
 	/**
 	 * Returns the type the property could not be found on.
-	 * 
+	 *
 	 * @return will never be {@literal null}.
 	 */
 	public TypeInformation<?> getType() {
@@ -82,14 +85,14 @@ public class PropertyReferenceException extends RuntimeException {
 
 	/**
 	 * Returns the properties that the invalid property might have been meant to be referred to.
-	 * 
+	 *
 	 * @return will never be {@literal null}.
 	 */
 	Collection<String> getPropertyMatches() {
-		return propertyMatches;
+		return propertyMatches.get();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Throwable#getMessage()
 	 */
@@ -99,8 +102,9 @@ public class PropertyReferenceException extends RuntimeException {
 		StringBuilder builder = new StringBuilder(
 				String.format(ERROR_TEMPLATE, propertyName, type.getType().getSimpleName()));
 
-		if (!propertyMatches.isEmpty()) {
-			String matches = StringUtils.collectionToDelimitedString(propertyMatches, ",", "'", "'");
+		Collection<String> potentialMatches = getPropertyMatches();
+		if (!potentialMatches.isEmpty()) {
+			String matches = StringUtils.collectionToDelimitedString(potentialMatches, ",", "'", "'");
 			builder.append(String.format(HINTS_TEMPLATE, matches));
 		}
 
@@ -115,9 +119,10 @@ public class PropertyReferenceException extends RuntimeException {
 
 	/**
 	 * Returns the {@link PropertyPath} which could be resolved so far.
-	 * 
+	 *
 	 * @return
 	 */
+	@Nullable
 	public PropertyPath getBaseProperty() {
 		return alreadyResolvedPath.isEmpty() ? null : alreadyResolvedPath.get(alreadyResolvedPath.size() - 1);
 	}
@@ -125,7 +130,7 @@ public class PropertyReferenceException extends RuntimeException {
 	/**
 	 * Returns whether the given {@link PropertyReferenceException} has a deeper resolution depth (i.e. a longer path of
 	 * already resolved properties) than the current exception.
-	 * 
+	 *
 	 * @param exception must not be {@literal null}.
 	 * @return
 	 */
@@ -135,7 +140,7 @@ public class PropertyReferenceException extends RuntimeException {
 
 	/**
 	 * Detects all potential matches for the given property name and type.
-	 * 
+	 *
 	 * @param propertyName must not be {@literal null} or empty.
 	 * @param type must not be {@literal null}.
 	 * @return

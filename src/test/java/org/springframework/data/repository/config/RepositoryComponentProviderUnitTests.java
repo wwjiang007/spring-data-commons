@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,16 +16,16 @@
 package org.springframework.data.repository.config;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.core.type.filter.TypeFilter;
 import org.springframework.data.repository.Repository;
@@ -34,29 +34,31 @@ import org.springframework.data.repository.sample.SampleAnnotatedRepository;
 
 /**
  * Unit tests for {@link RepositoryComponentProvider}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  */
-public class RepositoryComponentProviderUnitTests {
+class RepositoryComponentProviderUnitTests {
+
+	BeanDefinitionRegistry registry = mock(BeanDefinitionRegistry.class);
 
 	@Test
-	public void findsAnnotatedRepositoryInterface() {
+	void findsAnnotatedRepositoryInterface() {
 
-		RepositoryComponentProvider provider = new RepositoryComponentProvider(Collections.emptyList());
+		RepositoryComponentProvider provider = new RepositoryComponentProvider(Collections.emptyList(), registry);
 		Set<BeanDefinition> components = provider.findCandidateComponents("org.springframework.data.repository.sample");
 
-		assertThat(components).hasSize(3);
+		assertThat(components).hasSize(4);
 		assertThat(components).extracting(BeanDefinition::getBeanClassName)
 				.contains(SampleAnnotatedRepository.class.getName());
 	}
 
 	@Test
-	public void limitsFoundRepositoriesToIncludeFiltersOnly() {
+	void limitsFoundRepositoriesToIncludeFiltersOnly() {
 
 		List<? extends TypeFilter> filters = Collections.singletonList(new AssignableTypeFilter(MyOtherRepository.class));
 
-		RepositoryComponentProvider provider = new RepositoryComponentProvider(filters);
+		RepositoryComponentProvider provider = new RepositoryComponentProvider(filters, registry);
 		Set<BeanDefinition> components = provider.findCandidateComponents("org.springframework.data.repository");
 
 		assertThat(components).hasSize(1);
@@ -64,9 +66,9 @@ public class RepositoryComponentProviderUnitTests {
 	}
 
 	@Test // DATACMNS-90
-	public void shouldConsiderNestedRepositoryInterfacesIfEnabled() {
+	void shouldConsiderNestedRepositoryInterfacesIfEnabled() {
 
-		RepositoryComponentProvider provider = new RepositoryComponentProvider(Collections.emptyList());
+		RepositoryComponentProvider provider = new RepositoryComponentProvider(Collections.emptyList(), registry);
 		provider.setConsiderNestedRepositoryInterfaces(true);
 
 		Set<BeanDefinition> components = provider.findCandidateComponents("org.springframework.data.repository.config");
@@ -76,40 +78,19 @@ public class RepositoryComponentProviderUnitTests {
 		assertThat(components).extracting(BeanDefinition::getBeanClassName).contains(nestedRepositoryClassName);
 	}
 
-	static class BeanDefinitionOfTypeMatcher extends BaseMatcher<BeanDefinition> {
-
-		private final Class<?> expectedType;
-
-		private BeanDefinitionOfTypeMatcher(Class<?> expectedType) {
-			this.expectedType = expectedType;
-		}
-
-		public static BeanDefinitionOfTypeMatcher beanDefinitionOfType(Class<?> expectedType) {
-			return new BeanDefinitionOfTypeMatcher(expectedType);
-		}
-
-		/* 
-		 * (non-Javadoc)
-		 * @see org.hamcrest.Matcher#matches(java.lang.Object)
-		 */
-		@Override
-		public boolean matches(Object item) {
-
-			if (!(item instanceof BeanDefinition)) {
-				return false;
-			}
-
-			BeanDefinition definition = (BeanDefinition) item;
-			return definition.getBeanClassName().equals(expectedType.getName());
-		}
-
-		/* 
-		 * (non-Javadoc)
-		 * @see org.hamcrest.SelfDescribing#describeTo(org.hamcrest.Description)
-		 */
-		@Override
-		public void describeTo(Description description) {}
+	@Test // DATACMNS-1098
+	void rejectsNullBeanDefinitionRegistry() {
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> new RepositoryComponentProvider(Collections.emptyList(), null));
 	}
 
-	public interface MyNestedRepository extends Repository<Person, Long> {}
+	@Test // DATACMNS-1098
+	void exposesBeanDefinitionRegistry() {
+
+		RepositoryComponentProvider provider = new RepositoryComponentProvider(Collections.emptyList(), registry);
+
+		assertThat(provider.getRegistry()).isEqualTo(registry);
+	}
+
+	interface MyNestedRepository extends Repository<Person, Long> {}
 }

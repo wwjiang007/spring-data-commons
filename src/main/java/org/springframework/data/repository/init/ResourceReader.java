@@ -1,11 +1,11 @@
 /*
- * Copyright 2012 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,15 +16,26 @@
 package org.springframework.data.repository.init;
 
 import org.springframework.core.io.Resource;
+import org.springframework.lang.Nullable;
 
 /**
  * @author Oliver Gierke
+ * @author Christoph Strobl
  */
 public interface ResourceReader {
 
-	public static enum Type {
+	enum Type {
 		XML, JSON;
 	}
 
-	Object readFrom(Resource resource, ClassLoader classLoader) throws Exception;
+	/**
+	 * Reads a single or {@link java.util.Collection} of target objects from the given {@link Resource}.
+	 *
+	 * @param resource must not be {@literal null}.
+	 * @param classLoader can be {@literal null}.
+	 * @return {@link java.util.Collection} of target objects if resource contains multiple ones of single on. Never
+	 *         {@literal null}.
+	 * @throws Exception
+	 */
+	Object readFrom(Resource resource, @Nullable ClassLoader classLoader) throws Exception;
 }

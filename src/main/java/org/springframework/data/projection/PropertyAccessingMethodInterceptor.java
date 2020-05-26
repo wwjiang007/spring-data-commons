@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2016 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,12 +23,13 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.data.util.DirectFieldAccessFallbackBeanWrapper;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 
 /**
  * Method interceptor to forward a delegation to bean property accessor methods to the property of a given target.
- * 
+ *
  * @author Oliver Gierke
  * @author Mark Paluch
  * @since 1.10
@@ -39,7 +40,7 @@ class PropertyAccessingMethodInterceptor implements MethodInterceptor {
 
 	/**
 	 * Creates a new {@link PropertyAccessingMethodInterceptor} for the given target object.
-	 * 
+	 *
 	 * @param target must not be {@literal null}.
 	 */
 	public PropertyAccessingMethodInterceptor(Object target) {
@@ -48,12 +49,13 @@ class PropertyAccessingMethodInterceptor implements MethodInterceptor {
 		this.target = new DirectFieldAccessFallbackBeanWrapper(target);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.aopalliance.intercept.MethodInterceptor#invoke(org.aopalliance.intercept.MethodInvocation)
 	 */
+	@Nullable
 	@Override
-	public Object invoke(MethodInvocation invocation) throws Throwable {
+	public Object invoke(@SuppressWarnings("null") MethodInvocation invocation) throws Throwable {
 
 		Method method = invocation.getMethod();
 

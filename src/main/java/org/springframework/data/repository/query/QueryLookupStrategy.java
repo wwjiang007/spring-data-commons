@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2010 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,11 +21,12 @@ import java.util.Locale;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.core.RepositoryMetadata;
+import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /**
  * Strategy interface for which way to lookup {@link RepositoryQuery}s.
- * 
+ *
  * @author Oliver Gierke
  */
 public interface QueryLookupStrategy {
@@ -36,10 +37,11 @@ public interface QueryLookupStrategy {
 
 		/**
 		 * Returns a strategy key from the given XML value.
-		 * 
+		 *
 		 * @param xml
 		 * @return a strategy key from the given XML value
 		 */
+		@Nullable
 		public static Key create(String xml) {
 
 			if (!StringUtils.hasText(xml)) {
@@ -52,7 +54,7 @@ public interface QueryLookupStrategy {
 
 	/**
 	 * Resolves a {@link RepositoryQuery} from the given {@link QueryMethod} that can be executed afterwards.
-	 * 
+	 *
 	 * @param method will never be {@literal null}.
 	 * @param metadata will never be {@literal null}.
 	 * @param factory will never be {@literal null}.

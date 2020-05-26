@@ -1,11 +1,11 @@
 /*
- * Copyright 2010-2014 the original author or authors.
+ * Copyright 2010-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,10 +17,11 @@ package org.springframework.data.geo;
 
 import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Represents a geospatial circle value
- * 
+ *
  * @author Mark Pollack
  * @author Oliver Gierke
  * @author Thomas Darimont
@@ -35,7 +36,7 @@ public class Circle implements Shape {
 
 	/**
 	 * Creates a new {@link Circle} from the given {@link Point} and radius.
-	 * 
+	 *
 	 * @param center must not be {@literal null}.
 	 * @param radius must not be {@literal null} and it's value greater or equal to zero.
 	 */
@@ -52,7 +53,7 @@ public class Circle implements Shape {
 
 	/**
 	 * Creates a new {@link Circle} from the given {@link Point} and radius.
-	 * 
+	 *
 	 * @param center must not be {@literal null}.
 	 * @param radius's value must be greater or equal to zero.
 	 */
@@ -63,7 +64,7 @@ public class Circle implements Shape {
 	/**
 	 * Creates a new {@link Circle} from the given coordinates and radius as {@link Distance} with a
 	 * {@link Metrics#NEUTRAL}.
-	 * 
+	 *
 	 * @param centerX
 	 * @param centerY
 	 * @param radius must be greater or equal to zero.
@@ -74,7 +75,7 @@ public class Circle implements Shape {
 
 	/**
 	 * Returns the center of the {@link Circle}.
-	 * 
+	 *
 	 * @return will never be {@literal null}.
 	 */
 	public Point getCenter() {
@@ -83,11 +84,46 @@ public class Circle implements Shape {
 
 	/**
 	 * Returns the radius of the {@link Circle}.
-	 * 
+	 *
 	 * @return
 	 */
 	public Distance getRadius() {
 		return radius;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object o) {
+
+		if (this == o) {
+			return true;
+		}
+
+		if (!(o instanceof Circle)) {
+			return false;
+		}
+
+		Circle circle = (Circle) o;
+
+		if (!ObjectUtils.nullSafeEquals(center, circle.center)) {
+			return false;
+		}
+
+		return ObjectUtils.nullSafeEquals(radius, circle.radius);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		int result = ObjectUtils.nullSafeHashCode(center);
+		result = 31 * result + ObjectUtils.nullSafeHashCode(radius);
+		return result;
 	}
 
 	/*
@@ -97,40 +133,5 @@ public class Circle implements Shape {
 	@Override
 	public String toString() {
 		return String.format("Circle: [center=%s, radius=%s]", center, radius);
-	}
-
-	/* 
-	 * (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-
-		if (this == obj) {
-			return true;
-		}
-
-		if (!(obj instanceof Circle)) {
-			return false;
-		}
-
-		Circle that = (Circle) obj;
-
-		return this.center.equals(that.center) && this.radius.equals(that.radius);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-
-		int result = 17;
-
-		result += 31 * center.hashCode();
-		result += 31 * radius.hashCode();
-
-		return result;
 	}
 }

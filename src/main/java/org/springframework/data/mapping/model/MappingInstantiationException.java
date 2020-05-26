@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,21 +15,27 @@
  */
 package org.springframework.data.mapping.model;
 
+import kotlin.reflect.KFunction;
+import kotlin.reflect.jvm.ReflectJvmMapping;
+
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PreferredConstructor;
+import org.springframework.data.util.ReflectionUtils;
+import org.springframework.lang.Nullable;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Exception being thrown in case an entity could not be instantiated in the process of a to-object-mapping.
- * 
+ *
  * @author Oliver Gierke
  * @author Jon Brisbin
  * @author Christoph Strobl
+ * @author Mark Paluch
  */
 public class MappingInstantiationException extends RuntimeException {
 
@@ -43,43 +49,74 @@ public class MappingInstantiationException extends RuntimeException {
 	/**
 	 * Creates a new {@link MappingInstantiationException} for the given {@link PersistentEntity}, constructor arguments
 	 * and the causing exception.
-	 * 
+	 *
 	 * @param entity
 	 * @param arguments
 	 * @param cause
 	 */
-	public MappingInstantiationException(Optional<PersistentEntity<?, ?>> entity, List<Object> arguments,
-			Exception cause) {
-		this(entity, arguments, null, cause);
+	public MappingInstantiationException(PersistentEntity<?, ?> entity, List<Object> arguments, Exception cause) {
+		this(Optional.ofNullable(entity), arguments, null, cause);
 	}
 
-	private MappingInstantiationException(Optional<PersistentEntity<?, ?>> entity, List<Object> arguments, String message,
-			Exception cause) {
+	/**
+	 * Creates a new {@link MappingInstantiationException} for the given constructor arguments and the causing exception.
+	 *
+	 * @param arguments
+	 * @param cause
+	 */
+	public MappingInstantiationException(List<Object> arguments, Exception cause) {
+		this(Optional.empty(), arguments, null, cause);
+	}
 
-		super(buildExceptionMessage(entity, arguments.stream(), message), cause);
+	private MappingInstantiationException(Optional<PersistentEntity<?, ?>> entity, List<Object> arguments,
+			@Nullable String message, Exception cause) {
+
+		super(buildExceptionMessage(entity, arguments, message), cause);
 
 		this.entityType = entity.map(PersistentEntity::getType).orElse(null);
-		this.constructor = entity.flatMap(PersistentEntity::getPersistenceConstructor).map(PreferredConstructor::getConstructor).orElse(null);
+		this.constructor = entity.map(PersistentEntity::getPersistenceConstructor).map(PreferredConstructor::getConstructor)
+				.orElse(null);
 		this.constructorArguments = arguments;
 	}
 
-	private static String buildExceptionMessage(Optional<PersistentEntity<?, ?>> entity, Stream<Object> arguments,
-												String defaultMessage) {
+	private static String buildExceptionMessage(Optional<PersistentEntity<?, ?>> entity, List<Object> arguments,
+			@Nullable String defaultMessage) {
 
 		return entity.map(it -> {
 
-			Optional<? extends PreferredConstructor<?, ?>> constructor = it.getPersistenceConstructor();
+			Optional<? extends PreferredConstructor<?, ?>> constructor = Optional.ofNullable(it.getPersistenceConstructor());
+			List<String> toStringArgs = new ArrayList<>(arguments.size());
+
+			for (Object o : arguments) {
+				toStringArgs.add(ObjectUtils.nullSafeToString(o));
+			}
 
 			return String.format(TEXT_TEMPLATE, it.getType().getName(),
-					constructor.map(c -> c.getConstructor().toString()).orElse("NO_CONSTRUCTOR"),
-					String.join(",", arguments.map(Object::toString).collect(Collectors.toList())));
+					constructor.map(c -> toString(c)).orElse("NO_CONSTRUCTOR"), //
+					String.join(",", toStringArgs));
 
 		}).orElse(defaultMessage);
 	}
 
+	private static String toString(PreferredConstructor<?, ?> preferredConstructor) {
+
+		Constructor<?> constructor = preferredConstructor.getConstructor();
+
+		if (ReflectionUtils.isSupportedKotlinClass(constructor.getDeclaringClass())) {
+
+			KFunction<?> kotlinFunction = ReflectJvmMapping.getKotlinFunction(constructor);
+
+			if (kotlinFunction != null) {
+				return kotlinFunction.toString();
+			}
+		}
+
+		return constructor.toString();
+	}
+
 	/**
 	 * Returns the type of the entity that was attempted to instantiate.
-	 * 
+	 *
 	 * @return the entityType
 	 */
 	public Optional<Class<?>> getEntityType() {
@@ -88,7 +125,7 @@ public class MappingInstantiationException extends RuntimeException {
 
 	/**
 	 * The constructor used during the instantiation attempt.
-	 * 
+	 *
 	 * @return the constructor
 	 */
 	public Optional<Constructor<?>> getConstructor() {
@@ -97,7 +134,7 @@ public class MappingInstantiationException extends RuntimeException {
 
 	/**
 	 * The constructor arguments used to invoke the constructor.
-	 * 
+	 *
 	 * @return the constructorArguments
 	 */
 	public List<Object> getConstructorArguments() {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2010-2014 the original author or authors.
+ * Copyright 2010-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,11 +19,12 @@ import java.io.Serializable;
 import java.util.Locale;
 
 import org.springframework.data.annotation.PersistenceConstructor;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * Represents a geospatial point value.
- * 
+ *
  * @author Mark Pollack
  * @author Oliver Gierke
  * @author Thomas Darimont
@@ -38,7 +39,7 @@ public class Point implements Serializable {
 
 	/**
 	 * Creates a {@link Point} from the given {@code x}, {@code y} coordinate.
-	 * 
+	 *
 	 * @param x
 	 * @param y
 	 */
@@ -50,7 +51,7 @@ public class Point implements Serializable {
 
 	/**
 	 * Creates a {@link Point} from the given {@link Point} coordinate.
-	 * 
+	 *
 	 * @param point must not be {@literal null}.
 	 */
 	public Point(Point point) {
@@ -63,7 +64,7 @@ public class Point implements Serializable {
 
 	/**
 	 * Returns the x-coordinate of the {@link Point}.
-	 * 
+	 *
 	 * @return
 	 */
 	public double getX() {
@@ -72,7 +73,7 @@ public class Point implements Serializable {
 
 	/**
 	 * Returns the y-coordinate of the {@link Point}.
-	 * 
+	 *
 	 * @return
 	 */
 	public double getY() {
@@ -102,7 +103,7 @@ public class Point implements Serializable {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 
 		if (this == obj) {
 			return true;

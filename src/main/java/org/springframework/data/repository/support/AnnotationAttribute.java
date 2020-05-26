@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 package org.springframework.data.repository.support;
-
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
@@ -28,29 +25,37 @@ import org.springframework.util.Assert;
 
 /**
  * Simply helper to reference a dedicated attribute of an {@link Annotation}.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  * @since 1.10
  */
-@RequiredArgsConstructor
 class AnnotationAttribute {
 
-	private final @NonNull Class<? extends Annotation> annotationType;
-	private final @NonNull Optional<String> attributeName;
+	private final Class<? extends Annotation> annotationType;
+	private final Optional<String> attributeName;
 
 	/**
 	 * Creates a new {@link AnnotationAttribute} to the {@code value} attribute of the given {@link Annotation} type.
-	 * 
+	 *
 	 * @param annotationType must not be {@literal null}.
 	 */
 	public AnnotationAttribute(Class<? extends Annotation> annotationType) {
 		this(annotationType, Optional.empty());
 	}
 
+	public AnnotationAttribute(Class<? extends Annotation> annotationType, Optional<String> attributeName) {
+
+		Assert.notNull(annotationType, "Annotation type must not be null");
+		Assert.notNull(attributeName, "Attribute name must not be null");
+
+		this.annotationType = annotationType;
+		this.attributeName = attributeName;
+	}
+
 	/**
 	 * Returns the annotation type.
-	 * 
+	 *
 	 * @return the annotationType
 	 */
 	public Class<? extends Annotation> getAnnotationType() {
@@ -59,7 +64,7 @@ class AnnotationAttribute {
 
 	/**
 	 * Reads the {@link Annotation} attribute's value from the given {@link MethodParameter}.
-	 * 
+	 *
 	 * @param parameter must not be {@literal null}.
 	 * @return
 	 */
@@ -73,7 +78,7 @@ class AnnotationAttribute {
 
 	/**
 	 * Reads the {@link Annotation} attribute's value from the given {@link AnnotatedElement}.
-	 * 
+	 *
 	 * @param annotatedElement must not be {@literal null}.
 	 * @return
 	 */
@@ -87,7 +92,7 @@ class AnnotationAttribute {
 
 	/**
 	 * Returns the {@link Annotation} attribute's value from the given {@link Annotation}.
-	 * 
+	 *
 	 * @param annotation must not be {@literal null}.
 	 * @return
 	 */

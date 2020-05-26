@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-2017 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.springframework.data.mapping.model;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assumptions.*;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -25,10 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.AccessType.Type;
@@ -44,30 +41,19 @@ import org.springframework.test.util.ReflectionTestUtils;
  *
  * @author Mark Paluch
  */
-@RunWith(Parameterized.class)
 public class ClassGeneratingPropertyAccessorFactoryTests {
 
-	private final ClassGeneratingPropertyAccessorFactory factory = new ClassGeneratingPropertyAccessorFactory();
-	private final SampleMappingContext mappingContext = new SampleMappingContext();
+	private final static ClassGeneratingPropertyAccessorFactory factory = new ClassGeneratingPropertyAccessorFactory();
+	private final static SampleMappingContext mappingContext = new SampleMappingContext();
 
-	private final Object bean;
-	private final String propertyName;
-	private final Class<?> expectedConstructorType;
 
-	public ClassGeneratingPropertyAccessorFactoryTests(Object bean, String propertyName, Class<?> expectedConstructorType,
-			String displayName) {
-
-		this.bean = bean;
-		this.propertyName = propertyName;
-		this.expectedConstructorType = expectedConstructorType;
-	}
-
-	@Parameters(name = "{3}")
-	public static List<Object[]> parameters() {
+	@SuppressWarnings("unchecked")
+	public static List<Object[]> parameters() throws ReflectiveOperationException {
 
 		List<Object[]> parameters = new ArrayList<>();
 		List<String> propertyNames = Arrays.asList("privateField", "packageDefaultField", "protectedField", "publicField",
-				"privateProperty", "packageDefaultProperty", "protectedProperty", "publicProperty", "syntheticProperty");
+				"privateProperty", "packageDefaultProperty", "protectedProperty", "publicProperty", "syntheticProperty",
+				"immutable", "wither");
 
 		parameters.addAll(parameters(new InnerPrivateType(), propertyNames, Object.class));
 		parameters
@@ -80,6 +66,11 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		parameters.addAll(parameters(new ClassGeneratingPropertyAccessorPublicType(), propertyNames,
 				ClassGeneratingPropertyAccessorPublicType.class));
 		parameters.addAll(parameters(new SubtypeOfTypeInOtherPackage(), propertyNames, SubtypeOfTypeInOtherPackage.class));
+
+		Class<Object> defaultPackageClass = (Class) Class.forName("TypeInDefaultPackage");
+
+		parameters
+				.add(new Object[] { defaultPackageClass.newInstance(), "", defaultPackageClass, "Class in default package" });
 
 		return parameters;
 	}
@@ -96,21 +87,40 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		return parameters;
 	}
 
-	@Test // DATACMNS-809
-	public void shouldSetAndGetProperty() throws Exception {
+	@ParameterizedTest(name = "{3}") // DATACMNS-1201
+	@MethodSource("parameters")
+	void shouldSupportGeneratedPropertyAccessors(Object bean, String propertyName, Class<?> expectedConstructorType,
+			String displayName) {
+		assertThat(factory.isSupported(mappingContext.getRequiredPersistentEntity(bean.getClass()))).isTrue();
+	}
 
-		assertThat(getProperty(bean, propertyName)).hasValueSatisfying(property -> {
+	@ParameterizedTest(name = "{3}") // DATACMNS-809, DATACMNS-1322
+	@MethodSource("parameters")
+	void shouldSetAndGetProperty(Object bean, String propertyName, Class<?> expectedConstructorType, String displayName)
+			throws Exception {
+
+		assumeThat(propertyName).isNotEmpty();
+
+		assertThat(getProperty(bean, propertyName)).satisfies(property -> {
 
 			PersistentPropertyAccessor persistentPropertyAccessor = getPersistentPropertyAccessor(bean);
+			if (property.isImmutable() && property.getWither() == null) {
 
-			persistentPropertyAccessor.setProperty(property, Optional.of("value"));
-			assertThat(persistentPropertyAccessor.getProperty(property)).isEqualTo(Optional.of("value"));
+				assertThatThrownBy(() -> persistentPropertyAccessor.setProperty(property, "value"))
+						.isInstanceOf(UnsupportedOperationException.class);
+			} else {
+
+				persistentPropertyAccessor.setProperty(property, "value");
+				assertThat(persistentPropertyAccessor.getProperty(property)).isEqualTo("value");
+			}
 		});
 	}
 
-	@Test // DATACMNS-809
+	@ParameterizedTest(name = "{3}") // DATACMNS-809
+	@MethodSource("parameters")
 	@SuppressWarnings("rawtypes")
-	public void accessorShouldDeclareConstructor() throws Exception {
+	void accessorShouldDeclareConstructor(Object bean, String propertyName, Class<?> expectedConstructorType,
+			String displayName) throws Exception {
 
 		PersistentPropertyAccessor persistentPropertyAccessor = getPersistentPropertyAccessor(bean);
 
@@ -120,40 +130,53 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		assertThat(declaredConstructors[0].getParameterTypes()[0]).isEqualTo(expectedConstructorType);
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-809
-	public void shouldFailOnNullBean() {
-		factory.getPropertyAccessor(mappingContext.getRequiredPersistentEntity(bean.getClass()), null);
+	@ParameterizedTest(name = "{3}") // DATACMNS-809
+	@MethodSource("parameters")
+	void shouldFailOnNullBean(Object bean, String propertyName, Class<?> expectedConstructorType, String displayName) {
+		assertThatIllegalArgumentException().isThrownBy(
+				() -> factory.getPropertyAccessor(mappingContext.getRequiredPersistentEntity(bean.getClass()), null));
 	}
 
-	@Test // DATACMNS-809
-	public void getPropertyShouldFailOnUnhandledProperty() {
+	@ParameterizedTest(name = "{3}") // DATACMNS-809
+	@MethodSource("parameters")
+	void getPropertyShouldFailOnUnhandledProperty(Object bean, String propertyName, Class<?> expectedConstructorType,
+			String displayName) {
 
-		assertThat(getProperty(new Dummy(), "dummy")).hasValueSatisfying(property -> assertThatExceptionOfType(UnsupportedOperationException.class)//
-				.isThrownBy(() -> getPersistentPropertyAccessor(bean).getProperty(property)));
+		assertThat(getProperty(new Dummy(), "dummy"))
+				.satisfies(property -> assertThatExceptionOfType(UnsupportedOperationException.class)//
+						.isThrownBy(() -> getPersistentPropertyAccessor(bean).getProperty(property)));
 	}
 
-	@Test // DATACMNS-809
-	public void setPropertyShouldFailOnUnhandledProperty() {
+	@ParameterizedTest(name = "{3}") // DATACMNS-809
+	@MethodSource("parameters")
+	void setPropertyShouldFailOnUnhandledProperty(Object bean, String propertyName, Class<?> expectedConstructorType,
+			String displayName) {
 
-		assertThat(getProperty(new Dummy(), "dummy")).hasValueSatisfying(property -> assertThatExceptionOfType(UnsupportedOperationException.class)//
-				.isThrownBy(() -> getPersistentPropertyAccessor(bean).setProperty(property, Optional.empty())));
+		assertThat(getProperty(new Dummy(), "dummy"))
+				.satisfies(property -> assertThatExceptionOfType(UnsupportedOperationException.class)//
+						.isThrownBy(() -> getPersistentPropertyAccessor(bean).setProperty(property, Optional.empty())));
 	}
 
-	@Test // DATACMNS-809
-	public void shouldUseClassPropertyAccessorFactory() throws Exception {
+	@ParameterizedTest(name = "{3}") // DATACMNS-809
+	@MethodSource("parameters")
+	void shouldUseClassPropertyAccessorFactory(Object bean, String propertyName, Class<?> expectedConstructorType,
+			String displayName) throws Exception {
 
 		BasicPersistentEntity<Object, SamplePersistentProperty> persistentEntity = mappingContext
 				.getRequiredPersistentEntity(bean.getClass());
 
 		assertThat(ReflectionTestUtils.getField(persistentEntity, "propertyAccessorFactory"))
-				.isInstanceOf(ClassGeneratingPropertyAccessorFactory.class);
+				.isInstanceOfSatisfying(InstantiationAwarePropertyAccessorFactory.class, it -> {
+					assertThat(ReflectionTestUtils.getField(it, "delegate"))
+							.isInstanceOf(ClassGeneratingPropertyAccessorFactory.class);
+				});
 	}
 
 	private PersistentPropertyAccessor getPersistentPropertyAccessor(Object bean) {
 		return factory.getPropertyAccessor(mappingContext.getRequiredPersistentEntity(bean.getClass()), bean);
 	}
 
-	private Optional<? extends PersistentProperty<?>> getProperty(Object bean, String name) {
+	private PersistentProperty<?> getProperty(Object bean, String name) {
 
 		BasicPersistentEntity<Object, SamplePersistentProperty> persistentEntity = mappingContext
 				.getRequiredPersistentEntity(bean.getClass());
@@ -169,6 +192,8 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		protected String protectedField;
 		public String publicField;
 		private String backing;
+		private final String immutable = "";
+		private final String wither;
 
 		@AccessType(Type.PROPERTY) private String privateProperty;
 
@@ -177,6 +202,14 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		@AccessType(Type.PROPERTY) private String protectedProperty;
 
 		@AccessType(Type.PROPERTY) private String publicProperty;
+
+		private InnerPrivateType() {
+			this.wither = "";
+		}
+
+		private InnerPrivateType(String wither) {
+			this.wither = wither;
+		}
 
 		private String getPrivateProperty() {
 			return privateProperty;
@@ -217,6 +250,14 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 
 		public void setSyntheticProperty(String syntheticProperty) {
 			backing = syntheticProperty;
+		}
+
+		public String getWither() {
+			return wither;
+		}
+
+		public InnerPrivateType withWither(String wither) {
+			return new InnerPrivateType(wither);
 		}
 	}
 
@@ -234,6 +275,8 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		protected String protectedField;
 		public String publicField;
 		private String backing;
+		private final String immutable = "";
+		private final String wither;
 
 		@AccessType(Type.PROPERTY) private String privateProperty;
 
@@ -242,6 +285,14 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		@AccessType(Type.PROPERTY) private String protectedProperty;
 
 		@AccessType(Type.PROPERTY) private String publicProperty;
+
+		InnerPackageDefaultType() {
+			this.wither = "";
+		}
+
+		private InnerPackageDefaultType(String wither) {
+			this.wither = wither;
+		}
 
 		private String getPrivateProperty() {
 			return privateProperty;
@@ -282,6 +333,14 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 
 		public void setSyntheticProperty(String syntheticProperty) {
 			backing = syntheticProperty;
+		}
+
+		public String getWither() {
+			return wither;
+		}
+
+		public InnerPrivateType withWither(String wither) {
+			return new InnerPrivateType(wither);
 		}
 	}
 
@@ -294,6 +353,8 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		protected String protectedField;
 		public String publicField;
 		private String backing;
+		private final String immutable = "";
+		private final String wither;
 
 		@AccessType(Type.PROPERTY) private String privateProperty;
 
@@ -302,6 +363,14 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		@AccessType(Type.PROPERTY) private String protectedProperty;
 
 		@AccessType(Type.PROPERTY) private String publicProperty;
+
+		InnerProtectedType() {
+			this.wither = "";
+		}
+
+		private InnerProtectedType(String wither) {
+			this.wither = wither;
+		}
 
 		private String getPrivateProperty() {
 			return privateProperty;
@@ -342,6 +411,14 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 
 		public void setSyntheticProperty(String syntheticProperty) {
 			backing = syntheticProperty;
+		}
+
+		public String getWither() {
+			return wither;
+		}
+
+		public InnerPrivateType withWither(String wither) {
+			return new InnerPrivateType(wither);
 		}
 	}
 
@@ -354,6 +431,8 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		protected String protectedField;
 		public String publicField;
 		private String backing;
+		private final String immutable = "";
+		private final String wither;
 
 		@AccessType(Type.PROPERTY) private String privateProperty;
 
@@ -362,6 +441,14 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 		@AccessType(Type.PROPERTY) private String protectedProperty;
 
 		@AccessType(Type.PROPERTY) private String publicProperty;
+
+		InnerPublicType() {
+			this.wither = "";
+		}
+
+		private InnerPublicType(String wither) {
+			this.wither = wither;
+		}
 
 		private String getPrivateProperty() {
 			return privateProperty;
@@ -402,6 +489,14 @@ public class ClassGeneratingPropertyAccessorFactoryTests {
 
 		public void setSyntheticProperty(String syntheticProperty) {
 			backing = syntheticProperty;
+		}
+
+		public String getWither() {
+			return wither;
+		}
+
+		public InnerPrivateType withWither(String wither) {
+			return new InnerPrivateType(wither);
 		}
 	}
 

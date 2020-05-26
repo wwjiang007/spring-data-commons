@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,50 +15,62 @@
  */
 package org.springframework.data.repository.core.support;
 
-import java.util.Optional;
-
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.repository.core.EntityInformation;
+import org.springframework.lang.Nullable;
 
 /**
  * {@link EntityInformation} implementation that uses a {@link PersistentEntity} to obtain id type information and uses
  * a {@link org.springframework.data.mapping.IdentifierAccessor} to access the property value if requested.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  */
-@SuppressWarnings("unchecked")
-public class PersistentEntityInformation<T, ID> extends AbstractEntityInformation<T, ID> {
+public class PersistentEntityInformation<T, ID> implements EntityInformation<T, ID> {
 
 	private final PersistentEntity<T, ? extends PersistentProperty<?>> persistentEntity;
 
-	/**
-	 * Creates a new {@link PersistableEntityInformation} for the given {@link PersistentEntity}.
-	 * 
-	 * @param entity must not be {@literal null}.
-	 */
-	public PersistentEntityInformation(PersistentEntity<T, ?> entity) {
-
-		super(entity.getType());
-		this.persistentEntity = entity;
+	public PersistentEntityInformation(PersistentEntity<T, ? extends PersistentProperty<?>> persistentEntity) {
+		this.persistentEntity = persistentEntity;
 	}
 
-	/* 
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.repository.core.support.AbstractEntityInformation#isNew(java.lang.Object)
+	 */
+	@Override
+	public boolean isNew(T entity) {
+		return persistentEntity.isNew(entity);
+	}
+
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.core.EntityInformation#getId(java.lang.Object)
 	 */
+	@Nullable
 	@Override
-	public Optional<ID> getId(T entity) {
-		return persistentEntity.getIdentifierAccessor(entity).getIdentifier().map(it -> (ID) it);
+	@SuppressWarnings("unchecked")
+	public ID getId(T entity) {
+		return (ID) persistentEntity.getIdentifierAccessor(entity).getIdentifier();
 	}
 
-	/* 
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.repository.core.EntityMetadata#getJavaType()
+	 */
+	@Override
+	public Class<T> getJavaType() {
+		return persistentEntity.getType();
+	}
+
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.repository.core.EntityInformation#getIdType()
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public Class<ID> getIdType() {
-		return (Class<ID>) persistentEntity.getIdProperty().map(PersistentProperty::getType).orElse(null);
+		return (Class<ID>) persistentEntity.getRequiredIdProperty().getType();
 	}
 }

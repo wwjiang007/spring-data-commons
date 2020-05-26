@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,16 +17,16 @@ package org.springframework.data.geo;
 
 import static org.assertj.core.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.SerializationUtils;
 
 /**
  * Unit tests for {@link GeoResult}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  */
-public class GeoResultUnitTests {
+class GeoResultUnitTests {
 
 	GeoResult<String> first = new GeoResult<>("Foo", new Distance(2.5));
 	GeoResult<String> second = new GeoResult<>("Foo", new Distance(2.5));
@@ -34,13 +34,13 @@ public class GeoResultUnitTests {
 	GeoResult<String> fourth = new GeoResult<>("Foo", new Distance(5.2));
 
 	@Test // DATACMNS-437
-	public void considersSameInstanceEqual() {
+	void considersSameInstanceEqual() {
 
 		assertThat(first.equals(first)).isTrue();
 	}
 
 	@Test // DATACMNS-437
-	public void considersSameValuesAsEqual() {
+	void considersSameValuesAsEqual() {
 
 		assertThat(first.equals(second)).isTrue();
 		assertThat(second.equals(first)).isTrue();
@@ -50,14 +50,15 @@ public class GeoResultUnitTests {
 		assertThat(fourth.equals(first)).isFalse();
 	}
 
+	@Test
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-437
-	public void rejectsNullContent() {
-		new GeoResult(null, new Distance(2.5));
+	// DATACMNS-437
+	void rejectsNullContent() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new GeoResult(null, new Distance(2.5)));
 	}
 
 	@Test // DATACMNS-482
-	public void testSerialization() {
+	void testSerialization() {
 
 		GeoResult<String> result = new GeoResult<>("test", new Distance(2));
 

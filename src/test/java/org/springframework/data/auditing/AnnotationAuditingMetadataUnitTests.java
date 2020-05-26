@@ -1,11 +1,11 @@
 /*
- * Copyright 2012 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,30 +19,27 @@ import static org.assertj.core.api.Assertions.*;
 
 import java.lang.reflect.Field;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.util.ReflectionUtils;
 
 /**
  * Unit test for {@link org.springframework.data.auditing.AnnotationAuditingMetadata}.
- * 
+ *
  * @author Ranie Jade Ramiso
  * @author Oliver Gierke
  * @since 1.5
  */
-public class AnnotationAuditingMetadataUnitTests {
+class AnnotationAuditingMetadataUnitTests {
 
 	static final Field createdByField = ReflectionUtils.findField(AnnotatedUser.class, "createdBy");
 	static final Field createdDateField = ReflectionUtils.findField(AnnotatedUser.class, "createdDate");
 	static final Field lastModifiedByField = ReflectionUtils.findField(AnnotatedUser.class, "lastModifiedBy");
 	static final Field lastModifiedDateField = ReflectionUtils.findField(AnnotatedUser.class, "lastModifiedDate");
 
-	@Rule public ExpectedException exception = ExpectedException.none();
-
 	@Test
-	public void checkAnnotationDiscovery() {
+	void checkAnnotationDiscovery() {
 
 		AnnotationAuditingMetadata metadata = AnnotationAuditingMetadata.getMetadata(AnnotatedUser.class);
 
@@ -54,7 +51,7 @@ public class AnnotationAuditingMetadataUnitTests {
 	}
 
 	@Test
-	public void checkCaching() {
+	void checkCaching() {
 
 		AnnotationAuditingMetadata firstCall = AnnotationAuditingMetadata.getMetadata(AnnotatedUser.class);
 		assertThat(firstCall).isNotNull();
@@ -64,7 +61,7 @@ public class AnnotationAuditingMetadataUnitTests {
 	}
 
 	@Test
-	public void checkIsAuditable() {
+	void checkIsAuditable() {
 
 		AnnotationAuditingMetadata metadata = AnnotationAuditingMetadata.getMetadata(AnnotatedUser.class);
 		assertThat(metadata).isNotNull();
@@ -76,17 +73,14 @@ public class AnnotationAuditingMetadataUnitTests {
 	}
 
 	@Test
-	public void rejectsInvalidDateTypeField() {
+	void rejectsInvalidDateTypeField() {
 
 		class Sample {
 			@CreatedDate String field;
 		}
 
-		exception.expect(IllegalStateException.class);
-		exception.expectMessage(String.class.getName());
-		exception.expectMessage("field");
-
-		AnnotationAuditingMetadata.getMetadata(Sample.class);
+		assertThatIllegalStateException().isThrownBy(() -> AnnotationAuditingMetadata.getMetadata(Sample.class))
+				.withMessageContaining("field").withMessageContaining("String");
 	}
 
 	@SuppressWarnings("unused")

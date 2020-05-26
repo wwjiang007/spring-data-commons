@@ -1,11 +1,11 @@
 /*
- * Copyright 2013 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,11 +16,11 @@
 package org.springframework.data.web;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.springframework.data.domain.Sort.Direction.*;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import java.util.Arrays;
+
+import org.junit.jupiter.api.Test;
+
 import org.springframework.core.MethodParameter;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
@@ -30,11 +30,12 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 
 /**
  * Unit tests for {@link SortDefault}.
- * 
+ *
  * @since 1.6
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
-public abstract class SortDefaultUnitTests {
+abstract class SortDefaultUnitTests {
 
 	static final String SORT_0 = "username";
 	static final String SORT_1 = "username,asc";
@@ -46,71 +47,67 @@ public abstract class SortDefaultUnitTests {
 
 	static final Sort SORT = Sort.by(SORT_DIRECTION, SORT_FIELDS);
 
-	@Rule public ExpectedException exception = ExpectedException.none();
-
 	@Test
-	public void parsesSimpleSortStringCorrectly() {
+	void parsesSimpleSortStringCorrectly() {
 
-		assertSortStringParsedInto(Sort.by(new Order("username")), SORT_1);
-		assertSortStringParsedInto(Sort.by(new Order(ASC, "username")), SORT_1);
-		assertSortStringParsedInto(Sort.by(new Order(ASC, "username"), //
-				new Order(DESC, "lastname"), new Order(DESC, "firstname")), SORT_2);
+		assertSortStringParsedInto(Sort.by(Order.asc("username")), SORT_1);
+		assertSortStringParsedInto(Sort.by(Order.asc("username"), //
+				Order.desc("lastname"), Order.desc("firstname")), SORT_2);
 		assertSortStringParsedInto(Sort.by("firstname", "lastname"), SORT_3);
 	}
 
 	private static void assertSortStringParsedInto(Sort expected, String... source) {
 
 		SortHandlerMethodArgumentResolver resolver = new SortHandlerMethodArgumentResolver();
-		Sort sort = resolver.parseParameterIntoSort(source, ",");
+		Sort sort = resolver.parseParameterIntoSort(Arrays.asList(source), ",");
 
 		assertThat(sort).isEqualTo(expected);
 	}
 
 	@Test
-	public void supportsSortParameter() {
+	void supportsSortParameter() {
 		assertThat(getResolver().supportsParameter(getParameterOfMethod("supportedMethod"))).isTrue();
 	}
 
 	@Test
-	public void returnsNullForNoDefault() throws Exception {
+	void returnsNullForNoDefault() throws Exception {
 		assertSupportedAndResolvedTo(getParameterOfMethod("supportedMethod"), Sort.unsorted());
 	}
 
 	@Test
-	public void discoversSimpleDefault() throws Exception {
+	void discoversSimpleDefault() throws Exception {
 		assertSupportedAndResolvedTo(getParameterOfMethod("simpleDefault"), Sort.by(SORT_FIELDS).ascending());
 	}
 
 	@Test
-	public void discoversSimpleDefaultWithDirection() throws Exception {
+	void discoversSimpleDefaultWithDirection() throws Exception {
 		assertSupportedAndResolvedTo(getParameterOfMethod("simpleDefaultWithDirection"), SORT);
 	}
 
 	@Test
-	public void rejectsNonSortParameter() {
+	void rejectsNonSortParameter() {
 
 		MethodParameter parameter = TestUtils.getParameterOfMethod(getControllerClass(), "unsupportedMethod", String.class);
 		assertThat(getResolver().supportsParameter(parameter)).isFalse();
 	}
 
 	@Test
-	public void rejectsDoubleAnnotatedMethod() throws Exception {
+	void rejectsDoubleAnnotatedMethod() {
 
 		MethodParameter parameter = getParameterOfMethod("invalid");
 
 		HandlerMethodArgumentResolver resolver = new SortHandlerMethodArgumentResolver();
 		assertThat(resolver.supportsParameter(parameter)).isTrue();
 
-		exception.expect(IllegalArgumentException.class);
-		exception.expectMessage(SortDefault.class.getSimpleName());
-		exception.expectMessage(SortDefaults.class.getSimpleName());
-		exception.expectMessage(parameter.toString());
-
-		resolver.resolveArgument(parameter, null, TestUtils.getWebRequest(), null);
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> resolver.resolveArgument(parameter, null, TestUtils.getWebRequest(), null)) //
+				.withMessageContaining(SortDefault.class.getSimpleName()) //
+				.withMessageContaining(SortDefaults.class.getSimpleName()) //
+				.withMessageContaining(parameter.toString());
 	}
 
 	@Test
-	public void discoversContaineredDefault() throws Exception {
+	void discoversContaineredDefault() throws Exception {
 
 		MethodParameter parameter = getParameterOfMethod("containeredDefault");
 		Sort reference = Sort.by("foo", "bar");

@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2013 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.transaction.HeuristicCompletionException;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -43,7 +44,7 @@ import org.springframework.util.Assert;
  * which means the {@link PlatformTransactionManager} most likely to break the transaction should be the <em>last</em>
  * in the list configured. A {@link PlatformTransactionManager} throwing an exception during commit will automatically
  * cause the remaining transaction managers to roll back instead of committing.
- * 
+ *
  * @author Michael Hunger
  * @author Oliver Gierke
  * @since 1.6
@@ -57,7 +58,7 @@ public class ChainedTransactionManager implements PlatformTransactionManager {
 
 	/**
 	 * Creates a new {@link ChainedTransactionManager} delegating to the given {@link PlatformTransactionManager}s.
-	 * 
+	 *
 	 * @param transactionManagers must not be {@literal null} or empty.
 	 */
 	public ChainedTransactionManager(PlatformTransactionManager... transactionManagers) {
@@ -67,7 +68,7 @@ public class ChainedTransactionManager implements PlatformTransactionManager {
 	/**
 	 * Creates a new {@link ChainedTransactionManager} using the given {@link SynchronizationManager} and
 	 * {@link PlatformTransactionManager}s.
-	 * 
+	 *
 	 * @param synchronizationManager must not be {@literal null}.
 	 * @param transactionManagers must not be {@literal null} or empty.
 	 */
@@ -86,9 +87,13 @@ public class ChainedTransactionManager implements PlatformTransactionManager {
 	 * (non-Javadoc)
 	 * @see org.springframework.transaction.PlatformTransactionManager#getTransaction(org.springframework.transaction.TransactionDefinition)
 	 */
-	public MultiTransactionStatus getTransaction(TransactionDefinition definition) throws TransactionException {
+	public MultiTransactionStatus getTransaction(@Nullable TransactionDefinition definition) throws TransactionException {
 
 		MultiTransactionStatus mts = new MultiTransactionStatus(transactionManagers.get(0));
+
+		if (definition == null) {
+			return mts;
+		}
 
 		if (!synchronizationManager.isSynchronizationActive()) {
 			synchronizationManager.initSynchronization();

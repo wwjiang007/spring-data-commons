@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,7 @@ import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,14 +32,14 @@ import org.springframework.data.repository.core.support.DefaultRepositoryMetadat
 
 /**
  * Unit tests for {@link ReturnedType}.
- * 
+ *
  * @author Oliver Gierke
  * @author Mark Paluch
  */
-public class ReturnedTypeUnitTests {
+class ReturnedTypeUnitTests {
 
 	@Test // DATACMNS-89
-	public void treatsSimpleDomainTypeAsIs() throws Exception {
+	void treatsSimpleDomainTypeAsIs() throws Exception {
 
 		ReturnedType type = getReturnedType("findAll");
 
@@ -50,7 +50,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-89
-	public void detectsDto() throws Exception {
+	void detectsDto() throws Exception {
 
 		ReturnedType type = getReturnedType("findAllDtos");
 
@@ -62,7 +62,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-89
-	public void detectsProjection() throws Exception {
+	void detectsProjection() throws Exception {
 
 		ReturnedType type = getReturnedType("findAllProjection");
 
@@ -71,7 +71,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-89
-	public void detectsVoidMethod() throws Exception {
+	void detectsVoidMethod() throws Exception {
 
 		ReturnedType type = getReturnedType("voidMethod");
 
@@ -80,7 +80,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-89
-	public void detectsClosedProjection() throws Exception {
+	void detectsClosedProjection() throws Exception {
 
 		ReturnedType type = getReturnedType("findOneProjection");
 
@@ -90,7 +90,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-89
-	public void detectsOpenProjection() throws Exception {
+	void detectsOpenProjection() throws Exception {
 
 		ReturnedType type = getReturnedType("findOneOpenProjection");
 
@@ -101,7 +101,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-89
-	public void detectsComplexNumberTypes() throws Exception {
+	void detectsComplexNumberTypes() throws Exception {
 
 		ReturnedType type = getReturnedType("countQuery");
 
@@ -111,7 +111,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-840
-	public void detectsSampleDtoWithDefaultConstructor() throws Exception {
+	void detectsSampleDtoWithDefaultConstructor() throws Exception {
 
 		ReturnedType type = getReturnedType("dtoWithMultipleConstructors");
 
@@ -120,7 +120,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-840
-	public void doesNotConsiderAnEnumProjecting() throws Exception {
+	void doesNotConsiderAnEnumProjecting() throws Exception {
 
 		ReturnedType type = getReturnedType("findEnum");
 
@@ -129,7 +129,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-850
-	public void considersAllJavaTypesAsNotProjecting() throws Exception {
+	void considersAllJavaTypesAsNotProjecting() throws Exception {
 
 		ReturnedType type = getReturnedType("timeQuery");
 
@@ -138,7 +138,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-862
-	public void considersInterfaceImplementedByDomainTypeNotProjecting() throws Exception {
+	void considersInterfaceImplementedByDomainTypeNotProjecting() throws Exception {
 
 		ReturnedType type = getReturnedType("findOneInterface");
 
@@ -147,7 +147,7 @@ public class ReturnedTypeUnitTests {
 	}
 
 	@Test // DATACMNS-963
-	public void detectsDistinctInputProperties() {
+	void detectsDistinctInputProperties() {
 
 		ReturnedType type = ReturnedType.of(Child.class, Object.class, new SpelAwareProxyProjectionFactory());
 
@@ -155,6 +155,17 @@ public class ReturnedTypeUnitTests {
 
 		assertThat(properties).hasSize(1);
 		assertThat(properties).containsExactly("firstname");
+	}
+
+	@Test // DATACMNS-1112
+	void cachesInstancesBySourceTypes() {
+
+		SpelAwareProxyProjectionFactory factory = new SpelAwareProxyProjectionFactory();
+
+		ReturnedType left = ReturnedType.of(Child.class, Object.class, factory);
+		ReturnedType right = ReturnedType.of(Child.class, Object.class, factory);
+
+		assertThat(left).isSameAs(right);
 	}
 
 	private static ReturnedType getReturnedType(String methodName, Class<?>... parameters) throws Exception {
@@ -206,9 +217,9 @@ public class ReturnedTypeUnitTests {
 	static interface SampleInterface {}
 
 	static class Sample implements SampleInterface {
-		public String firstname, lastname;
+		String firstname, lastname;
 
-		public Sample(String firstname, String lastname) {
+		Sample(String firstname, String lastname) {
 			this.firstname = firstname;
 			this.lastname = lastname;
 		}
@@ -216,7 +227,7 @@ public class ReturnedTypeUnitTests {
 
 	static class SampleDto {
 
-		public SampleDto(String firstname) {
+		SampleDto(String firstname) {
 
 		}
 	}

@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,11 +15,15 @@
  */
 package org.springframework.data.convert;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+
+import javax.annotation.Nonnull;
 
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
@@ -34,8 +38,10 @@ import org.springframework.util.ClassUtils;
  * @author Oliver Gierke
  * @author Christoph Strobl
  * @author Jens Schauder
+ * @author Mark Paluch
+ * @deprecated since 2.3, use JSR-310 types as replacement for Joda-Time.
  */
-@SuppressWarnings("deprecation")
+@Deprecated
 public abstract class JodaTimeConverters {
 
 	private static final boolean JODA_TIME_IS_PRESENT = ClassUtils.isPresent("org.joda.time.LocalDate", null);
@@ -63,92 +69,144 @@ public abstract class JodaTimeConverters {
 		converters.add(LocalDateTimeToJodaLocalDateTime.INSTANCE);
 		converters.add(LocalDateTimeToJodaDateTime.INSTANCE);
 
+		converters.add(InstantToJodaLocalDateTime.INSTANCE);
+		converters.add(JodaLocalDateTimeToInstant.INSTANCE);
+
+		converters.add(LocalDateTimeToJsr310Converter.INSTANCE);
+
 		return converters;
 	}
 
+	@Deprecated
+	public enum LocalDateTimeToJsr310Converter implements Converter<LocalDateTime, java.time.LocalDateTime> {
+
+		INSTANCE;
+
+		@Nonnull
+		@Override
+		public java.time.LocalDateTime convert(LocalDateTime source) {
+			return java.time.LocalDateTime.ofInstant(source.toDate().toInstant(), ZoneId.systemDefault());
+		}
+	}
+
+	@Deprecated
 	public enum LocalDateToDateConverter implements Converter<LocalDate, Date> {
 
 		INSTANCE;
 
+		@Nonnull
+		@Override
 		public Date convert(LocalDate source) {
-			return source == null ? null : source.toDate();
+			return source.toDate();
 		}
 	}
 
+	@Deprecated
 	public enum LocalDateTimeToDateConverter implements Converter<LocalDateTime, Date> {
 
 		INSTANCE;
 
+		@Nonnull
+		@Override
 		public Date convert(LocalDateTime source) {
-			return source == null ? null : source.toDate();
+			return source.toDate();
 		}
 	}
 
+	@Deprecated
 	public enum DateTimeToDateConverter implements Converter<DateTime, Date> {
 
 		INSTANCE;
 
+		@Nonnull
+		@Override
 		public Date convert(DateTime source) {
-			return source == null ? null : source.toDate();
+			return source.toDate();
 		}
 	}
 
+	@Deprecated
 	public enum DateToLocalDateConverter implements Converter<Date, LocalDate> {
 
 		INSTANCE;
 
+		@Nonnull
+		@Override
 		public LocalDate convert(Date source) {
-			return source == null ? null : new LocalDate(source.getTime());
+			return new LocalDate(source.getTime());
 		}
 	}
 
+	@Deprecated
 	public enum DateToLocalDateTimeConverter implements Converter<Date, LocalDateTime> {
 
 		INSTANCE;
 
+		@Nonnull
+		@Override
 		public LocalDateTime convert(Date source) {
-			return source == null ? null : new LocalDateTime(source.getTime());
+			return new LocalDateTime(source.getTime());
 		}
 	}
 
+	@Deprecated
 	public enum DateToDateTimeConverter implements Converter<Date, DateTime> {
 
 		INSTANCE;
 
+		@Nonnull
+		@Override
 		public DateTime convert(Date source) {
-			return source == null ? null : new DateTime(source.getTime());
+			return new DateTime(source.getTime());
 		}
 	}
 
+	@ReadingConverter
+	@Deprecated
 	public enum LocalDateTimeToJodaLocalDateTime implements Converter<java.time.LocalDateTime, LocalDateTime> {
 
 		INSTANCE;
 
-		/*
-		 * (non-Javadoc)
-		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
-		 */
+		@Nonnull
 		@Override
 		public LocalDateTime convert(java.time.LocalDateTime source) {
-			return source == null ? null
-					: LocalDateTime.fromDateFields(
-							org.springframework.data.convert.Jsr310Converters.LocalDateTimeToDateConverter.INSTANCE.convert(source));
+			return LocalDateTime.fromDateFields(Jsr310Converters.LocalDateTimeToDateConverter.INSTANCE.convert(source));
 		}
 	}
 
+	@Deprecated
+	public enum InstantToJodaLocalDateTime implements Converter<java.time.Instant, LocalDateTime> {
+
+		INSTANCE;
+
+		@Nonnull
+		@Override
+		public LocalDateTime convert(java.time.Instant source) {
+			return LocalDateTime.fromDateFields(new Date(source.toEpochMilli()));
+		}
+	}
+
+	@Deprecated
+	public enum JodaLocalDateTimeToInstant implements Converter<LocalDateTime, Instant> {
+
+		INSTANCE;
+
+		@Nonnull
+		@Override
+		public Instant convert(LocalDateTime source) {
+			return Instant.ofEpochMilli(source.toDateTime().getMillis());
+		}
+	}
+
+	@Deprecated
 	public enum LocalDateTimeToJodaDateTime implements Converter<java.time.LocalDateTime, DateTime> {
 
 		INSTANCE;
 
-		/*
-		 * (non-Javadoc)
-		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
-		 */
+		@Nonnull
 		@Override
 		public DateTime convert(java.time.LocalDateTime source) {
-			return source == null ? null
-					: new DateTime(
-							org.springframework.data.convert.Jsr310Converters.LocalDateTimeToDateConverter.INSTANCE.convert(source));
+			return new DateTime(Jsr310Converters.LocalDateTimeToDateConverter.INSTANCE.convert(source));
 		}
 	}
 }

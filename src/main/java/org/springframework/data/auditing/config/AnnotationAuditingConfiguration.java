@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2014 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,7 @@
 package org.springframework.data.auditing.config;
 
 import java.lang.annotation.Annotation;
+import java.util.Map;
 
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.type.AnnotationMetadata;
@@ -23,19 +24,21 @@ import org.springframework.util.Assert;
 
 /**
  * Default implementation for {@link AuditingConfiguration}.
- * 
+ *
  * @author Ranie Jade Ramiso
  * @author Thomas Darimont
  * @author Oliver Gierke
  */
 public class AnnotationAuditingConfiguration implements AuditingConfiguration {
 
+	private static final String MISSING_ANNOTATION_ATTRIBUTES = "Couldn't find annotation attributes for %s in %s!";
+
 	private final AnnotationAttributes attributes;
 
 	/**
 	 * Creates a new instance of {@link AnnotationAuditingConfiguration} for the given {@link AnnotationMetadata} and
 	 * annotation type.
-	 * 
+	 *
 	 * @param metadata must not be {@literal null}.
 	 * @param annotation must not be {@literal null}.
 	 */
@@ -44,7 +47,13 @@ public class AnnotationAuditingConfiguration implements AuditingConfiguration {
 		Assert.notNull(metadata, "AnnotationMetadata must not be null!");
 		Assert.notNull(annotation, "Annotation must not be null!");
 
-		this.attributes = new AnnotationAttributes(metadata.getAnnotationAttributes(annotation.getName()));
+		Map<String, Object> attributesSource = metadata.getAnnotationAttributes(annotation.getName());
+
+		if (attributesSource == null) {
+			throw new IllegalArgumentException(String.format(MISSING_ANNOTATION_ATTRIBUTES, annotation, metadata));
+		}
+
+		this.attributes = new AnnotationAttributes(attributesSource);
 	}
 
 	/*
@@ -56,7 +65,7 @@ public class AnnotationAuditingConfiguration implements AuditingConfiguration {
 		return attributes.getString("auditorAwareRef");
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.auditing.config.AuditingConfiguration#isSetDates()
 	 */
@@ -65,7 +74,7 @@ public class AnnotationAuditingConfiguration implements AuditingConfiguration {
 		return attributes.getBoolean("setDates");
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.auditing.config.AuditingConfiguration#getDateTimeProviderRef()
 	 */
@@ -74,7 +83,7 @@ public class AnnotationAuditingConfiguration implements AuditingConfiguration {
 		return attributes.getString("dateTimeProviderRef");
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.auditing.config.AuditingConfiguration#isModifyOnCreate()
 	 */

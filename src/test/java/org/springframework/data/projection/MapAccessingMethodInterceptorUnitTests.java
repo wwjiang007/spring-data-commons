@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,28 +23,28 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * Unit tests for {@link MapAccessingMethodInterceptor}.
- * 
+ *
  * @author Oliver Gierke
  */
-@RunWith(MockitoJUnitRunner.class)
-public class MapAccessingMethodInterceptorUnitTests {
+@ExtendWith(MockitoExtension.class)
+class MapAccessingMethodInterceptorUnitTests {
 
 	@Mock MethodInvocation invocation;
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-630
-	public void rejectsNullMap() {
-		new MapAccessingMethodInterceptor(null);
+	@Test // DATACMNS-630
+	void rejectsNullMap() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new MapAccessingMethodInterceptor(null));
 	}
 
 	@Test // DATACMNS-630
-	public void forwardsObjectMethodsToBackingMap() throws Throwable {
+	void forwardsObjectMethodsToBackingMap() throws Throwable {
 
 		Map<String, Object> map = Collections.emptyMap();
 
@@ -58,7 +58,7 @@ public class MapAccessingMethodInterceptorUnitTests {
 	}
 
 	@Test // DATACMNS-630
-	public void setterInvocationStoresValueInMap() throws Throwable {
+	void setterInvocationStoresValueInMap() throws Throwable {
 
 		Map<String, Object> map = new HashMap<>();
 
@@ -72,7 +72,7 @@ public class MapAccessingMethodInterceptorUnitTests {
 	}
 
 	@Test // DATACMNS-630
-	public void getterInvocationReturnsValueFromMap() throws Throwable {
+	void getterInvocationReturnsValueFromMap() throws Throwable {
 
 		Map<String, Object> map = new HashMap<>();
 		map.put("name", "Foo");
@@ -85,7 +85,7 @@ public class MapAccessingMethodInterceptorUnitTests {
 	}
 
 	@Test // DATACMNS-630
-	public void getterReturnsNullIfMapDoesNotContainValue() throws Throwable {
+	void getterReturnsNullIfMapDoesNotContainValue() throws Throwable {
 
 		Map<String, Object> map = new HashMap<>();
 
@@ -94,11 +94,12 @@ public class MapAccessingMethodInterceptorUnitTests {
 		assertThat(new MapAccessingMethodInterceptor(map).invoke(invocation)).isNull();
 	}
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-630
-	public void rejectsNonAccessorInvocation() throws Throwable {
+	@Test // DATACMNS-630
+	void rejectsNonAccessorInvocation() throws Throwable {
 
 		when(invocation.getMethod()).thenReturn(Sample.class.getMethod("someMethod"));
-		new MapAccessingMethodInterceptor(Collections.emptyMap()).invoke(invocation);
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> new MapAccessingMethodInterceptor(Collections.emptyMap()).invoke(invocation));
 	}
 
 	interface Sample {

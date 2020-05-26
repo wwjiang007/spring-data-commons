@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,7 @@
  */
 package org.springframework.data.history;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -23,6 +23,7 @@ import java.util.Optional;
  *
  * @author Philipp Huegelmeyer
  * @author Oliver Gierke
+ * @author Jens Schauder
  */
 public interface RevisionMetadata<N extends Number & Comparable<N>> {
 
@@ -40,26 +41,28 @@ public interface RevisionMetadata<N extends Number & Comparable<N>> {
 	 * @throws IllegalStateException if no revision number is available.
 	 */
 	default N getRequiredRevisionNumber() {
-		return getRevisionNumber()
-				.orElseThrow(() -> new IllegalStateException(String.format("No revision number found on %s!", getDelegate())));
+
+		return getRevisionNumber().orElseThrow(
+				() -> new IllegalStateException(String.format("No revision number found on %s!", this.<Object> getDelegate())));
 	}
 
 	/**
-	 * Returns the date of the revision.
+	 * Returns the timestamp of the revision.
 	 *
 	 * @return will never be {@literal null}.
 	 */
-	Optional<LocalDateTime> getRevisionDate();
+	Optional<Instant> getRevisionInstant();
 
 	/**
-	 * Returns the revision date of the revision, immediately failing on absence.
-	 * 
+	 * Returns the time stamp of the revision, immediately failing on absence.
+	 *
 	 * @return will never be {@literal null}.
-	 * @throw IllegalStateException if no revision date is available.
+	 * @throws IllegalStateException if no revision date is available.
 	 */
-	default LocalDateTime getRequiredRevisionDate() {
-		return getRevisionDate()
-				.orElseThrow(() -> new IllegalStateException(String.format("No revision date found on %s!", getDelegate())));
+	default Instant getRequiredRevisionInstant() {
+
+		return getRevisionInstant().orElseThrow(
+				() -> new IllegalStateException(String.format("No revision date found on %s!", this.<Object> getDelegate())));
 	}
 
 	/**
@@ -68,4 +71,36 @@ public interface RevisionMetadata<N extends Number & Comparable<N>> {
 	 * @return
 	 */
 	<T> T getDelegate();
+
+	/**
+	 * Returns the {@link RevisionType} of this change. If the {@link RevisionType} cannot be determined, this method
+	 * returns {@link RevisionType#UNKNOWN}.
+	 *
+	 * @return will never be {@literal null}.
+	 * @since 2.2.0
+	 */
+	default RevisionType getRevisionType() {
+		return RevisionType.UNKNOWN;
+	}
+
+	/**
+	 * The type of a {@link Revision}.
+	 *
+	 * @author Jens Schauder
+	 * @since 2.2.0
+	 */
+	enum RevisionType {
+
+		/** Fallback if the type of a revision cannot be determined. */
+		UNKNOWN,
+
+		/** Creation of an instance */
+		INSERT,
+
+		/** Change of an instance */
+		UPDATE,
+
+		/** Deletion of an instance */
+		DELETE
+	}
 }

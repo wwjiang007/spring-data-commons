@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2016 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,8 +17,8 @@ package org.springframework.data.projection;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.BeansException;
@@ -28,25 +28,28 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.util.AnnotationDetectionMethodCallback;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 
 /**
  * A {@link ProxyProjectionFactory} that adds support to use {@link Value}-annotated methods on a projection interface
  * to evaluate the contained SpEL expression to define the outcome of the method call.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @author Mark Paluch
+ * @author Jens Schauder
  * @since 1.10
  */
 public class SpelAwareProxyProjectionFactory extends ProxyProjectionFactory implements BeanFactoryAware {
 
-	private final Map<Class<?>, Boolean> typeCache = new HashMap<>();
+	private final Map<Class<?>, Boolean> typeCache = new ConcurrentHashMap<>();
 	private final SpelExpressionParser parser = new SpelExpressionParser();
 
-	private BeanFactory beanFactory;
+	private @Nullable BeanFactory beanFactory;
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.beans.factory.BeanFactoryAware#setBeanFactory(org.springframework.beans.factory.BeanFactory)
 	 */
@@ -55,10 +58,19 @@ public class SpelAwareProxyProjectionFactory extends ProxyProjectionFactory impl
 		this.beanFactory = beanFactory;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.projection.ProxyProjectionFactory#createProjectionInformation(java.lang.Class)
+	 */
+	@Override
+	protected ProjectionInformation createProjectionInformation(Class<?> projectionType) {
+		return new SpelAwareProjectionInformation(projectionType);
+	}
+
 	/**
 	 * Inspects the given target type for methods with {@link Value} annotations and caches the result. Will create a
 	 * {@link SpelEvaluatingMethodInterceptor} if an annotation was found or return the delegate as is if not.
-	 * 
+	 *
 	 * @param interceptor the root {@link MethodInterceptor}.
 	 * @param source The backing source object.
 	 * @param projectionType the proxy target type.
@@ -68,46 +80,51 @@ public class SpelAwareProxyProjectionFactory extends ProxyProjectionFactory impl
 	protected MethodInterceptor postProcessAccessorInterceptor(MethodInterceptor interceptor, Object source,
 			Class<?> projectionType) {
 
-		if (!typeCache.containsKey(projectionType)) {
-
-			AnnotationDetectionMethodCallback<Value> callback = new AnnotationDetectionMethodCallback<>(Value.class);
-			ReflectionUtils.doWithMethods(projectionType, callback);
-
-			typeCache.put(projectionType, callback.hasFoundAnnotation());
-		}
-
-		return typeCache.get(projectionType)
-				? new SpelEvaluatingMethodInterceptor(interceptor, source, beanFactory, parser, projectionType) : interceptor;
+		return typeCache.computeIfAbsent(projectionType, SpelAwareProxyProjectionFactory::hasMethodWithValueAnnotation)
+				? new SpelEvaluatingMethodInterceptor(interceptor, source, beanFactory, parser, projectionType)
+				: interceptor;
 	}
 
-	/* 
-	 * (non-Javadoc)
-	 * @see org.springframework.data.projection.ProxyProjectionFactory#getProjectionInformation(java.lang.Class)
+	/**
+	 * Returns whether the given type as a method annotated with {@link Value}.
+	 *
+	 * @param type must not be {@literal null}.
+	 * @return
 	 */
-	@Override
-	public ProjectionInformation getProjectionInformation(Class<?> projectionType) {
+	private static boolean hasMethodWithValueAnnotation(Class<?> type) {
 
-		return new DefaultProjectionInformation(projectionType) {
+		Assert.notNull(type, "Type must not be null!");
 
-			/* 
-			 * (non-Javadoc)
-			 * @see org.springframework.data.projection.DefaultProjectionInformation#isInputProperty(java.beans.PropertyDescriptor)
-			 */
-			@Override
-			protected boolean isInputProperty(PropertyDescriptor descriptor) {
+		AnnotationDetectionMethodCallback<Value> callback = new AnnotationDetectionMethodCallback<>(Value.class);
+		ReflectionUtils.doWithMethods(type, callback);
 
-				if (!super.isInputProperty(descriptor)) {
-					return false;
-				}
+		return callback.hasFoundAnnotation();
+	}
 
-				Method readMethod = descriptor.getReadMethod();
+	protected static class SpelAwareProjectionInformation extends DefaultProjectionInformation {
 
-				if (readMethod == null) {
-					return false;
-				}
+		protected SpelAwareProjectionInformation(Class<?> projectionType) {
+			super(projectionType);
+		}
 
-				return AnnotationUtils.findAnnotation(readMethod, Value.class) == null;
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.projection.DefaultProjectionInformation#isInputProperty(java.beans.PropertyDescriptor)
+		 */
+		@Override
+		protected boolean isInputProperty(PropertyDescriptor descriptor) {
+
+			if (!super.isInputProperty(descriptor)) {
+				return false;
 			}
-		};
+
+			Method readMethod = descriptor.getReadMethod();
+
+			if (readMethod == null) {
+				return false;
+			}
+
+			return AnnotationUtils.findAnnotation(readMethod, Value.class) == null;
+		}
 	}
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 the original author or authors.
+ * Copyright 2017-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@ package org.springframework.data.convert;
 
 import static org.assertj.core.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.internal.util.Supplier;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.core.convert.converter.GenericConverter;
@@ -28,15 +28,15 @@ import org.springframework.data.convert.ConverterBuilder.WritingConverterBuilder
 
 /**
  * Unit tests for {@link DefaultConverterBuilder}.
- * 
+ *
  * @author Oliver Gierke
  * @since 2.0
  * @soundtrack John Mayer - In the Blood (The Search for Everything)
  */
-public class ConverterBuilderUnitTests {
+class ConverterBuilderUnitTests {
 
 	@Test // DATACMNS-1034
-	public void setsUpBidirectionalConvertersFromReading() {
+	void setsUpBidirectionalConvertersFromReading() {
 
 		ConverterAware builder = ConverterBuilder.reading(String.class, Long.class, it -> Long.valueOf(it))
 				.andWriting(Object::toString);
@@ -46,7 +46,7 @@ public class ConverterBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-1034
-	public void setsUpBidirectionalConvertersFromWriting() {
+	void setsUpBidirectionalConvertersFromWriting() {
 
 		ConverterAware builder = ConverterBuilder.writing(Long.class, String.class, Object::toString)
 				.andReading(it -> Long.valueOf(it));
@@ -56,7 +56,7 @@ public class ConverterBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-1034
-	public void setsUpReadingConverter() {
+	void setsUpReadingConverter() {
 
 		ReadingConverterBuilder<String, Long> builder = ConverterBuilder.reading(String.class, Long.class,
 				string -> Long.valueOf(string));
@@ -66,7 +66,7 @@ public class ConverterBuilderUnitTests {
 	}
 
 	@Test // DATACMNS-1034
-	public void setsUpWritingConverter() {
+	void setsUpWritingConverter() {
 
 		WritingConverterBuilder<Long, String> builder = ConverterBuilder.writing(Long.class, String.class,
 				Object::toString);

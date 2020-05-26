@@ -1,11 +1,11 @@
 /*
- * Copyright 2010-2014 the original author or authors.
+ * Copyright 2010-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,7 @@ import org.springframework.core.type.filter.AspectJTypeFilter;
 import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.core.type.filter.RegexPatternTypeFilter;
 import org.springframework.core.type.filter.TypeFilter;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -38,7 +39,7 @@ import org.w3c.dom.NodeList;
 /**
  * Parser to populate the given {@link ClassPathScanningCandidateComponentProvider} with {@link TypeFilter}s parsed from
  * the given {@link Element}'s children.
- * 
+ *
  * @author Oliver Gierke
  */
 public class TypeFilterParser {
@@ -51,17 +52,17 @@ public class TypeFilterParser {
 
 	/**
 	 * Creates a new {@link TypeFilterParser} with the given {@link ReaderContext}.
-	 * 
+	 *
 	 * @param readerContext must not be {@literal null}.
 	 */
 	public TypeFilterParser(XmlReaderContext readerContext) {
-		this(readerContext, readerContext.getResourceLoader().getClassLoader());
+		this(readerContext, ConfigurationUtils.getRequiredClassLoader(readerContext));
 	}
 
 	/**
 	 * Constructor to ease testing as {@link XmlReaderContext#getBeanClassLoader()} is final and thus cannot be mocked
 	 * easily.
-	 * 
+	 *
 	 * @param readerContext must not be {@literal null}.
 	 * @param classLoader must not be {@literal null}.
 	 */
@@ -77,7 +78,7 @@ public class TypeFilterParser {
 	/**
 	 * Returns all {@link TypeFilter} declared in nested elements of the given {@link Element}. Allows to selectively
 	 * retrieve including or excluding filters based on the given {@link Type}.
-	 * 
+	 *
 	 * @param element must not be {@literal null}.
 	 * @param type must not be {@literal null}.
 	 * @return
@@ -92,13 +93,14 @@ public class TypeFilterParser {
 			Node node = nodeList.item(i);
 			Element childElement = type.getElement(node);
 
-			if (childElement != null) {
+			if (childElement == null) {
+				continue;
+			}
 
-				try {
-					filters.add(createTypeFilter(childElement, classLoader));
-				} catch (RuntimeException e) {
-					readerContext.error(e.getMessage(), readerContext.extractSource(element), e.getCause());
-				}
+			try {
+				filters.add(createTypeFilter(childElement, classLoader));
+			} catch (RuntimeException e) {
+				readerContext.error(e.getMessage(), readerContext.extractSource(element), e.getCause());
 			}
 		}
 
@@ -106,8 +108,8 @@ public class TypeFilterParser {
 	}
 
 	/**
-	 * Createsa a {@link TypeFilter} instance from the given {@link Element} and {@link ClassLoader}.
-	 * 
+	 * Creates a {@link TypeFilter} instance from the given {@link Element} and {@link ClassLoader}.
+	 *
 	 * @param element must not be {@literal null}.
 	 * @param classLoader must not be {@literal null}.
 	 * @return
@@ -130,7 +132,7 @@ public class TypeFilterParser {
 	/**
 	 * Enum representing all the filter types available for {@code include} and {@code exclude} elements. This acts as
 	 * factory for {@link TypeFilter} instances.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 * @see #getFilter(String, ClassLoader)
 	 */
@@ -171,8 +173,8 @@ public class TypeFilterParser {
 
 				Class<?> filterClass = classLoader.loadClass(expression);
 				if (!TypeFilter.class.isAssignableFrom(filterClass)) {
-					throw new IllegalArgumentException("Class is not assignable to [" + TypeFilter.class.getName() + "]: "
-							+ expression);
+					throw new IllegalArgumentException(
+							"Class is not assignable to [" + TypeFilter.class.getName() + "]: " + expression);
 				}
 				return (TypeFilter) BeanUtils.instantiateClass(filterClass);
 			}
@@ -180,7 +182,7 @@ public class TypeFilterParser {
 
 		/**
 		 * Returns the {@link TypeFilter} for the given expression and {@link ClassLoader}.
-		 * 
+		 *
 		 * @param expression
 		 * @param classLoader
 		 * @return
@@ -190,7 +192,7 @@ public class TypeFilterParser {
 
 		/**
 		 * Returns the {@link FilterType} for the given type as {@link String}.
-		 * 
+		 *
 		 * @param typeString
 		 * @return
 		 * @throws IllegalArgumentException if no {@link FilterType} could be found for the given argument.
@@ -220,10 +222,11 @@ public class TypeFilterParser {
 		/**
 		 * Returns the {@link Element} if the given {@link Node} is an {@link Element} and it's name equals the one of the
 		 * type.
-		 * 
+		 *
 		 * @param node
 		 * @return
 		 */
+		@Nullable
 		Element getElement(Node node) {
 
 			if (node.getNodeType() == Node.ELEMENT_NODE) {

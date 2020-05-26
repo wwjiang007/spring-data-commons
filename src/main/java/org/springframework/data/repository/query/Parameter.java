@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2015 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,9 @@ package org.springframework.data.repository.query;
 import static java.lang.String.*;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,20 +28,23 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.repository.util.ClassUtils;
 import org.springframework.data.repository.util.QueryExecutionConverters;
 import org.springframework.data.util.ClassTypeInformation;
+import org.springframework.data.util.Lazy;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.Assert;
 
 /**
  * Class to abstract a single parameter of a query method. It is held in the context of a {@link Parameters} instance.
- * 
+ *
  * @author Oliver Gierke
  * @author Mark Paluch
+ * @author Jens Schauder
  */
 public class Parameter {
 
-	static final List<Class<?>> TYPES = Arrays.asList(Pageable.class, Sort.class);
+	static final List<Class<?>> TYPES;
 
 	private static final String NAMED_PARAMETER_TEMPLATE = ":%s";
 	private static final String POSITION_PARAMETER_TEMPLATE = "?%s";
@@ -47,10 +52,23 @@ public class Parameter {
 	private final MethodParameter parameter;
 	private final Class<?> parameterType;
 	private final boolean isDynamicProjectionParameter;
+	private final Lazy<Optional<String>> name;
+
+	static {
+
+		List<Class<?>> types = new ArrayList<>(Arrays.asList(Pageable.class, Sort.class));
+
+		// consider Kotlin Coroutines Continuation a special parameter. That parameter is synthetic and should not get
+		// bound to any query.
+
+		ClassUtils.ifPresent("kotlin.coroutines.Continuation", Parameter.class.getClassLoader(), types::add);
+
+		TYPES = Collections.unmodifiableList(types);
+	}
 
 	/**
 	 * Creates a new {@link Parameter} for the given {@link MethodParameter}.
-	 * 
+	 *
 	 * @param parameter must not be {@literal null}.
 	 */
 	protected Parameter(MethodParameter parameter) {
@@ -60,11 +78,15 @@ public class Parameter {
 		this.parameter = parameter;
 		this.parameterType = potentiallyUnwrapParameterType(parameter);
 		this.isDynamicProjectionParameter = isDynamicProjectionParameter(parameter);
+		this.name = TYPES.contains(parameter.getParameterType()) ? Lazy.of(Optional.empty()) : Lazy.of(() -> {
+			Param annotation = parameter.getParameterAnnotation(Param.class);
+			return Optional.ofNullable(annotation == null ? parameter.getParameterName() : annotation.value());
+		});
 	}
 
 	/**
 	 * Returns whether the parameter is a special parameter.
-	 * 
+	 *
 	 * @return
 	 * @see #TYPES
 	 */
@@ -74,7 +96,7 @@ public class Parameter {
 
 	/**
 	 * Returns whether the {@link Parameter} is to be bound to a query.
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isBindable() {
@@ -83,7 +105,7 @@ public class Parameter {
 
 	/**
 	 * Returns whether the current {@link Parameter} is the one used for dynamic projections.
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isDynamicProjectionParameter() {
@@ -92,7 +114,7 @@ public class Parameter {
 
 	/**
 	 * Returns the placeholder to be used for the parameter. Can either be a named one or positional.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getPlaceholder() {
@@ -106,7 +128,7 @@ public class Parameter {
 
 	/**
 	 * Returns the position index the parameter is bound to in the context of its surrounding {@link Parameters}.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getIndex() {
@@ -115,7 +137,7 @@ public class Parameter {
 
 	/**
 	 * Returns whether the parameter is annotated with {@link Param}.
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isNamedParameter() {
@@ -124,18 +146,16 @@ public class Parameter {
 
 	/**
 	 * Returns the name of the parameter (through {@link Param} annotation).
-	 * 
+	 *
 	 * @return
 	 */
 	public Optional<String> getName() {
-
-		Param annotation = parameter.getParameterAnnotation(Param.class);
-		return Optional.ofNullable(annotation == null ? parameter.getParameterName() : annotation.value());
+		return this.name.get();
 	}
 
 	/**
 	 * Returns the type of the {@link Parameter}.
-	 * 
+	 *
 	 * @return the type
 	 */
 	public Class<?> getType() {
@@ -144,7 +164,7 @@ public class Parameter {
 
 	/**
 	 * Returns whether the parameter is named explicitly, i.e. annotated with {@link Param}.
-	 * 
+	 *
 	 * @return
 	 * @since 1.11
 	 */
@@ -163,7 +183,7 @@ public class Parameter {
 
 	/**
 	 * Returns whether the {@link Parameter} is a {@link Pageable} parameter.
-	 * 
+	 *
 	 * @return
 	 */
 	boolean isPageable() {
@@ -172,7 +192,7 @@ public class Parameter {
 
 	/**
 	 * Returns whether the {@link Parameter} is a {@link Sort} parameter.
-	 * 
+	 *
 	 * @return
 	 */
 	boolean isSort() {
@@ -186,13 +206,17 @@ public class Parameter {
 	 * <code>
 	 * <T> Collection<T> findBy…(…, Class<T> type);
 	 * </code>
-	 * 
+	 *
 	 * @param parameter must not be {@literal null}.
 	 * @return
 	 */
 	private static boolean isDynamicProjectionParameter(MethodParameter parameter) {
 
 		Method method = parameter.getMethod();
+
+		if (method == null) {
+			throw new IllegalStateException(String.format("Method parameter %s is not backed by a method!", parameter));
+		}
 
 		ClassTypeInformation<?> ownerType = ClassTypeInformation.from(parameter.getDeclaringClass());
 		TypeInformation<?> parameterTypes = ownerType.getParameterTypes(method).get(parameter.getParameterIndex());
@@ -203,7 +227,8 @@ public class Parameter {
 
 		TypeInformation<?> bound = parameterTypes.getTypeArguments().get(0);
 		TypeInformation<Object> returnType = ClassTypeInformation.fromReturnTypeOf(method);
-		return bound.equals(returnType.getActualType());
+
+		return bound.equals(QueryExecutionConverters.unwrapWrapperTypes(returnType));
 	}
 
 	/**
@@ -231,7 +256,7 @@ public class Parameter {
 	/**
 	 * Returns the component type if the given {@link MethodParameter} is a wrapper type and the wrapper should be
 	 * unwrapped.
-	 * 
+	 *
 	 * @param parameter must not be {@literal null}.
 	 * @return
 	 */
@@ -240,7 +265,7 @@ public class Parameter {
 		Class<?> originalType = parameter.getParameterType();
 
 		if (isWrapped(parameter) && shouldUnwrap(parameter)) {
-			return ResolvableType.forMethodParameter(parameter).getGeneric(0).getRawClass();
+			return ResolvableType.forMethodParameter(parameter).getGeneric(0).resolve(Object.class);
 		}
 
 		return originalType;

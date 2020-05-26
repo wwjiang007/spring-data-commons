@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,24 +20,28 @@ import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 import org.springframework.data.mapping.Alias;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 
 /**
  * Unit tests for {@link DefaultTypeMapper}.
- * 
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
-@RunWith(MockitoJUnitRunner.class)
-public class DefaultTypeMapperUnitTests {
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class DefaultTypeMapperUnitTests {
 
 	static final TypeInformation<String> STRING_TYPE_INFO = ClassTypeInformation.from(String.class);
 	static final Alias ALIAS = Alias.of(String.class.getName());
@@ -48,21 +52,21 @@ public class DefaultTypeMapperUnitTests {
 	DefaultTypeMapper<Map<String, String>> typeMapper;
 	Map<String, String> source;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 
 		this.typeMapper = new DefaultTypeMapper<>(accessor, Collections.singletonList(mapper));
 		this.source = Collections.singletonMap("key", ALIAS.toString());
 
 		doReturn(ALIAS).when(accessor).readAliasFrom(source);
-		doReturn(Optional.of(STRING_TYPE_INFO)).when(mapper).resolveTypeFrom(ALIAS);
+		doReturn(STRING_TYPE_INFO).when(mapper).resolveTypeFrom(ALIAS);
 	}
 
 	@Test
-	public void cachesResolvedTypeInformation() {
+	void cachesResolvedTypeInformation() {
 
-		Optional<TypeInformation<?>> information = typeMapper.readType(source);
-		assertThat(information).hasValue(STRING_TYPE_INFO);
+		TypeInformation<?> information = typeMapper.readType(source);
+		assertThat(information).isEqualTo(STRING_TYPE_INFO);
 		verify(mapper, times(1)).resolveTypeFrom(ALIAS);
 
 		typeMapper.readType(source);
@@ -70,7 +74,7 @@ public class DefaultTypeMapperUnitTests {
 	}
 
 	@Test // DATACMNS-349
-	public void returnsTypeAliasForInformation() {
+	void returnsTypeAliasForInformation() {
 
 		Alias alias = Alias.of("alias");
 		doReturn(alias).when(mapper).createAliasFor(STRING_TYPE_INFO);
@@ -79,15 +83,14 @@ public class DefaultTypeMapperUnitTests {
 	}
 
 	@Test // DATACMNS-783
-	public void specializesRawSourceTypeUsingGenericContext() {
+	void specializesRawSourceTypeUsingGenericContext() {
 
 		ClassTypeInformation<Foo> root = ClassTypeInformation.from(Foo.class);
-		TypeInformation<?> propertyType = root.getProperty("abstractBar")
-				.orElseThrow(() -> new IllegalStateException("Property abstractBar not found!"));
+		TypeInformation<?> propertyType = root.getProperty("abstractBar");
 		TypeInformation<?> barType = ClassTypeInformation.from(Bar.class);
 
 		doReturn(Alias.of(barType)).when(accessor).readAliasFrom(source);
-		doReturn(Optional.of(barType)).when(mapper).resolveTypeFrom(Alias.of(barType));
+		doReturn(barType).when(mapper).resolveTypeFrom(Alias.of(barType));
 
 		TypeInformation<?> result = typeMapper.readType(source, propertyType);
 
@@ -96,8 +99,7 @@ public class DefaultTypeMapperUnitTests {
 		TypeInformation<?> typeInformation = TypeInformation.class.cast(result);
 
 		assertThat(typeInformation.getType()).isEqualTo(Bar.class);
-		assertThat(typeInformation.getProperty("field"))
-				.hasValueSatisfying(it -> assertThat(it.getType()).isEqualTo(Character.class));
+		assertThat(typeInformation.getProperty("field").getType()).isEqualTo(Character.class);
 	}
 
 	static class TypeWithAbstractGenericType<T> {

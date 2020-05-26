@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,25 +15,28 @@
  */
 package org.springframework.data.web;
 
-import lombok.RequiredArgsConstructor;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.projection.Accessor;
 import org.springframework.data.projection.MethodInterceptorFactory;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +45,7 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.ParseContext;
+import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.TypeRef;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
@@ -58,7 +62,7 @@ public class JsonProjectingMethodInterceptorFactory implements MethodInterceptor
 
 	/**
 	 * Creates a new {@link JsonProjectingMethodInterceptorFactory} using the given {@link ObjectMapper}.
-	 * 
+	 *
 	 * @param mapper must not be {@literal null}.
 	 */
 	public JsonProjectingMethodInterceptorFactory(MappingProvider mappingProvider) {
@@ -73,7 +77,7 @@ public class JsonProjectingMethodInterceptorFactory implements MethodInterceptor
 		this.context = JsonPath.using(build);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.projection.MethodInterceptorFactory#createMethodInterceptor(java.lang.Object, java.lang.Class)
 	 */
@@ -86,7 +90,7 @@ public class JsonProjectingMethodInterceptorFactory implements MethodInterceptor
 		return new InputMessageProjecting(context);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.projection.MethodInterceptorFactory#supports(java.lang.Object, java.lang.Class)
 	 */
@@ -103,7 +107,7 @@ public class JsonProjectingMethodInterceptorFactory implements MethodInterceptor
 
 	/**
 	 * Returns whether the given type contains a method with a {@link org.springframework.data.web.JsonPath} annotation.
-	 * 
+	 *
 	 * @param type must not be {@literal null}.
 	 * @return
 	 */
@@ -118,63 +122,87 @@ public class JsonProjectingMethodInterceptorFactory implements MethodInterceptor
 		return false;
 	}
 
-	@RequiredArgsConstructor
 	private static class InputMessageProjecting implements MethodInterceptor {
 
 		private final DocumentContext context;
 
-		/* 
+		public InputMessageProjecting(DocumentContext context) {
+			this.context = context;
+		}
+
+		/*
 		 * (non-Javadoc)
 		 * @see org.aopalliance.intercept.MethodInterceptor#invoke(org.aopalliance.intercept.MethodInvocation)
 		 */
+		@Nullable
 		@Override
-		public Object invoke(MethodInvocation invocation) throws Throwable {
+		public Object invoke(@SuppressWarnings("null") MethodInvocation invocation) throws Throwable {
 
 			Method method = invocation.getMethod();
 			TypeInformation<Object> returnType = ClassTypeInformation.fromReturnTypeOf(method);
 			ResolvableType type = ResolvableType.forMethodReturnType(method);
-			String jsonPath = getJsonPath(method);
-
-			if (returnType.getActualType().getType().isInterface()) {
-
-				List<?> result = context.read(jsonPath);
-				return result.isEmpty() ? null : result.get(0);
-			}
-
 			boolean isCollectionResult = Collection.class.isAssignableFrom(type.getRawClass());
 			type = isCollectionResult ? type : ResolvableType.forClassWithGenerics(List.class, type);
-			type = isCollectionResult && JsonPath.isPathDefinite(jsonPath)
-					? ResolvableType.forClassWithGenerics(List.class, type) : type;
 
-			List<?> result = (List<?>) context.read(jsonPath, new ResolvableTypeRef(type));
+			Iterable<String> jsonPaths = getJsonPaths(method);
 
-			if (isCollectionResult && JsonPath.isPathDefinite(jsonPath)) {
-				result = (List<?>) result.get(0);
+			for (String jsonPath : jsonPaths) {
+
+				try {
+
+					if (returnType.getRequiredActualType().getType().isInterface()) {
+
+						List<?> result = context.read(jsonPath);
+						return result.isEmpty() ? null : result.get(0);
+					}
+
+					type = isCollectionResult && JsonPath.isPathDefinite(jsonPath)
+							? ResolvableType.forClassWithGenerics(List.class, type)
+							: type;
+
+					List<?> result = (List<?>) context.read(jsonPath, new ResolvableTypeRef(type));
+
+					if (isCollectionResult && JsonPath.isPathDefinite(jsonPath)) {
+						result = (List<?>) result.get(0);
+					}
+
+					return isCollectionResult ? result : result.isEmpty() ? null : result.get(0);
+
+				} catch (PathNotFoundException o_O) {
+					// continue with next path
+				}
 			}
 
-			return isCollectionResult ? result : result.isEmpty() ? null : result.get(0);
+			return null;
 		}
 
 		/**
 		 * Returns the JSONPath expression to be used for the given method.
-		 * 
+		 *
 		 * @param method
 		 * @return
 		 */
-		private static String getJsonPath(Method method) {
+		private static Collection<String> getJsonPaths(Method method) {
 
 			org.springframework.data.web.JsonPath annotation = AnnotationUtils.findAnnotation(method,
 					org.springframework.data.web.JsonPath.class);
 
-			return annotation != null ? annotation.value() : "$.".concat(new Accessor(method).getPropertyName());
+			if (annotation != null) {
+				return Arrays.asList(annotation.value());
+			}
+
+			return Collections.singletonList("$.".concat(new Accessor(method).getPropertyName()));
 		}
 
-		@RequiredArgsConstructor
 		private static class ResolvableTypeRef extends TypeRef<Object> {
 
 			private final ResolvableType type;
 
-			/* 
+			ResolvableTypeRef(ResolvableType type) {
+				this.type = type;
+			}
+
+			/*
 			 * (non-Javadoc)
 			 * @see com.jayway.jsonpath.TypeRef#getType()
 			 */

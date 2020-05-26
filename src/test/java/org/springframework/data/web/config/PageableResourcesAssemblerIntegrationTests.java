@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,11 +17,11 @@ package org.springframework.data.web.config;
 
 import static org.assertj.core.api.Assertions.*;
 
-import java.util.Arrays;
 import java.util.Collections;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,52 +32,52 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.data.web.WebTestUtils;
-import org.springframework.hateoas.Link;
-import org.springframework.hateoas.PagedResources;
-import org.springframework.hateoas.Resource;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
  * Integration tests for {@link PagedResourcesAssembler}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class PageableResourcesAssemblerIntegrationTests {
+class PageableResourcesAssemblerIntegrationTests {
 
 	@Configuration
 	@EnableSpringDataWebSupport
 	static class Config {
 
 		@Bean
-		public SampleController controller() {
+		SampleController controller() {
 			return new SampleController();
 		}
 	}
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		WebTestUtils.initWebTest();
 	}
 
 	@Test
-	public void injectsPagedResourcesAssembler() {
+	void injectsPagedResourcesAssembler() {
 
 		WebApplicationContext context = WebTestUtils.createApplicationContext(Config.class);
 		SampleController controller = context.getBean(SampleController.class);
 
 		assertThat(controller.assembler).isNotNull();
 
-		PagedResources<Resource<Person>> resources = controller.sample(PageRequest.of(1, 1));
+		PagedModel<EntityModel<Person>> resources = controller.sample(PageRequest.of(1, 1));
 
-		assertThat(resources.getLink(Link.REL_PREVIOUS)).isNotNull();
-		assertThat(resources.getLink(Link.REL_NEXT)).isNotNull();
-		assertThat(resources.getLink(Link.REL_SELF)).isNotNull();
+		assertThat(resources.getLink(IanaLinkRelations.PREV)).isNotNull();
+		assertThat(resources.getLink(IanaLinkRelations.NEXT)).isNotNull();
+		assertThat(resources.getLink(IanaLinkRelations.SELF)).isNotNull();
 	}
 
 	@Test // DATACMNS-471
-	public void setsUpPagedResourcesAssemblerFromManualXmlConfig() {
+	void setsUpPagedResourcesAssemblerFromManualXmlConfig() {
 
 		ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("manual.xml", getClass());
 		assertThat(context.getBean(PagedResourcesAssembler.class)).isNotNull();
@@ -85,7 +85,7 @@ public class PageableResourcesAssemblerIntegrationTests {
 	}
 
 	@Test // DATACMNS-471
-	public void setsUpPagedResourcesAssemblerFromJavaConfigXmlConfig() {
+	void setsUpPagedResourcesAssemblerFromJavaConfigXmlConfig() {
 
 		ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("via-config-class.xml", getClass());
 		assertThat(context.getBean(PagedResourcesAssembler.class)).isNotNull();
@@ -98,12 +98,12 @@ public class PageableResourcesAssemblerIntegrationTests {
 		@Autowired PagedResourcesAssembler<Person> assembler;
 
 		@RequestMapping("/persons")
-		PagedResources<Resource<Person>> sample(Pageable pageable) {
+		PagedModel<EntityModel<Person>> sample(Pageable pageable) {
 
 			Page<Person> page = new PageImpl<>(Collections.singletonList(new Person()), pageable,
 					pageable.getOffset() + pageable.getPageSize() + 1);
 
-			return assembler.toResource(page);
+			return assembler.toModel(page);
 		}
 	}
 

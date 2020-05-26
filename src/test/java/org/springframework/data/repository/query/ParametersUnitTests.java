@@ -1,12 +1,12 @@
 /*
- * Copyright 2008-2017 the original author or authors.
- * 
+ * Copyright 2008-2020 the original author or authors.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -18,35 +18,37 @@ package org.springframework.data.repository.query;
 import static org.assertj.core.api.Assertions.*;
 
 import rx.Single;
+import scala.collection.mutable.Publisher;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.reactivestreams.Publisher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Unit test for {@link Parameters}.
- * 
+ *
  * @author Oliver Gierke
  * @author Mark Paluch
  */
-public class ParametersUnitTests {
+class ParametersUnitTests {
 
 	private Method valid;
 
-	@Before
-	public void setUp() throws SecurityException, NoSuchMethodException {
+	@BeforeEach
+	void setUp() throws SecurityException, NoSuchMethodException {
 
 		valid = SampleDao.class.getMethod("valid", String.class);
 	}
 
 	@Test
-	public void checksValidMethodCorrectly() throws Exception {
+	void checksValidMethodCorrectly() throws Exception {
 
 		Method validWithPageable = SampleDao.class.getMethod("validWithPageable", String.class, Pageable.class);
 		Method validWithSort = SampleDao.class.getMethod("validWithSort", String.class, Sort.class);
@@ -56,21 +58,21 @@ public class ParametersUnitTests {
 		new DefaultParameters(validWithSort);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsInvalidMethodWithParamMissing() throws Exception {
+	@Test
+	void rejectsInvalidMethodWithParamMissing() throws Exception {
 
 		Method method = SampleDao.class.getMethod("invalidParamMissing", String.class, String.class);
-		new DefaultParameters(method);
-	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsNullMethod() throws Exception {
-
-		new DefaultParameters(null);
+		assertThatIllegalArgumentException().isThrownBy(() -> new DefaultParameters(method));
 	}
 
 	@Test
-	public void detectsNamedParameterCorrectly() throws Exception {
+	void rejectsNullMethod() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new DefaultParameters(null));
+	}
+
+	@Test
+	void detectsNamedParameterCorrectly() throws Exception {
 
 		Parameters<?, ?> parameters = getParametersFor("validWithSort", String.class, Sort.class);
 
@@ -86,7 +88,7 @@ public class ParametersUnitTests {
 	}
 
 	@Test
-	public void calculatesPlaceholderPositionCorrectly() throws Exception {
+	void calculatesPlaceholderPositionCorrectly() throws Exception {
 
 		Method method = SampleDao.class.getMethod("validWithSortFirst", Sort.class, String.class);
 
@@ -102,31 +104,31 @@ public class ParametersUnitTests {
 	}
 
 	@Test
-	public void detectsEmptyParameterListCorrectly() throws Exception {
+	void detectsEmptyParameterListCorrectly() throws Exception {
 
 		Parameters<?, ?> parameters = getParametersFor("emptyParameters");
 		assertThat(parameters.hasParameterAt(0)).isFalse();
 	}
 
 	@Test
-	public void detectsPageableParameter() throws Exception {
+	void detectsPageableParameter() throws Exception {
 		Parameters<?, ?> parameters = getParametersFor("validWithPageable", String.class, Pageable.class);
 		assertThat(parameters.getPageableIndex()).isEqualTo(1);
 	}
 
 	@Test
-	public void detectsSortParameter() throws Exception {
+	void detectsSortParameter() throws Exception {
 		Parameters<?, ?> parameters = getParametersFor("validWithSort", String.class, Sort.class);
 		assertThat(parameters.getSortIndex()).isEqualTo(1);
 	}
 
 	@Test // DATACMNS-520
-	public void doesNotRejectParameterIfPageableComesFirst() throws Exception {
+	void doesNotRejectParameterIfPageableComesFirst() throws Exception {
 		getParametersFor("validWithPageableFirst", Pageable.class, String.class);
 	}
 
 	@Test // DATACMNS-731
-	public void detectsExplicitlyNamedParameter() throws Exception {
+	void detectsExplicitlyNamedParameter() throws Exception {
 
 		Parameter parameter = getParametersFor("valid", String.class).getBindableParameter(0);
 
@@ -135,7 +137,7 @@ public class ParametersUnitTests {
 	}
 
 	@Test // DATACMNS-731
-	public void doesNotConsiderParameterExplicitlyNamedEvenIfNamePresent() throws Exception {
+	void doesNotConsiderParameterExplicitlyNamedEvenIfNamePresent() throws Exception {
 
 		Parameter parameter = getParametersFor("validWithSortFirst", Sort.class, String.class).getBindableParameter(0);
 
@@ -147,7 +149,7 @@ public class ParametersUnitTests {
 	}
 
 	@Test // DATACMNS-89
-	public void detectsDynamicProjectionParameter() throws Exception {
+	void detectsDynamicProjectionParameter() throws Exception {
 
 		Parameters<?, Parameter> parameters = getParametersFor("dynamicBind", Class.class, Class.class, Class.class);
 
@@ -157,7 +159,7 @@ public class ParametersUnitTests {
 	}
 
 	@Test // DATACMNS-863
-	public void unwrapsOptionals() throws Exception {
+	void unwrapsOptionals() throws Exception {
 
 		Parameters<?, Parameter> parameters = getParametersFor("methodWithOptional", Optional.class);
 
@@ -165,7 +167,7 @@ public class ParametersUnitTests {
 	}
 
 	@Test // DATACMNS-836
-	public void keepsReactiveStreamsWrapper() throws Exception {
+	void keepsReactiveStreamsWrapper() throws Exception {
 
 		Parameters<?, Parameter> parameters = getParametersFor("methodWithPublisher", Publisher.class);
 
@@ -173,11 +175,19 @@ public class ParametersUnitTests {
 	}
 
 	@Test // DATACMNS-836
-	public void keepsRxJavaWrapper() throws Exception {
+	void keepsRxJavaWrapper() throws Exception {
 
 		Parameters<?, Parameter> parameters = getParametersFor("methodWithSingle", Single.class);
 
 		assertThat(parameters.getParameter(0).getType()).isAssignableFrom(Single.class);
+	}
+
+	@Test // DATACMNS-1383
+	void acceptsCustomPageableParameter() throws Exception {
+
+		Parameters<?, Parameter> parameters = getParametersFor("customPageable", SomePageable.class);
+
+		assertThat(parameters.hasPageableParameter()).isTrue();
 	}
 
 	private Parameters<?, Parameter> getParametersFor(String methodName, Class<?>... parameterTypes)
@@ -217,5 +227,9 @@ public class ParametersUnitTests {
 		void methodWithPublisher(Publisher<String> publisher);
 
 		void methodWithSingle(Single<String> single);
+
+		Page<Object> customPageable(SomePageable pageable);
 	}
+
+	interface SomePageable extends Pageable {}
 }

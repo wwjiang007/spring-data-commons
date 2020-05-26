@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,11 @@
  */
 package org.springframework.data.web;
 
+import javax.annotation.Nonnull;
+
 import org.springframework.core.MethodParameter;
 import org.springframework.data.domain.Pageable;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -43,9 +46,10 @@ public interface PageableArgumentResolver extends HandlerMethodArgumentResolver 
 	 * @param mavContainer the ModelAndViewContainer for the current request
 	 * @param webRequest the current request
 	 * @param binderFactory a factory for creating {@link WebDataBinder} instances
-	 * @return the resolved argument value, or {@code null}
+	 * @return the resolved argument value.
 	 */
+	@Nonnull
 	@Override
-	Pageable resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest,
-			WebDataBinderFactory binderFactory);
+	Pageable resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+			NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory);
 }

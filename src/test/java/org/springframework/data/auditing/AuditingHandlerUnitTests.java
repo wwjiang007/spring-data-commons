@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2017 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,30 +18,36 @@ package org.springframework.data.auditing;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Collections;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.mapping.context.PersistentEntities;
+import org.springframework.data.mapping.context.SampleMappingContext;
 
 /**
  * Unit test for {@code AuditingHandler}.
- * 
+ *
  * @author Oliver Gierke
  * @since 1.5
  */
 @SuppressWarnings("unchecked")
-public class AuditingHandlerUnitTests {
+class AuditingHandlerUnitTests {
 
 	AuditingHandler handler;
 	AuditorAware<AuditedUser> auditorAware;
 
 	AuditedUser user;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 
 		handler = getHandler();
 		user = new AuditedUser();
@@ -51,14 +57,14 @@ public class AuditingHandlerUnitTests {
 	}
 
 	protected AuditingHandler getHandler() {
-		return new AuditingHandler(new PersistentEntities(Collections.emptySet()));
+		return new AuditingHandler(PersistentEntities.of());
 	}
 
 	/**
 	 * Checks that the advice does not set auditor on the target entity if no {@code AuditorAware} was configured.
 	 */
 	@Test
-	public void doesNotSetAuditorIfNotConfigured() {
+	void doesNotSetAuditorIfNotConfigured() {
 
 		handler.markCreated(user);
 
@@ -73,7 +79,7 @@ public class AuditingHandlerUnitTests {
 	 * Checks that the advice sets the auditor on the target entity if an {@code AuditorAware} was configured.
 	 */
 	@Test
-	public void setsAuditorIfConfigured() {
+	void setsAuditorIfConfigured() {
 
 		handler.setAuditorAware(auditorAware);
 
@@ -92,7 +98,7 @@ public class AuditingHandlerUnitTests {
 	 * Checks that the advice does not set modification information on creation if the falg is set to {@code false}.
 	 */
 	@Test
-	public void honoursModifiedOnCreationFlag() {
+	void honoursModifiedOnCreationFlag() {
 
 		handler.setAuditorAware(auditorAware);
 		handler.setModifyOnCreation(false);
@@ -111,7 +117,7 @@ public class AuditingHandlerUnitTests {
 	 * Tests that the advice only sets modification data if a not-new entity is handled.
 	 */
 	@Test
-	public void onlySetsModificationDataOnNotNewEntities() {
+	void onlySetsModificationDataOnNotNewEntities() {
 
 		AuditedUser audited = new AuditedUser();
 		audited.id = 1L;
@@ -129,7 +135,7 @@ public class AuditingHandlerUnitTests {
 	}
 
 	@Test
-	public void doesNotSetTimeIfConfigured() {
+	void doesNotSetTimeIfConfigured() {
 
 		handler.setDateTimeForNow(false);
 		handler.setAuditorAware(auditorAware);
@@ -143,7 +149,7 @@ public class AuditingHandlerUnitTests {
 	}
 
 	@Test // DATAJPA-9
-	public void usesDateTimeProviderIfConfigured() {
+	void usesDateTimeProviderIfConfigured() {
 
 		DateTimeProvider provider = mock(DateTimeProvider.class);
 		doReturn(Optional.empty()).when(provider).getNow();
@@ -153,4 +159,35 @@ public class AuditingHandlerUnitTests {
 
 		verify(provider, times(1)).getNow();
 	}
+
+	@Test
+	void setsAuditingInfoOnEntityUsingInheritance() {
+
+		AuditingHandler handler = new AuditingHandler(PersistentEntities.of(new SampleMappingContext()));
+		handler.setModifyOnCreation(false);
+
+		MyDocument result = handler.markCreated(new MyDocument());
+
+		assertThat(result.created).isNotNull();
+		assertThat(result.modified).isNull();
+
+		result = handler.markModified(result);
+
+		assertThat(result.created).isNotNull();
+		assertThat(result.modified).isNotNull();
+	}
+
+	static abstract class AbstractModel {
+
+		@CreatedDate Instant created;
+		@CreatedBy String creator;
+		@LastModifiedDate Instant modified;
+		@LastModifiedBy String modifier;
+	}
+
+	static class MyModel extends AbstractModel {
+		List<MyModel> models;
+	}
+
+	static class MyDocument extends MyModel {}
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 the original author or authors.
+ * Copyright 2017-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 package org.springframework.data.util;
-
-import lombok.AccessLevel;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -37,11 +33,19 @@ import org.springframework.util.MultiValueMap;
  * @author Jens Schauder
  * @since 2.0
  */
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE, staticName = "of")
 class MultiValueMapCollector<T, K, V> implements Collector<T, MultiValueMap<K, V>, MultiValueMap<K, V>> {
 
-	private final @NonNull Function<T, K> keyFunction;
-	private final @NonNull Function<T, V> valueFunction;
+	private final Function<T, K> keyFunction;
+	private final Function<T, V> valueFunction;
+
+	private MultiValueMapCollector(Function<T, K> keyFunction, Function<T, V> valueFunction) {
+		this.keyFunction = keyFunction;
+		this.valueFunction = valueFunction;
+	}
+
+	static <T, K, V> MultiValueMapCollector<T, K, V> of(Function<T, K> keyFunction, Function<T, V> valueFunction) {
+		return new MultiValueMapCollector<T, K, V>(keyFunction, valueFunction);
+	}
 
 	/*
 	 * (non-Javadoc)

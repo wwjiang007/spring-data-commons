@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,81 +17,78 @@ package org.springframework.data.convert;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.springframework.data.mapping.PersistentEntity;
-import org.springframework.util.Assert;
+import org.springframework.data.mapping.model.InternalEntityInstantiatorFactory;
 
 /**
  * Simple value object allowing access to {@link EntityInstantiator} instances for a given type falling back to a
  * default one.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @author Christoph Strobl
+ * @author Mark Paluch
+ * @deprecated since 2.3, use {@link org.springframework.data.mapping.model.EntityInstantiators} instead.
  */
-public class EntityInstantiators {
-
-	private final EntityInstantiator fallback;
-	private final Map<Class<?>, EntityInstantiator> customInstantiators;
+@Deprecated
+public class EntityInstantiators extends org.springframework.data.mapping.model.EntityInstantiators {
 
 	/**
 	 * Creates a new {@link EntityInstantiators} using the default fallback instantiator and no custom ones.
 	 */
 	public EntityInstantiators() {
-		this(Collections.emptyMap());
+		super();
 	}
 
 	/**
 	 * Creates a new {@link EntityInstantiators} using the given {@link EntityInstantiator} as fallback.
-	 * 
+	 *
 	 * @param fallback must not be {@literal null}.
 	 */
 	public EntityInstantiators(EntityInstantiator fallback) {
-		this(fallback, Collections.emptyMap());
+		super(fallback, Collections.emptyMap());
 	}
 
 	/**
 	 * Creates a new {@link EntityInstantiators} using the default fallback instantiator and the given custom ones.
-	 * 
+	 *
 	 * @param customInstantiators must not be {@literal null}.
 	 */
 	public EntityInstantiators(Map<Class<?>, EntityInstantiator> customInstantiators) {
-		this(new ClassGeneratingEntityInstantiator(), customInstantiators);
+		super(InternalEntityInstantiatorFactory.getKotlinClassGeneratingEntityInstantiator(),
+				adaptFromLegacy(customInstantiators));
 	}
 
 	/**
 	 * Creates a new {@link EntityInstantiator} using the given fallback {@link EntityInstantiator} and the given custom
 	 * ones.
-	 * 
+	 *
 	 * @param defaultInstantiator must not be {@literal null}.
 	 * @param customInstantiators must not be {@literal null}.
 	 */
 	public EntityInstantiators(EntityInstantiator defaultInstantiator,
 			Map<Class<?>, EntityInstantiator> customInstantiators) {
-
-		Assert.notNull(defaultInstantiator, "DefaultInstantiator must not be null!");
-		Assert.notNull(customInstantiators, "CustomInstantiators must not be null!");
-
-		this.fallback = defaultInstantiator;
-		this.customInstantiators = customInstantiators;
+		super(defaultInstantiator, adaptFromLegacy(customInstantiators));
 	}
 
-	/**
-	 * Returns the {@link EntityInstantiator} to be used to create the given {@link PersistentEntity}.
-	 * 
-	 * @param entity must not be {@literal null}.
-	 * @return will never be {@literal null}.
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.model.EntityInstantiators#getInstantiatorFor(org.springframework.data.mapping.PersistentEntity)
 	 */
+	@Override
 	public EntityInstantiator getInstantiatorFor(PersistentEntity<?, ?> entity) {
+		return new EntityInstantiatorAdapter(super.getInstantiatorFor(entity));
+	}
 
-		Assert.notNull(entity, "Entity must not be null!");
-		Class<?> type = entity.getType();
+	private static Map<Class<?>, org.springframework.data.mapping.model.EntityInstantiator> adaptFromLegacy(
+			Map<Class<?>, EntityInstantiator> instantiators) {
 
-		if (!customInstantiators.containsKey(type)) {
-			return fallback;
-		}
-
-		EntityInstantiator instantiator = customInstantiators.get(entity.getType());
-		return instantiator == null ? fallback : instantiator;
+		return instantiators == null //
+				? null //
+				: instantiators.entrySet().stream() //
+						.collect(Collectors.toMap(Entry::getKey, e -> new EntityInstantiatorAdapter(e.getValue())));
 	}
 }

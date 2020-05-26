@@ -1,11 +1,11 @@
 /*
- * Copyright 2012 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,10 +23,11 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.jaxb.SpringDataJaxb.PageDto;
 import org.springframework.hateoas.Link;
+import org.springframework.lang.Nullable;
 
 /**
  * {@link XmlAdapter} to convert {@link Page} instances into {@link PageDto} instances and vice versa.
- * 
+ *
  * @author Oliver Gierke
  */
 public class PageAdapter extends XmlAdapter<PageDto, Page<Object>> {
@@ -35,8 +36,9 @@ public class PageAdapter extends XmlAdapter<PageDto, Page<Object>> {
 	 * (non-Javadoc)
 	 * @see javax.xml.bind.annotation.adapters.XmlAdapter#marshal(java.lang.Object)
 	 */
+	@Nullable
 	@Override
-	public PageDto marshal(Page<Object> source) {
+	public PageDto marshal(@Nullable Page<Object> source) {
 
 		if (source == null) {
 			return null;
@@ -49,18 +51,19 @@ public class PageAdapter extends XmlAdapter<PageDto, Page<Object>> {
 		return dto;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see javax.xml.bind.annotation.adapters.XmlAdapter#unmarshal(java.lang.Object)
 	 */
+	@Nullable
 	@Override
-	public Page<Object> unmarshal(PageDto v) {
+	public Page<Object> unmarshal(@Nullable PageDto v) {
 		return null;
 	}
 
 	/**
 	 * Return additional links that shall be added to the {@link PageDto}.
-	 * 
+	 *
 	 * @param source the source {@link Page}.
 	 * @return
 	 */

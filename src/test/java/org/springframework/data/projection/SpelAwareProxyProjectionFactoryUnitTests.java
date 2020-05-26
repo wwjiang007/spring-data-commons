@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,35 +17,33 @@ package org.springframework.data.projection;
 
 import static org.assertj.core.api.Assertions.*;
 
+import java.beans.PropertyDescriptor;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.NotWritablePropertyException;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
  * Unit tests for {@link SpelAwareProxyProjectionFactory}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @author Mark Paluch
  */
-public class SpelAwareProxyProjectionFactoryUnitTests {
-
-	public @Rule ExpectedException exception = ExpectedException.none();
+class SpelAwareProxyProjectionFactoryUnitTests {
 
 	SpelAwareProxyProjectionFactory factory;
 
-	@Before
-	public void setup() {
+	@BeforeEach
+	void setup() {
 		factory = new SpelAwareProxyProjectionFactory();
 	}
 
 	@Test // DATAREST-221, DATACMNS-630
-	public void exposesSpelInvokingMethod() {
+	void exposesSpelInvokingMethod() {
 
 		Customer customer = new Customer();
 		customer.firstname = "Dave";
@@ -56,15 +54,19 @@ public class SpelAwareProxyProjectionFactoryUnitTests {
 	}
 
 	@Test // DATACMNS-630
-	public void excludesAtValueAnnotatedMethodsForInputProperties() {
+	void excludesAtValueAnnotatedMethodsForInputProperties() {
 
-		List<String> properties = factory.getInputProperties(CustomerExcerpt.class);
+		List<PropertyDescriptor> properties = factory //
+				.getProjectionInformation(CustomerExcerpt.class) //
+				.getInputProperties();
 
-		assertThat(properties).containsExactly("firstname");
+		assertThat(properties) //
+				.extracting(PropertyDescriptor::getName) //
+				.containsExactly("firstname");
 	}
 
 	@Test // DATACMNS-89
-	public void considersProjectionUsingAtValueNotClosed() {
+	void considersProjectionUsingAtValueNotClosed() {
 
 		ProjectionInformation information = factory.getProjectionInformation(CustomerExcerpt.class);
 
@@ -72,7 +74,7 @@ public class SpelAwareProxyProjectionFactoryUnitTests {
 	}
 
 	@Test // DATACMNS-820
-	public void setsValueUsingProjection() {
+	void setsValueUsingProjection() {
 
 		Customer customer = new Customer();
 		customer.firstname = "Dave";
@@ -84,7 +86,7 @@ public class SpelAwareProxyProjectionFactoryUnitTests {
 	}
 
 	@Test // DATACMNS-820
-	public void settingNotWriteablePropertyFails() {
+	void settingNotWriteablePropertyFails() {
 
 		Customer customer = new Customer();
 		customer.firstname = "Dave";
@@ -92,8 +94,7 @@ public class SpelAwareProxyProjectionFactoryUnitTests {
 		ProjectionWithNotWriteableProperty projection = factory.createProjection(ProjectionWithNotWriteableProperty.class,
 				customer);
 
-		exception.expect(NotWritablePropertyException.class);
-		projection.setFirstName("Carl");
+		assertThatExceptionOfType(NotWritablePropertyException.class).isThrownBy(() -> projection.setFirstName("Carl"));
 	}
 
 	static class Customer {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2013 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,12 +24,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.domain.Pageable;
+import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 
 /**
  * Helper class to ease sharing code between legacy {@link PageableArgumentResolver} and
  * {@link PageableHandlerMethodArgumentResolver}.
- * 
+ *
  * @author Oliver Gierke
  */
 abstract class SpringDataAnnotationUtils {
@@ -38,12 +39,16 @@ abstract class SpringDataAnnotationUtils {
 
 	/**
 	 * Asserts uniqueness of all {@link Pageable} parameters of the method of the given {@link MethodParameter}.
-	 * 
+	 *
 	 * @param parameter must not be {@literal null}.
 	 */
 	public static void assertPageableUniqueness(MethodParameter parameter) {
 
 		Method method = parameter.getMethod();
+
+		if (method == null) {
+			throw new IllegalArgumentException(String.format("Method parameter %s is not backed by a method.", parameter));
+		}
 
 		if (containsMoreThanOnePageableParameter(method)) {
 			Annotation[][] annotations = method.getParameterAnnotations();
@@ -53,7 +58,7 @@ abstract class SpringDataAnnotationUtils {
 
 	/**
 	 * Returns whether the given {@link Method} has more than one {@link Pageable} parameter.
-	 * 
+	 *
 	 * @param method must not be {@literal null}.
 	 * @return
 	 */
@@ -78,7 +83,7 @@ abstract class SpringDataAnnotationUtils {
 	/**
 	 * Returns the value of the given specific property of the given annotation. If the value of that property is the
 	 * properties default, we fall back to the value of the {@code value} attribute.
-	 * 
+	 *
 	 * @param annotation must not be {@literal null}.
 	 * @param property must not be {@literal null} or empty.
 	 * @return
@@ -89,14 +94,21 @@ abstract class SpringDataAnnotationUtils {
 		Object propertyDefaultValue = AnnotationUtils.getDefaultValue(annotation, property);
 		Object propertyValue = AnnotationUtils.getValue(annotation, property);
 
-		return (T) (ObjectUtils.nullSafeEquals(propertyDefaultValue, propertyValue) ? AnnotationUtils.getValue(annotation)
-				: propertyValue);
+		Object result = ObjectUtils.nullSafeEquals(propertyDefaultValue, propertyValue) //
+				? AnnotationUtils.getValue(annotation) //
+				: propertyValue;
+
+		if (result == null) {
+			throw new IllegalStateException("Exepected to be able to look up an annotation property value but failed!");
+		}
+
+		return (T) result;
 	}
 
 	/**
 	 * Asserts that every {@link Pageable} parameter of the given parameters carries an {@link Qualifier} annotation to
 	 * distinguish them from each other.
-	 * 
+	 *
 	 * @param parameterTypes must not be {@literal null}.
 	 * @param annotations must not be {@literal null}.
 	 */
@@ -127,11 +139,12 @@ abstract class SpringDataAnnotationUtils {
 	/**
 	 * Returns a {@link Qualifier} annotation from the given array of {@link Annotation}s. Returns {@literal null} if the
 	 * array does not contain a {@link Qualifier} annotation.
-	 * 
+	 *
 	 * @param annotations must not be {@literal null}.
 	 * @return
 	 */
-	public static Qualifier findAnnotation(Annotation[] annotations) {
+	@Nullable
+	private static Qualifier findAnnotation(Annotation[] annotations) {
 
 		for (Annotation annotation : annotations) {
 			if (annotation instanceof Qualifier) {

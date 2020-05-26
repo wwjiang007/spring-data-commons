@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-2017 the original author or authors.
+ * Copyright 2016-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,24 +15,23 @@
  */
 package org.springframework.data.repository.core.support;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.springframework.data.repository.core.support.SurroundingTransactionDetectorMethodInterceptor.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Unit tests for {@link SurroundingTransactionDetectorMethodInterceptor}.
- * 
+ *
  * @author Oliver Gierke
  * @soundtrack Hendrik Freischlader Trio - Openness (Openness)
  */
-public class SurroundingTransactionDetectorMethodInterceptorUnitTests {
+class SurroundingTransactionDetectorMethodInterceptorUnitTests {
 
 	@Test // DATACMNS-959
-	public void registersActiveSurroundingTransaction() throws Throwable {
+	void registersActiveSurroundingTransaction() throws Throwable {
 
 		TransactionSynchronizationManager.setActualTransactionActive(true);
 
@@ -40,7 +39,7 @@ public class SurroundingTransactionDetectorMethodInterceptorUnitTests {
 	}
 
 	@Test // DATACMNS-959
-	public void registersNoSurroundingTransaction() throws Throwable {
+	void registersNoSurroundingTransaction() throws Throwable {
 
 		TransactionSynchronizationManager.setActualTransactionActive(false);
 
@@ -62,7 +61,7 @@ public class SurroundingTransactionDetectorMethodInterceptorUnitTests {
 		 */
 		public Object proceed() throws Throwable {
 
-			assertThat(INSTANCE.isSurroundingTransactionActive(), is(transactionActive));
+			assertThat(INSTANCE.isSurroundingTransactionActive()).isEqualTo(transactionActive);
 
 			return null;
 		}

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 package org.springframework.data.repository.query;
-
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,6 +29,7 @@ import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.util.ReactiveWrapperConverters;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -53,7 +51,7 @@ public class ResultProcessor {
 
 	/**
 	 * Creates a new {@link ResultProcessor} from the given {@link QueryMethod} and {@link ProjectionFactory}.
-	 * 
+	 *
 	 * @param method must not be {@literal null}.
 	 * @param factory must not be {@literal null}.
 	 */
@@ -63,7 +61,7 @@ public class ResultProcessor {
 
 	/**
 	 * Creates a new {@link ResultProcessor} for the given {@link QueryMethod}, {@link ProjectionFactory} and type.
-	 * 
+	 *
 	 * @param method must not be {@literal null}.
 	 * @param factory must not be {@literal null}.
 	 * @param type must not be {@literal null}.
@@ -80,9 +78,17 @@ public class ResultProcessor {
 		this.factory = factory;
 	}
 
+	private ResultProcessor(QueryMethod method, ProjectingConverter converter, ProjectionFactory factory,
+			ReturnedType type) {
+		this.method = method;
+		this.converter = converter;
+		this.factory = factory;
+		this.type = type;
+	}
+
 	/**
 	 * Returns a new {@link ResultProcessor} with a new projection type obtained from the given {@link ParameterAccessor}.
-	 * 
+	 *
 	 * @param accessor must not be {@literal null}.
 	 * @return
 	 */
@@ -90,14 +96,16 @@ public class ResultProcessor {
 
 		Assert.notNull(accessor, "Parameter accessor must not be null!");
 
-		return accessor.getDynamicProjection()//
-				.map(it -> new ResultProcessor(method, factory, it))//
-				.orElse(this);
+		Class<?> projection = accessor.findDynamicProjection();
+
+		return projection == null //
+				? this //
+				: withType(projection);
 	}
 
 	/**
 	 * Returns the {@link ReturnedType}.
-	 * 
+	 *
 	 * @return
 	 */
 	public ReturnedType getReturnedType() {
@@ -106,24 +114,26 @@ public class ResultProcessor {
 
 	/**
 	 * Post-processes the given query result.
-	 * 
+	 *
 	 * @param source can be {@literal null}.
 	 * @return
 	 */
-	public <T> T processResult(Object source) {
+	@Nullable
+	public <T> T processResult(@Nullable Object source) {
 		return processResult(source, NoOpConverter.INSTANCE);
 	}
 
 	/**
 	 * Post-processes the given query result using the given preparing {@link Converter} to potentially prepare collection
 	 * elements.
-	 * 
+	 *
 	 * @param source can be {@literal null}.
 	 * @param preparingConverter must not be {@literal null}.
 	 * @return
 	 */
+	@Nullable
 	@SuppressWarnings("unchecked")
-	public <T> T processResult(Object source, Converter<Object, Object> preparingConverter) {
+	public <T> T processResult(@Nullable Object source, Converter<Object, Object> preparingConverter) {
 
 		if (source == null || type.isInstance(source) || !type.isProjecting()) {
 			return (T) source;
@@ -160,10 +170,16 @@ public class ResultProcessor {
 		return (T) converter.convert(source);
 	}
 
+	private ResultProcessor withType(Class<?> type) {
+
+		ReturnedType returnedType = ReturnedType.of(type, method.getDomainClass(), factory);
+		return new ResultProcessor(method, converter.withType(returnedType), factory, returnedType);
+	}
+
 	/**
 	 * Creates a new {@link Collection} for the given source. Will try to create an instance of the source collection's
 	 * type first falling back to creating an approximate collection if the former fails.
-	 * 
+	 *
 	 * @param source must not be {@literal null}.
 	 * @return
 	 */
@@ -176,16 +192,24 @@ public class ResultProcessor {
 		}
 	}
 
-	@RequiredArgsConstructor(staticName = "of")
 	private static class ChainingConverter implements Converter<Object, Object> {
 
-		private final @NonNull Class<?> targetType;
-		private final @NonNull Converter<Object, Object> delegate;
+		private final Class<?> targetType;
+		private final Converter<Object, Object> delegate;
+
+		private ChainingConverter(Class<?> targetType, Converter<Object, Object> delegate) {
+			this.targetType = targetType;
+			this.delegate = delegate;
+		}
+
+		public static ChainingConverter of(Class<?> targetType, Converter<Object, Object> delegate) {
+			return new ChainingConverter(targetType, delegate);
+		}
 
 		/**
 		 * Returns a new {@link ChainingConverter} that hands the elements resulting from the current conversion to the
 		 * given {@link Converter}.
-		 * 
+		 *
 		 * @param converter must not be {@literal null}.
 		 * @return
 		 */
@@ -196,14 +220,17 @@ public class ResultProcessor {
 			return new ChainingConverter(targetType, source -> {
 
 				Object intermediate = ChainingConverter.this.convert(source);
-				return targetType.isInstance(intermediate) ? intermediate : converter.convert(intermediate);
+
+				return intermediate == null || targetType.isInstance(intermediate) ? intermediate
+						: converter.convert(intermediate);
 			});
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
 		 */
+		@Nullable
 		@Override
 		public Object convert(Object source) {
 			return delegate.convert(source);
@@ -220,7 +247,7 @@ public class ResultProcessor {
 
 		INSTANCE;
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
 		 */
@@ -230,17 +257,46 @@ public class ResultProcessor {
 		}
 	}
 
-	@RequiredArgsConstructor
 	private static class ProjectingConverter implements Converter<Object, Object> {
 
-		private final @NonNull ReturnedType type;
-		private final @NonNull ProjectionFactory factory;
-		private final ConversionService conversionService = new DefaultConversionService();
+		private final ReturnedType type;
+		private final ProjectionFactory factory;
+		private final ConversionService conversionService;
 
-		/* 
+		/**
+		 * Creates a new {@link ProjectingConverter} for the given {@link ReturnedType} and {@link ProjectionFactory}.
+		 *
+		 * @param type must not be {@literal null}.
+		 * @param factory must not be {@literal null}.
+		 */
+		ProjectingConverter(ReturnedType type, ProjectionFactory factory) {
+			this(type, factory, DefaultConversionService.getSharedInstance());
+		}
+
+		public ProjectingConverter(ReturnedType type, ProjectionFactory factory, ConversionService conversionService) {
+			this.type = type;
+			this.factory = factory;
+			this.conversionService = conversionService;
+		}
+
+		/**
+		 * Creates a new {@link ProjectingConverter} for the given {@link ReturnedType}.
+		 *
+		 * @param type must not be {@literal null}.
+		 * @return
+		 */
+		ProjectingConverter withType(ReturnedType type) {
+
+			Assert.notNull(type, "ReturnedType must not be null!");
+
+			return new ProjectingConverter(type, factory, conversionService);
+		}
+
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
 		 */
+		@Nullable
 		@Override
 		public Object convert(Object source) {
 

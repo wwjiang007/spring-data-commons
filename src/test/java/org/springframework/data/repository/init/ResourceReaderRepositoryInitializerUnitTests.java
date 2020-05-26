@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,14 +15,16 @@
  */
 package org.springframework.data.repository.init;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.AdditionalAnswers;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -32,17 +34,15 @@ import org.springframework.data.repository.sample.ProductRepository;
 import org.springframework.data.repository.sample.SampleConfiguration;
 import org.springframework.data.repository.sample.User;
 import org.springframework.data.repository.support.Repositories;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 /**
  * Unit tests for {@link UnmarshallingRepositoryInitializer}.
- * 
+ *
  * @author Oliver Gierke
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = SampleConfiguration.class)
-public class ResourceReaderRepositoryInitializerUnitTests {
+@SpringJUnitConfig(classes = SampleConfiguration.class)
+class ResourceReaderRepositoryInitializerUnitTests {
 
 	@Autowired ProductRepository productRepository;
 	@Autowired Repositories repositories;
@@ -51,8 +51,8 @@ public class ResourceReaderRepositoryInitializerUnitTests {
 	ResourceReader reader;
 	Resource resource;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 
 		this.reader = mock(ResourceReader.class);
 		this.publisher = mock(ApplicationEventPublisher.class);
@@ -60,7 +60,7 @@ public class ResourceReaderRepositoryInitializerUnitTests {
 	}
 
 	@Test
-	public void storesSingleObjectCorrectly() throws Exception {
+	void storesSingleObjectCorrectly() throws Exception {
 
 		Product reference = new Product();
 		setUpReferenceAndInititalize(reference);
@@ -69,7 +69,7 @@ public class ResourceReaderRepositoryInitializerUnitTests {
 	}
 
 	@Test
-	public void storesCollectionOfObjectsCorrectly() throws Exception {
+	void storesCollectionOfObjectsCorrectly() throws Exception {
 
 		Product product = new Product();
 		Collection<Product> reference = Collections.singletonList(product);
@@ -80,7 +80,7 @@ public class ResourceReaderRepositoryInitializerUnitTests {
 	}
 
 	@Test // DATACMNS-224
-	public void emitsRepositoriesPopulatedEventIfPublisherConfigured() throws Exception {
+	void emitsRepositoriesPopulatedEventIfPublisherConfigured() throws Exception {
 
 		RepositoryPopulator populator = setUpReferenceAndInititalize(new User(), publisher);
 
@@ -92,6 +92,7 @@ public class ResourceReaderRepositoryInitializerUnitTests {
 			throws Exception {
 
 		when(reader.readFrom(any(), any())).thenReturn(reference);
+		when(productRepository.save(any())).then(AdditionalAnswers.returnsFirstArg());
 
 		ResourceReaderRepositoryPopulator populator = new ResourceReaderRepositoryPopulator(reader);
 		populator.setResources(resource);

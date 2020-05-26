@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-2017 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,11 +19,11 @@ import java.beans.PropertyDescriptor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.PropertyValues;
 import org.springframework.core.convert.ConversionService;
@@ -32,9 +32,9 @@ import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.data.mapping.PropertyPath;
 import org.springframework.data.querydsl.EntityPathResolver;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
 import com.querydsl.core.BooleanBuilder;
@@ -43,9 +43,10 @@ import com.querydsl.core.types.Predicate;
 
 /**
  * Builder assembling {@link Predicate} out of {@link PropertyValues}.
- * 
+ *
  * @author Christoph Strobl
  * @author Oliver Gierke
+ * @author Mark Paluch
  * @since 1.11
  */
 public class QuerydslPredicateBuilder {
@@ -58,7 +59,7 @@ public class QuerydslPredicateBuilder {
 	/**
 	 * Creates a new {@link QuerydslPredicateBuilder} for the given {@link ConversionService} and
 	 * {@link EntityPathResolver}.
-	 * 
+	 *
 	 * @param conversionService must not be {@literal null}.
 	 * @param resolver can be {@literal null}.
 	 */
@@ -68,19 +69,20 @@ public class QuerydslPredicateBuilder {
 
 		this.defaultBinding = new QuerydslDefaultBinding();
 		this.conversionService = conversionService;
-		this.paths = new HashMap<>();
+		this.paths = new ConcurrentHashMap<>();
 		this.resolver = resolver;
 	}
 
 	/**
 	 * Creates a Querydsl {@link Predicate} for the given values, {@link QuerydslBindings} on the given
 	 * {@link TypeInformation}.
-	 * 
+	 *
 	 * @param type the type to create a predicate for.
 	 * @param values the values to bind.
 	 * @param bindings the {@link QuerydslBindings} for the predicate.
 	 * @return
 	 */
+	@Nullable
 	public Predicate getPredicate(TypeInformation<?> type, MultiValueMap<String, String> values,
 			QuerydslBindings bindings) {
 
@@ -121,7 +123,7 @@ public class QuerydslPredicateBuilder {
 
 	/**
 	 * Invokes the binding of the given values, for the given {@link PropertyPath} and {@link QuerydslBindings}.
-	 * 
+	 *
 	 * @param dotPath must not be {@literal null}.
 	 * @param bindings must not be {@literal null}.
 	 * @param values must not be {@literal null}.
@@ -139,7 +141,7 @@ public class QuerydslPredicateBuilder {
 	 * Returns the {@link Path} for the given {@link PropertyPath} and {@link QuerydslBindings}. Will try to obtain the
 	 * {@link Path} from the bindings first but fall back to reifying it from the PropertyPath in case no specific binding
 	 * has been configured.
-	 * 
+	 *
 	 * @param path must not be {@literal null}.
 	 * @param bindings must not be {@literal null}.
 	 * @return
@@ -155,7 +157,7 @@ public class QuerydslPredicateBuilder {
 	 * Converts the given source values into a collection of elements that are of the given {@link PropertyPath}'s type.
 	 * Considers a single element list with an empty {@link String} an empty collection because this basically indicates
 	 * the property having been submitted but no value provided.
-	 * 
+	 *
 	 * @param source must not be {@literal null}.
 	 * @param path must not be {@literal null}.
 	 * @return
@@ -173,7 +175,8 @@ public class QuerydslPredicateBuilder {
 		for (String value : source) {
 
 			target.add(conversionService.canConvert(String.class, targetType)
-					? conversionService.convert(value, TypeDescriptor.forObject(value), getTargetTypeDescriptor(path)) : value);
+					? conversionService.convert(value, TypeDescriptor.forObject(value), getTargetTypeDescriptor(path))
+					: value);
 		}
 
 		return target;
@@ -182,7 +185,7 @@ public class QuerydslPredicateBuilder {
 	/**
 	 * Returns the target {@link TypeDescriptor} for the given {@link PathInformation} by either inspecting the field or
 	 * property (the latter preferred) to pick up annotations potentially defined for formatting purposes.
-	 * 
+	 *
 	 * @param path must not be {@literal null}.
 	 * @return
 	 */
@@ -193,22 +196,27 @@ public class QuerydslPredicateBuilder {
 		Class<?> owningType = path.getLeafParentType();
 		String leafProperty = path.getLeafProperty();
 
-		if (descriptor == null) {
-			return TypeDescriptor.nested(ReflectionUtils.findField(owningType, leafProperty), 0);
+		TypeDescriptor result = descriptor == null //
+				? TypeDescriptor
+						.nested(org.springframework.data.util.ReflectionUtils.findRequiredField(owningType, leafProperty), 0)
+				: TypeDescriptor
+						.nested(new Property(owningType, descriptor.getReadMethod(), descriptor.getWriteMethod(), leafProperty), 0);
+
+		if (result == null) {
+			throw new IllegalStateException(String.format("Could not obtain TypeDesciptor for PathInformation %s!", path));
 		}
 
-		return TypeDescriptor
-				.nested(new Property(owningType, descriptor.getReadMethod(), descriptor.getWriteMethod(), leafProperty), 0);
+		return result;
 	}
 
 	/**
 	 * Returns whether the given collection has exactly one element that doesn't contain any text. This is basically an
 	 * indicator that a request parameter has been submitted but no value for it.
-	 * 
+	 *
 	 * @param source must not be {@literal null}.
 	 * @return
 	 */
 	private static boolean isSingleElementCollectionWithoutText(List<String> source) {
-		return source.size() == 1 && !StringUtils.hasText(source.get(0));
+		return source.size() == 1 && !StringUtils.hasLength(source.get(0));
 	}
 }

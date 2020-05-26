@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2016 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,19 +21,19 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.MethodParameter;
 
 /**
  * Unit tests for {@link MethodParameters}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class MethodParametersUnitTests {
+class MethodParametersUnitTests {
 
 	@Test
-	public void prefersAnnotatedParameterOverDiscovered() throws Exception {
+	void prefersAnnotatedParameterOverDiscovered() throws Exception {
 
 		Method method = Sample.class.getMethod("method", String.class, String.class, Object.class);
 		MethodParameters parameters = new MethodParameters(method, Optional.of(new AnnotationAttribute(Qualifier.class)));
@@ -47,7 +47,7 @@ public class MethodParametersUnitTests {
 	 * @see #138
 	 */
 	@Test
-	public void returnsParametersOfAGivenType() throws Exception {
+	void returnsParametersOfAGivenType() throws Exception {
 
 		Method method = Sample.class.getMethod("method", String.class, String.class, Object.class);
 		MethodParameters methodParameters = new MethodParameters(method);

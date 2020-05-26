@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2014 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,21 +24,20 @@ import java.util.Optional;
 import java.util.Set;
 
 import javax.enterprise.context.NormalScope;
-import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.BeanManager;
 
 import org.apache.webbeans.context.AbstractContext;
-import org.apache.webbeans.context.creational.BeanInstanceBag;
 import org.mockito.Mockito;
 import org.springframework.data.repository.config.CustomRepositoryImplementationDetector;
+import org.springframework.data.repository.core.support.DummyRepositoryFactory;
 
 /**
  * Dummy extension of {@link CdiRepositoryExtensionSupport} to allow integration tests. Will create mocks for repository
  * interfaces being found.
- * 
+ *
  * @author Oliver Gierke
  * @author Mark Paluch
  */
@@ -74,9 +73,11 @@ public class DummyCdiExtension extends CdiRepositoryExtensionSupport {
 		}
 
 		@Override
-		protected T create(CreationalContext<T> creationalContext, Class<T> repositoryType,
-				Optional<Object> customImplementation) {
-			return Mockito.mock(repositoryType);
+		protected T create(CreationalContext<T> creationalContext, Class<T> repositoryType) {
+
+			T mock = Mockito.mock(repositoryType);
+
+			return create(() -> new DummyRepositoryFactory(mock), repositoryType);
 		}
 	}
 

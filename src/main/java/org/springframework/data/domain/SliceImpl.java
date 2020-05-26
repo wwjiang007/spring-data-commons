@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,10 +18,13 @@ package org.springframework.data.domain;
 import java.util.List;
 import java.util.function.Function;
 
+import org.springframework.lang.Nullable;
+
 /**
  * Default implementation of {@link Slice}.
- * 
+ *
  * @author Oliver Gierke
+ * @author Keegan Witt
  * @since 1.8
  */
 public class SliceImpl<T> extends Chunk<T> {
@@ -33,9 +36,9 @@ public class SliceImpl<T> extends Chunk<T> {
 
 	/**
 	 * Creates a new {@link Slice} with the given content and {@link Pageable}.
-	 * 
+	 *
 	 * @param content the content of this {@link Slice}, must not be {@literal null}.
-	 * @param pageable the paging information, can be {@literal null}.
+	 * @param pageable the paging information, must not be {@literal null}.
 	 * @param hasNext whether there's another slice following the current one.
 	 */
 	public SliceImpl(List<T> content, Pageable pageable, boolean hasNext) {
@@ -49,7 +52,7 @@ public class SliceImpl<T> extends Chunk<T> {
 	/**
 	 * Creates a new {@link SliceImpl} with the given content. This will result in the created {@link Slice} being
 	 * identical to the entire {@link List}.
-	 * 
+	 *
 	 * @param content must not be {@literal null}.
 	 */
 	public SliceImpl(List<T> content) {
@@ -64,7 +67,7 @@ public class SliceImpl<T> extends Chunk<T> {
 		return hasNext;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.Slice#transform(org.springframework.core.convert.converter.Converter)
 	 */
@@ -95,7 +98,7 @@ public class SliceImpl<T> extends Chunk<T> {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 
 		if (this == obj) {
 			return true;

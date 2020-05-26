@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2017 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,12 +28,13 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.util.Lazy;
 import org.springframework.data.util.Streamable;
 import org.springframework.util.Assert;
 
 /**
  * Abstracts method parameters that have to be bound to query parameters or applied to the query independently.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  */
@@ -47,31 +48,36 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 			"Either use @%s on all parameters except %s and %s typed once, or none at all!", Param.class.getSimpleName(),
 			Pageable.class.getSimpleName(), Sort.class.getSimpleName());
 
-	private final ParameterNameDiscoverer discoverer = new DefaultParameterNameDiscoverer();
+	private static final ParameterNameDiscoverer PARAMETER_NAME_DISCOVERER = new DefaultParameterNameDiscoverer();
+
 	private final int pageableIndex;
 	private final int sortIndex;
 	private final List<T> parameters;
+	private final Lazy<S> bindable;
 
 	private int dynamicProjectionIndex;
 
 	/**
 	 * Creates a new instance of {@link Parameters}.
-	 * 
+	 *
 	 * @param method must not be {@literal null}.
 	 */
 	public Parameters(Method method) {
 
 		Assert.notNull(method, "Method must not be null!");
 
-		List<Class<?>> types = Arrays.asList(method.getParameterTypes());
+		int parameterCount = method.getParameterCount();
 
-		this.parameters = new ArrayList<>(types.size());
+		this.parameters = new ArrayList<>(parameterCount);
 		this.dynamicProjectionIndex = -1;
 
-		for (int i = 0; i < types.size(); i++) {
+		int pageableIndex = -1;
+		int sortIndex = -1;
+
+		for (int i = 0; i < parameterCount; i++) {
 
 			MethodParameter methodParameter = new MethodParameter(method, i);
-			methodParameter.initParameterNameDiscovery(discoverer);
+			methodParameter.initParameterNameDiscovery(PARAMETER_NAME_DISCOVERER);
 
 			T parameter = createParameter(methodParameter);
 
@@ -83,18 +89,27 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 				this.dynamicProjectionIndex = parameter.getIndex();
 			}
 
+			if (Pageable.class.isAssignableFrom(parameter.getType())) {
+				pageableIndex = i;
+			}
+
+			if (Sort.class.isAssignableFrom(parameter.getType())) {
+				sortIndex = i;
+			}
+
 			parameters.add(parameter);
 		}
 
-		this.pageableIndex = types.indexOf(Pageable.class);
-		this.sortIndex = types.indexOf(Sort.class);
+		this.pageableIndex = pageableIndex;
+		this.sortIndex = sortIndex;
+		this.bindable = Lazy.of(this::getBindable);
 
 		assertEitherAllParamAnnotatedOrNone();
 	}
 
 	/**
 	 * Creates a new {@link Parameters} instance with the given {@link Parameter}s put into new context.
-	 * 
+	 *
 	 * @param originals
 	 */
 	protected Parameters(List<T> originals) {
@@ -118,11 +133,26 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 		this.pageableIndex = pageableIndexTemp;
 		this.sortIndex = sortIndexTemp;
 		this.dynamicProjectionIndex = dynamicProjectionTemp;
+		this.bindable = Lazy.of(() -> (S) this);
+	}
+
+	private S getBindable() {
+
+		List<T> bindables = new ArrayList<>();
+
+		for (T candidate : this) {
+
+			if (candidate.isBindable()) {
+				bindables.add(candidate);
+			}
+		}
+
+		return createFrom(bindables);
 	}
 
 	/**
 	 * Creates a {@link Parameter} instance for the given {@link MethodParameter}.
-	 * 
+	 *
 	 * @param parameter will never be {@literal null}.
 	 * @return
 	 */
@@ -130,7 +160,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns whether the method the {@link Parameters} was created for contains a {@link Pageable} argument.
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean hasPageableParameter() {
@@ -140,7 +170,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 	/**
 	 * Returns the index of the {@link Pageable} {@link Method} parameter if available. Will return {@literal -1} if there
 	 * is no {@link Pageable} argument in the {@link Method}'s parameter list.
-	 * 
+	 *
 	 * @return the pageableIndex
 	 */
 	public int getPageableIndex() {
@@ -150,7 +180,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 	/**
 	 * Returns the index of the {@link Sort} {@link Method} parameter if available. Will return {@literal -1} if there is
 	 * no {@link Sort} argument in the {@link Method}'s parameter list.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getSortIndex() {
@@ -159,7 +189,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns whether the method the {@link Parameters} was created for contains a {@link Sort} argument.
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean hasSortParameter() {
@@ -169,7 +199,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 	/**
 	 * Returns the index of the parameter that represents the dynamic projection type. Will return {@literal -1} if no
 	 * such parameter exists.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getDynamicProjectionIndex() {
@@ -178,7 +208,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns whether a parameter expressing a dynamic projection exists.
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean hasDynamicProjection() {
@@ -187,7 +217,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns whether we potentially find a {@link Sort} parameter in the parameters.
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean potentiallySortsDynamically() {
@@ -196,7 +226,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns the parameter with the given index.
-	 * 
+	 *
 	 * @param index
 	 * @return
 	 */
@@ -206,13 +236,13 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 			return parameters.get(index);
 		} catch (IndexOutOfBoundsException e) {
 			throw new ParameterOutOfBoundsException(
-					"Invalid parameter index! You seem to have declare too little query method parameters!", e);
+					"Invalid parameter index! You seem to have declared too little query method parameters!", e);
 		}
 	}
 
 	/**
 	 * Returns whether we have a parameter at the given position.
-	 * 
+	 *
 	 * @param position
 	 * @return
 	 */
@@ -227,7 +257,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns whether the method signature contains one of the special parameters ({@link Pageable}, {@link Sort}).
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean hasSpecialParameter() {
@@ -236,7 +266,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns the number of parameters.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getNumberOfParameters() {
@@ -245,23 +275,13 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns a {@link Parameters} instance with effectively all special parameters removed.
-	 * 
+	 *
 	 * @return
 	 * @see Parameter#TYPES
 	 * @see Parameter#isSpecialParameter()
 	 */
 	public S getBindableParameters() {
-
-		List<T> bindables = new ArrayList<>();
-
-		for (T candidate : this) {
-
-			if (candidate.isBindable()) {
-				bindables.add(candidate);
-			}
-		}
-
-		return createFrom(bindables);
+		return this.bindable.get();
 	}
 
 	protected abstract S createFrom(List<T> parameters);
@@ -270,7 +290,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 	 * Returns a bindable parameter with the given index. So for a method with a signature of
 	 * {@code (Pageable pageable, String name)} a call to {@code #getBindableParameter(0)} will return the {@link String}
 	 * parameter.
-	 * 
+	 *
 	 * @param bindableIndex
 	 * @return
 	 */
@@ -281,7 +301,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 	/**
 	 * Asserts that either all of the non special parameters ({@link Pageable}, {@link Sort}) are annotated with
 	 * {@link Param} or none of them is.
-	 * 
+	 *
 	 * @param method
 	 */
 	private void assertEitherAllParamAnnotatedOrNone() {
@@ -304,7 +324,7 @@ public abstract class Parameters<S extends Parameters<S, T>, T extends Parameter
 
 	/**
 	 * Returns whether the given type is a bindable parameter.
-	 * 
+	 *
 	 * @param type
 	 * @return
 	 */

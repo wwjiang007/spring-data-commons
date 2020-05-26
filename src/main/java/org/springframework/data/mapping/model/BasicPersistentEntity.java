@@ -1,11 +1,11 @@
 /*
- * Copyright 2011-2017 by the original author(s).
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,41 +15,37 @@
  */
 package org.springframework.data.mapping.model;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.data.annotation.Immutable;
 import org.springframework.data.annotation.TypeAlias;
-import org.springframework.data.mapping.Alias;
-import org.springframework.data.mapping.Association;
-import org.springframework.data.mapping.AssociationHandler;
-import org.springframework.data.mapping.IdentifierAccessor;
-import org.springframework.data.mapping.PersistentEntity;
-import org.springframework.data.mapping.PersistentProperty;
-import org.springframework.data.mapping.PersistentPropertyAccessor;
-import org.springframework.data.mapping.PreferredConstructor;
-import org.springframework.data.mapping.PropertyHandler;
-import org.springframework.data.mapping.SimpleAssociationHandler;
-import org.springframework.data.mapping.SimplePropertyHandler;
-import org.springframework.data.mapping.TargetAwareIdentifierAccessor;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.mapping.*;
+import org.springframework.data.spel.EvaluationContextProvider;
+import org.springframework.data.support.IsNewStrategy;
+import org.springframework.data.support.PersistableIsNewStrategy;
 import org.springframework.data.util.Lazy;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ConcurrentReferenceHashMap;
+import org.springframework.util.ConcurrentReferenceHashMap.ReferenceType;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
 /**
@@ -64,24 +60,28 @@ import org.springframework.util.StringUtils;
  */
 public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implements MutablePersistentEntity<T, P> {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(BasicPersistentEntity.class);
 	private static final String TYPE_MISMATCH = "Target bean of type %s is not of type of the persistent entity (%s)!";
-	private static final String NULL_ASSOCIATION = "%s.addAssociation(…) was called with a null association! Usually indicates a problem in a Spring Data MappingContext implementation. Be sure to file a bug at https://jira.spring.io!";
 
-	private final Optional<PreferredConstructor<T, P>> constructor;
+	private final @Nullable PreferredConstructor<T, P> constructor;
 	private final TypeInformation<T> information;
 	private final List<P> properties;
-	private final Optional<Comparator<P>> comparator;
+	private final List<P> persistentPropertiesCache;
+	private final @Nullable Comparator<P> comparator;
 	private final Set<Association<P>> associations;
 
 	private final Map<String, P> propertyCache;
 	private final Map<Class<? extends Annotation>, Optional<Annotation>> annotationCache;
+	private final MultiValueMap<Class<? extends Annotation>, P> propertyAnnotationCache;
 
-	private Optional<P> idProperty = Optional.empty();
-	private Optional<P> versionProperty = Optional.empty();
+	private @Nullable P idProperty;
+	private @Nullable P versionProperty;
 	private PersistentPropertyAccessorFactory propertyAccessorFactory;
+	private EvaluationContextProvider evaluationContextProvider = EvaluationContextProvider.DEFAULT;
 
 	private final Lazy<Alias> typeAlias;
+	private final Lazy<IsNewStrategy> isNewStrategy;
+	private final Lazy<Boolean> isImmutable;
+	private final Lazy<Boolean> requiresPropertyPopulation;
 
 	/**
 	 * Creates a new {@link BasicPersistentEntity} from the given {@link TypeInformation}.
@@ -89,7 +89,7 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @param information must not be {@literal null}.
 	 */
 	public BasicPersistentEntity(TypeInformation<T> information) {
-		this(information, Optional.empty());
+		this(information, null);
 	}
 
 	/**
@@ -100,32 +100,38 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @param information must not be {@literal null}.
 	 * @param comparator can be {@literal null}.
 	 */
-	public BasicPersistentEntity(TypeInformation<T> information, Optional<Comparator<P>> comparator) {
+	public BasicPersistentEntity(TypeInformation<T> information, @Nullable Comparator<P> comparator) {
 
 		Assert.notNull(information, "Information must not be null!");
 
 		this.information = information;
 		this.properties = new ArrayList<>();
+		this.persistentPropertiesCache = new ArrayList<>();
 		this.comparator = comparator;
-		this.constructor = new PreferredConstructorDiscoverer<>(this).getConstructor();
-		this.associations = comparator.<Set<Association<P>>> map(it -> new TreeSet<>(new AssociationComparator<>(it)))
-				.orElseGet(HashSet::new);
+		this.constructor = PreferredConstructorDiscoverer.discover(this);
+		this.associations = comparator == null ? new HashSet<>() : new TreeSet<>(new AssociationComparator<>(comparator));
 
-		this.propertyCache = new HashMap<>();
-		this.annotationCache = new HashMap<>();
+		this.propertyCache = new HashMap<>(16, 1f);
+		this.annotationCache = new ConcurrentReferenceHashMap<>(16, ReferenceType.WEAK);
+		this.propertyAnnotationCache = CollectionUtils
+				.toMultiValueMap(new ConcurrentReferenceHashMap<>(16, ReferenceType.WEAK));
 		this.propertyAccessorFactory = BeanWrapperPropertyAccessorFactory.INSTANCE;
+		this.typeAlias = Lazy.of(() -> getAliasFromAnnotation(getType()));
+		this.isNewStrategy = Lazy.of(() -> Persistable.class.isAssignableFrom(information.getType()) //
+				? PersistableIsNewStrategy.INSTANCE
+				: getFallbackIsNewStrategy());
 
-		this.typeAlias = Lazy.of(() -> Alias
-				.ofOptional(Optional.ofNullable(AnnotatedElementUtils.findMergedAnnotation(getType(), TypeAlias.class))//
-						.map(TypeAlias::value)//
-						.filter(StringUtils::hasText)));
+		this.isImmutable = Lazy.of(() -> isAnnotationPresent(Immutable.class));
+		this.requiresPropertyPopulation = Lazy.of(() -> !isImmutable() && properties.stream() //
+				.anyMatch(it -> !(isConstructorArgument(it) || it.isTransient())));
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentEntity#getPersistenceConstructor()
 	 */
-	public Optional<PreferredConstructor<T, P>> getPersistenceConstructor() {
+	@Nullable
+	public PreferredConstructor<T, P> getPersistenceConstructor() {
 		return constructor;
 	}
 
@@ -134,7 +140,7 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @see org.springframework.data.mapping.PersistentEntity#isConstructorArgument(org.springframework.data.mapping.PersistentProperty)
 	 */
 	public boolean isConstructorArgument(PersistentProperty<?> property) {
-		return constructor.map(it -> it.isConstructorParameter(property)).orElse(false);
+		return constructor != null && constructor.isConstructorParameter(property);
 	}
 
 	/*
@@ -142,7 +148,7 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @see org.springframework.data.mapping.PersistentEntity#isIdProperty(org.springframework.data.mapping.PersistentProperty)
 	 */
 	public boolean isIdProperty(PersistentProperty<?> property) {
-		return this.idProperty.map(it -> it.equals(property)).orElse(false);
+		return idProperty != null && idProperty.equals(property);
 	}
 
 	/*
@@ -150,7 +156,7 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @see org.springframework.data.mapping.PersistentEntity#isVersionProperty(org.springframework.data.mapping.PersistentProperty)
 	 */
 	public boolean isVersionProperty(PersistentProperty<?> property) {
-		return this.versionProperty.map(it -> it.equals(property)).orElse(false);
+		return versionProperty != null && versionProperty.equals(property);
 	}
 
 	/*
@@ -165,7 +171,8 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentEntity#getIdProperty()
 	 */
-	public Optional<P> getIdProperty() {
+	@Nullable
+	public P getIdProperty() {
 		return idProperty;
 	}
 
@@ -173,7 +180,8 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentEntity#getVersionProperty()
 	 */
-	public Optional<P> getVersionProperty() {
+	@Nullable
+	public P getVersionProperty() {
 		return versionProperty;
 	}
 
@@ -182,7 +190,7 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @see org.springframework.data.mapping.PersistentEntity#hasIdProperty()
 	 */
 	public boolean hasIdProperty() {
-		return idProperty.isPresent();
+		return idProperty != null;
 	}
 
 	/*
@@ -190,12 +198,12 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @see org.springframework.data.mapping.PersistentEntity#hasVersionProperty()
 	 */
 	public boolean hasVersionProperty() {
-		return versionProperty.isPresent();
+		return versionProperty != null;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.MutablePersistentEntity#addPersistentProperty(P)
+	 * @see org.springframework.data.mapping.model.MutablePersistentEntity#addPersistentProperty(P)
 	 */
 	public void addPersistentProperty(P property) {
 
@@ -207,27 +215,42 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 
 		properties.add(property);
 
-		if (!propertyCache.containsKey(property.getName())) {
-			propertyCache.put(property.getName(), property);
+		if (!property.isTransient() && !property.isAssociation()) {
+			persistentPropertiesCache.add(property);
 		}
+
+		propertyCache.computeIfAbsent(property.getName(), key -> property);
 
 		P candidate = returnPropertyIfBetterIdPropertyCandidateOrNull(property);
 
 		if (candidate != null) {
-			this.idProperty = Optional.of(candidate);
+			this.idProperty = candidate;
 		}
 
 		if (property.isVersionProperty()) {
 
-			this.versionProperty.ifPresent(it -> {
+			P versionProperty = this.versionProperty;
+
+			if (versionProperty != null) {
 
 				throw new MappingException(
-						String.format("Attempt to add version property %s but already have property %s registered "
-								+ "as version. Check your mapping configuration!", property.getField(), it.getField()));
-			});
+						String.format(
+								"Attempt to add version property %s but already have property %s registered "
+										+ "as version. Check your mapping configuration!",
+								property.getField(), versionProperty.getField()));
+			}
 
-			this.versionProperty = Optional.of(property);
+			this.versionProperty = property;
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.model.MutablePersistentEntity#setEvaluationContextProvider(org.springframework.data.spel.EvaluationContextProvider)
+	 */
+	@Override
+	public void setEvaluationContextProvider(EvaluationContextProvider provider) {
+		this.evaluationContextProvider = provider;
 	}
 
 	/**
@@ -236,60 +259,68 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @param property the new id property candidate, will never be {@literal null}.
 	 * @return the given id property or {@literal null} if the given property is not an id property.
 	 */
+	@Nullable
 	protected P returnPropertyIfBetterIdPropertyCandidateOrNull(P property) {
 
 		if (!property.isIdProperty()) {
 			return null;
 		}
 
-		this.idProperty.ifPresent(it -> {
+		P idProperty = this.idProperty;
+
+		if (idProperty != null) {
 			throw new MappingException(String.format("Attempt to add id property %s but already have property %s registered "
-					+ "as id. Check your mapping configuration!", property.getField(), it.getField()));
-		});
+					+ "as id. Check your mapping configuration!", property.getField(), idProperty.getField()));
+		}
 
 		return property;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.MutablePersistentEntity#addAssociation(org.springframework.data.mapping.model.Association)
+	 * @see org.springframework.data.mapping.model.MutablePersistentEntity#addAssociation(org.springframework.data.mapping.model.Association)
 	 */
 	public void addAssociation(Association<P> association) {
 
 		Assert.notNull(association, "Association must not be null!");
 
-		if (!associations.contains(association)) {
-			associations.add(association);
-		}
+		associations.add(association);
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.mapping.PersistentEntity#getPersistentProperty(java.lang.String)
 	 */
-	public Optional<P> getPersistentProperty(String name) {
-		return Optional.ofNullable(propertyCache.get(name));
+	@Override
+	@Nullable
+	public P getPersistentProperty(String name) {
+		return propertyCache.get(name);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.PersistentEntity#getPersistentProperty(java.lang.Class)
+	 * @see org.springframework.data.mapping.PersistentEntity#getPersistentProperties(java.lang.String)
 	 */
 	@Override
-	public Optional<P> getPersistentProperty(Class<? extends Annotation> annotationType) {
+	public Iterable<P> getPersistentProperties(Class<? extends Annotation> annotationType) {
 
 		Assert.notNull(annotationType, "Annotation type must not be null!");
+		return propertyAnnotationCache.computeIfAbsent(annotationType, this::doFindPersistentProperty);
+	}
 
-		Optional<P> property = properties.stream()//
-				.filter(it -> it.isAnnotationPresent(annotationType))//
-				.findAny();
+	private List<P> doFindPersistentProperty(Class<? extends Annotation> annotationType) {
 
-		if (property.isPresent()) {
-			return property;
+		List<P> annotatedProperties = properties.stream() //
+				.filter(it -> it.isAnnotationPresent(annotationType)) //
+				.collect(Collectors.toList());
+
+		if (!annotatedProperties.isEmpty()) {
+			return annotatedProperties;
 		}
 
-		return associations.stream().map(Association::getInverse)//
-				.filter(it -> it.isAnnotationPresent(annotationType)).findAny();
+		return associations.stream() //
+				.map(Association::getInverse) //
+				.filter(it -> it.isAnnotationPresent(annotationType)).collect(Collectors.toList());
 	}
 
 	/*
@@ -324,7 +355,9 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 
 		Assert.notNull(handler, "PropertyHandler must not be null!");
 
-		getPersistentProperties().forEach(handler::doWithPersistentProperty);
+		for (P property : persistentPropertiesCache) {
+			handler.doWithPersistentProperty(property);
+		}
 	}
 
 	/*
@@ -336,18 +369,9 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 
 		Assert.notNull(handler, "Handler must not be null!");
 
-		getPersistentProperties().forEach(handler::doWithPersistentProperty);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.PersistentEntity#getPersistentProperties()
-	 */
-	@Override
-	public Stream<P> getPersistentProperties() {
-
-		return properties.stream()//
-				.filter(it -> !it.isTransient() && !it.isAssociation());
+		for (PersistentProperty<?> property : persistentPropertiesCache) {
+			handler.doWithPersistentProperty(property);
+		}
 	}
 
 	/*
@@ -378,20 +402,25 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.PersistentEntity#getAssociations()
+	 * @see org.springframework.data.mapping.PersistentEntity#findAnnotation(java.lang.Class)
 	 */
+	@Nullable
 	@Override
-	public Stream<Association<P>> getAssociations() {
-		return associations.stream();
+	public <A extends Annotation> A findAnnotation(Class<A> annotationType) {
+		return doFindAnnotation(annotationType).orElse(null);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.PersistentEntity#findAnnotation(java.lang.Class)
+	 * @see org.springframework.data.mapping.PersistentEntity#isAnnotationPresent(java.lang.Class)
 	 */
 	@Override
+	public <A extends Annotation> boolean isAnnotationPresent(Class<A> annotationType) {
+		return doFindAnnotation(annotationType).isPresent();
+	}
+
 	@SuppressWarnings("unchecked")
-	public <A extends Annotation> Optional<A> findAnnotation(Class<A> annotationType) {
+	private <A extends Annotation> Optional<A> doFindAnnotation(Class<A> annotationType) {
 
 		return (Optional<A>) annotationCache.computeIfAbsent(annotationType,
 				it -> Optional.ofNullable(AnnotatedElementUtils.findMergedAnnotation(getType(), it)));
@@ -399,10 +428,14 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mapping.MutablePersistentEntity#verify()
+	 * @see org.springframework.data.mapping.model.MutablePersistentEntity#verify()
 	 */
 	public void verify() {
-		comparator.ifPresent(it -> properties.sort(it));
+
+		if (comparator != null) {
+			properties.sort(comparator);
+			persistentPropertiesCache.sort(comparator);
+		}
 	}
 
 	/*
@@ -419,13 +452,20 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 * @see org.springframework.data.mapping.PersistentEntity#getPropertyAccessor(java.lang.Object)
 	 */
 	@Override
-	public PersistentPropertyAccessor getPropertyAccessor(Object bean) {
+	public <B> PersistentPropertyAccessor<B> getPropertyAccessor(B bean) {
 
-		Assert.notNull(bean, "Target bean must not be null!");
-		Assert.isTrue(getType().isInstance(bean),
-				() -> String.format(TYPE_MISMATCH, bean.getClass().getName(), getType().getName()));
+		verifyBeanType(bean);
 
 		return propertyAccessorFactory.getPropertyAccessor(this, bean);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.PersistentEntity#getPropertyPathAccessor(java.lang.Object)
+	 */
+	@Override
+	public <B> PersistentPropertyPathAccessor<B> getPropertyPathAccessor(B bean) {
+		return new SimplePersistentPropertyPathAccessor<>(getPropertyAccessor(bean));
 	}
 
 	/*
@@ -435,11 +475,110 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	@Override
 	public IdentifierAccessor getIdentifierAccessor(Object bean) {
 
-		Assert.notNull(bean, "Target bean must not be null!");
-		Assert.isTrue(getType().isInstance(bean),
-				() -> String.format(TYPE_MISMATCH, bean.getClass().getName(), getType().getName()));
+		verifyBeanType(bean);
+
+		if (Persistable.class.isAssignableFrom(getType())) {
+			return new PersistableIdentifierAccessor((Persistable<?>) bean);
+		}
 
 		return hasIdProperty() ? new IdPropertyIdentifierAccessor(this, bean) : new AbsentIdentifierAccessor(bean);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.PersistentEntity#isNew(java.lang.Object)
+	 */
+	@Override
+	public boolean isNew(Object bean) {
+
+		verifyBeanType(bean);
+
+		return isNewStrategy.get().isNew(bean);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.PersistentEntity#isImmutable()
+	 */
+	@Override
+	public boolean isImmutable() {
+		return isImmutable.get();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mapping.PersistentEntity#requiresPropertyPopulation()
+	 */
+	@Override
+	public boolean requiresPropertyPopulation() {
+		return requiresPropertyPopulation.get();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Iterable#iterator()
+	 */
+	@Override
+	public Iterator<P> iterator() {
+
+		Iterator<P> iterator = properties.iterator();
+
+		return new Iterator<P>() {
+
+			@Override
+			public boolean hasNext() {
+				return iterator.hasNext();
+			}
+
+			@Override
+			public P next() {
+				return iterator.next();
+			}
+		};
+	}
+
+	protected EvaluationContext getEvaluationContext(Object rootObject) {
+		return evaluationContextProvider.getEvaluationContext(rootObject);
+	}
+
+	/**
+	 * Returns the default {@link IsNewStrategy} to be used. Will be a {@link PersistentEntityIsNewStrategy} by default.
+	 * Note, that this strategy only gets used if the entity doesn't implement {@link Persistable} as this indicates the
+	 * user wants to be in control over whether an entity is new or not.
+	 *
+	 * @return
+	 * @since 2.1
+	 */
+	protected IsNewStrategy getFallbackIsNewStrategy() {
+		return PersistentEntityIsNewStrategy.of(this);
+	}
+
+	/**
+	 * Verifies the given bean type to no be {@literal null} and of the type of the current {@link PersistentEntity}.
+	 *
+	 * @param bean must not be {@literal null}.
+	 */
+	private void verifyBeanType(Object bean) {
+
+		Assert.notNull(bean, "Target bean must not be null!");
+		Assert.isInstanceOf(getType(), bean,
+				() -> String.format(TYPE_MISMATCH, bean.getClass().getName(), getType().getName()));
+	}
+
+	/**
+	 * Calculates the {@link Alias} to be used for the given type.
+	 *
+	 * @param type must not be {@literal null}.
+	 * @return
+	 */
+	private static Alias getAliasFromAnnotation(Class<?> type) {
+
+		Optional<String> typeAliasValue = Optional
+				.ofNullable(AnnotatedElementUtils.findMergedAnnotation(type, TypeAlias.class))//
+				.map(TypeAlias::value)//
+				.filter(StringUtils::hasText);
+
+		return Alias.ofNullable(typeAliasValue.orElse(null));
 	}
 
 	/**
@@ -451,7 +590,7 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	private static class AbsentIdentifierAccessor extends TargetAwareIdentifierAccessor {
 
 		public AbsentIdentifierAccessor(Object target) {
-			super(() -> target);
+			super(target);
 		}
 
 		/*
@@ -459,8 +598,9 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 		 * @see org.springframework.data.mapping.IdentifierAccessor#getIdentifier()
 		 */
 		@Override
-		public Optional<Object> getIdentifier() {
-			return Optional.empty();
+		@Nullable
+		public Object getIdentifier() {
+			return null;
 		}
 	}
 
@@ -469,18 +609,30 @@ public class BasicPersistentEntity<T, P extends PersistentProperty<P>> implement
 	 *
 	 * @author Oliver Gierke
 	 */
-	@RequiredArgsConstructor
 	private static final class AssociationComparator<P extends PersistentProperty<P>>
 			implements Comparator<Association<P>>, Serializable {
 
 		private static final long serialVersionUID = 4508054194886854513L;
-		private final @NonNull Comparator<P> delegate;
+		private final Comparator<P> delegate;
+
+		AssociationComparator(Comparator<P> delegate) {
+			this.delegate = delegate;
+		}
 
 		/*
 		 * (non-Javadoc)
 		 * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
 		 */
-		public int compare(Association<P> left, Association<P> right) {
+		public int compare(@Nullable Association<P> left, @Nullable Association<P> right) {
+
+			if (left == null) {
+				throw new IllegalArgumentException("Left argument must not be null!");
+			}
+
+			if (right == null) {
+				throw new IllegalArgumentException("Right argument must not be null!");
+			}
+
 			return delegate.compare(left.getInverse(), right.getInverse());
 		}
 	}

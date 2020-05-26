@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,8 @@ import static org.springframework.data.querydsl.QQSortUnitTests_WrapperToWrapWra
 
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.domain.Sort.Order;
@@ -34,20 +35,20 @@ import com.querydsl.core.types.dsl.StringPath;
 
 /**
  * Unit tests for {@link QSort}.
- * 
+ *
  * @author Thomas Darimont
  * @author Oliver Gierke
  * @author Christoph Strobl
  */
-public class QSortUnitTests {
+class QSortUnitTests {
 
-	@Test(expected = IllegalArgumentException.class) // DATACMNS-402
-	public void shouldThrowIfNullIsGiven() {
-		new QSort((List<OrderSpecifier<?>>) null);
+	@Test // DATACMNS-402
+	void shouldThrowIfNullIsGiven() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new QSort((List<OrderSpecifier<?>>) null));
 	}
 
 	@Test // DATACMNS-402
-	public void sortBySingleProperty() {
+	void sortBySingleProperty() {
 
 		QUser user = QUser.user;
 		QSort qsort = new QSort(user.firstname.asc());
@@ -58,7 +59,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-402
-	public void sortByMultiplyProperties() {
+	void sortByMultiplyProperties() {
 
 		QUser user = QUser.user;
 		QSort qsort = new QSort(user.firstname.asc(), user.lastname.desc());
@@ -71,7 +72,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-402
-	public void sortByMultiplyPropertiesWithAnd() {
+	void sortByMultiplyPropertiesWithAnd() {
 
 		QUser user = QUser.user;
 		QSort qsort = new QSort(user.firstname.asc()).and(new QSort(user.lastname.desc()));
@@ -84,7 +85,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-402
-	public void sortByMultiplyPropertiesWithAndAndVarArgs() {
+	void sortByMultiplyPropertiesWithAndAndVarArgs() {
 
 		QUser user = QUser.user;
 		QSort qsort = new QSort(user.firstname.asc()).and(user.lastname.desc());
@@ -97,7 +98,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-402
-	public void ensureInteroperabilityWithSort() {
+	void ensureInteroperabilityWithSort() {
 
 		QUser user = QUser.user;
 		QSort qsort = new QSort(user.firstname.asc(), user.lastname.desc());
@@ -109,7 +110,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-402
-	public void concatenatesPlainSortCorrectly() {
+	void concatenatesPlainSortCorrectly() {
 
 		QUser user = QUser.user;
 		QSort sort = new QSort(user.firstname.asc());
@@ -120,7 +121,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-566
-	public void shouldSupportSortByOperatorExpressions() {
+	void shouldSupportSortByOperatorExpressions() {
 
 		QUser user = QUser.user;
 		QSort sort = new QSort(user.dateOfBirth.yearMonth().asc());
@@ -132,7 +133,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-621
-	public void shouldCreateSortForNestedPathCorrectly() {
+	void shouldCreateSortForNestedPathCorrectly() {
 
 		QSort sort = new QSort(userWrapper.user.firstname.asc());
 
@@ -140,7 +141,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-621
-	public void shouldCreateSortForDeepNestedPathCorrectly() {
+	void shouldCreateSortForDeepNestedPathCorrectly() {
 
 		QSort sort = new QSort(wrapperForUserWrapper.wrapper.user.firstname.asc());
 
@@ -148,7 +149,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-621
-	public void shouldCreateSortForReallyDeepNestedPathCorrectly() {
+	void shouldCreateSortForReallyDeepNestedPathCorrectly() {
 
 		QSort sort = new QSort(wrapperToWrapWrapperForUserWrapper.wrapperForUserWrapper.wrapper.user.firstname.asc());
 
@@ -156,7 +157,7 @@ public class QSortUnitTests {
 	}
 
 	@Test // DATACMNS-755
-	public void handlesPlainStringPathsCorrectly() {
+	void handlesPlainStringPathsCorrectly() {
 
 		StringPath path = new PathBuilderFactory().create(User.class).getString("firstname");
 

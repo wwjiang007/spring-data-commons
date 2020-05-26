@@ -1,11 +1,11 @@
 /*
- * Copyright 2011 the original author or authors.
+ * Copyright 2011-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,35 +15,39 @@
  */
 package org.springframework.data.repository.cdi;
 
-import org.apache.webbeans.cditest.CdiTestContainer;
-import org.apache.webbeans.cditest.CdiTestContainerLoader;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import javax.enterprise.inject.se.SeContainer;
+import javax.enterprise.inject.se.SeContainerInitializer;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 /**
  * CDI extension integration test using OpenWebbeans.
- * 
+ *
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
-public class WebbeansCdiRepositoryExtensionSupportIntegrationTests extends
-		CdiRepositoryExtensionSupportIntegrationTests {
+class WebbeansCdiRepositoryExtensionSupportIntegrationTests
+		extends CdiRepositoryExtensionSupportIntegrationTests {
 
-	static CdiTestContainer container;
+	private static SeContainer container;
 
-	@BeforeClass
-	public static void setUp() throws Exception {
+	@BeforeAll
+	static void setUp() {
 
-		container = CdiTestContainerLoader.getCdiContainer();
-		container.bootContainer();
+		container = SeContainerInitializer.newInstance() //
+				.disableDiscovery() //
+				.addPackages(SampleRepository.class) //
+				.initialize();
 	}
 
 	@Override
 	protected <T> T getBean(Class<T> type) {
-		return container.getInstance(type);
+		return container.select(type).get();
 	}
 
-	@AfterClass
-	public static void tearDown() throws Exception {
-		container.shutdownContainer();
+	@AfterAll
+	static void tearDown() {
+		container.close();
 	}
 }

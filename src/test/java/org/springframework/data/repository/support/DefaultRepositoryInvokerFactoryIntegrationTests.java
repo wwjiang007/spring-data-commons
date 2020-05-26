@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,42 +20,36 @@ import static org.mockito.Mockito.*;
 
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.sample.Product;
 import org.springframework.data.repository.sample.ProductRepository;
 import org.springframework.data.repository.sample.SampleConfiguration;
 import org.springframework.data.repository.sample.User;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 /**
  * Integration tests for {@link DefaultRepositoryInvokerFactory}.
- * 
+ *
  * @author Oliver Gierke
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = SampleConfiguration.class)
-public class DefaultRepositoryInvokerFactoryIntegrationTests {
+@SpringJUnitConfig(classes = SampleConfiguration.class)
+class DefaultRepositoryInvokerFactoryIntegrationTests {
 
 	@Autowired ProductRepository productRepository;
 	@Autowired Repositories repositories;
 
 	RepositoryInvokerFactory factory;
 
-	@Rule public ExpectedException exception = ExpectedException.none();
-
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		this.factory = new DefaultRepositoryInvokerFactory(repositories);
 	}
 
 	@Test // DATACMNS-410, DATACMNS-589
-	public void findOneShouldDelegateToAppropriateRepository() {
+	void findOneShouldDelegateToAppropriateRepository() {
 
 		// Mockito.reset(productRepository);
 		Product product = new Product();
@@ -67,17 +61,16 @@ public class DefaultRepositoryInvokerFactoryIntegrationTests {
 	}
 
 	@Test // DATACMNS-374, DATACMNS-589
-	public void shouldThrowMeaningfulExceptionWhenTheRepositoryForAGivenDomainClassCannotBeFound() {
+	void shouldThrowMeaningfulExceptionWhenTheRepositoryForAGivenDomainClassCannotBeFound() {
 
-		exception.expect(IllegalArgumentException.class);
-		exception.expectMessage("No repository found for domain type: ");
-		exception.expectMessage(Object.class.getName());
-
-		factory.getInvokerFor(Object.class);
+		assertThatIllegalArgumentException() //
+				.isThrownBy(() -> factory.getInvokerFor(Object.class)) //
+				.withMessageContaining("No repository found for domain type: ") //
+				.withMessageContaining(Object.class.getName());
 	}
 
 	@Test // DATACMNS-589
-	public void returnsSameInvokerInstanceForSubsequentCalls() {
+	void returnsSameInvokerInstanceForSubsequentCalls() {
 
 		RepositoryInvoker invoker = factory.getInvokerFor(Product.class);
 
@@ -85,7 +78,7 @@ public class DefaultRepositoryInvokerFactoryIntegrationTests {
 	}
 
 	@Test // DATACMNS-589
-	public void createsReflectionRepositoryInvokerForRepositoryNotExtendingADedicatedBaseRepository() {
+	void createsReflectionRepositoryInvokerForRepositoryNotExtendingADedicatedBaseRepository() {
 
 		RepositoryInvoker invoker = factory.getInvokerFor(Product.class);
 
@@ -95,7 +88,7 @@ public class DefaultRepositoryInvokerFactoryIntegrationTests {
 	}
 
 	@Test // DATACMNS-589
-	public void createsCrudRepositoryInvokerForRepositoryExtendingCrudRepository() {
+	void createsCrudRepositoryInvokerForRepositoryExtendingCrudRepository() {
 
 		RepositoryInvoker invoker = factory.getInvokerFor(User.class);
 

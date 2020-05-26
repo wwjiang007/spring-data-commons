@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,13 +27,14 @@ import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Metric;
 import org.springframework.data.geo.Metrics;
 import org.springframework.format.Formatter;
+import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /**
  * Converter to create {@link Distance} instances from {@link String} representations. The supported format is a decimal
  * followed by whitespace and a metric abbreviation. We currently support the following abbreviations:
  * {@value #SUPPORTED_METRICS}.
- * 
+ *
  * @author Oliver Gierke
  * @author Christoph Strobl
  */
@@ -56,10 +57,11 @@ public enum DistanceFormatter implements Converter<String, Distance>, Formatter<
 		SUPPORTED_METRICS = Collections.unmodifiableMap(metrics);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
 	 */
+	@Nullable
 	@Override
 	public final Distance convert(String source) {
 		return source == null ? null : doConvert(source.trim().toLowerCase(Locale.US));
@@ -80,13 +82,13 @@ public enum DistanceFormatter implements Converter<String, Distance>, Formatter<
 	 */
 	@Override
 	public Distance parse(String text, Locale locale) throws ParseException {
-		return !StringUtils.hasText(text) ? null : doConvert(text.trim().toLowerCase(locale));
+		return doConvert(text.trim().toLowerCase(locale));
 	}
 
 	/**
 	 * Converts the given {@link String} source into a distance. Expects the source to reflect the {@link Metric} as held
 	 * in the {@link #SUPPORTED_METRICS} map.
-	 * 
+	 *
 	 * @param source must not be {@literal null}.
 	 * @return
 	 */
@@ -108,7 +110,7 @@ public enum DistanceFormatter implements Converter<String, Distance>, Formatter<
 
 	/**
 	 * Creates a {@link Distance} from the given source String and the {@link Metric} detected.
-	 * 
+	 *
 	 * @param source the raw source {@link String}, must not be {@literal null} or empty.
 	 * @param metric the {@link Metric} detected keyed by the keyword it was detected for, must not be {@literal null}.
 	 * @return

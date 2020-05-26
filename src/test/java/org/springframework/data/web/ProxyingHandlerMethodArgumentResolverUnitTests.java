@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 the original author or authors.
+ * Copyright 2017-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,14 +20,14 @@ import static org.assertj.core.api.Assertions.*;
 import java.lang.reflect.Method;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.web.ProjectingJackson2HttpMessageConverterUnitTests.SampleInterface;
 
 /**
  * Unit tests for {@link ProxyingHandlerMethodArgumentResolver}.
- * 
+ *
  * @author Oliver Gierke
  * @soundtrack Karlijn Langendijk & Sönke Meinen - Englishman In New York (Sting,
  *             https://www.youtube.com/watch?v=O7LZsqrnaaA)
@@ -35,10 +35,10 @@ import org.springframework.data.web.ProjectingJackson2HttpMessageConverterUnitTe
 public class ProxyingHandlerMethodArgumentResolverUnitTests {
 
 	ProxyingHandlerMethodArgumentResolver resolver = new ProxyingHandlerMethodArgumentResolver(
-			new DefaultConversionService());
+			() -> new DefaultConversionService(), true);
 
 	@Test // DATACMNS-776
-	public void supportAnnotatedInterface() throws Exception {
+	void supportAnnotatedInterface() throws Exception {
 
 		Method method = Controller.class.getMethod("with", AnnotatedInterface.class);
 		MethodParameter parameter = new MethodParameter(method, 0);
@@ -47,7 +47,7 @@ public class ProxyingHandlerMethodArgumentResolverUnitTests {
 	}
 
 	@Test // DATACMNS-776
-	public void supportsUnannotatedInterfaceFromUserPackage() throws Exception {
+	void supportsUnannotatedInterfaceFromUserPackage() throws Exception {
 
 		Method method = Controller.class.getMethod("with", SampleInterface.class);
 		MethodParameter parameter = new MethodParameter(method, 0);
@@ -56,7 +56,7 @@ public class ProxyingHandlerMethodArgumentResolverUnitTests {
 	}
 
 	@Test // DATACMNS-776
-	public void doesNotSupportUnannotatedInterfaceFromSpringNamespace() throws Exception {
+	void doesNotSupportUnannotatedInterfaceFromSpringNamespace() throws Exception {
 
 		Method method = Controller.class.getMethod("with", UnannotatedInterface.class);
 		MethodParameter parameter = new MethodParameter(method, 0);
@@ -65,7 +65,7 @@ public class ProxyingHandlerMethodArgumentResolverUnitTests {
 	}
 
 	@Test // DATACMNS-776
-	public void doesNotSupportCoreJavaType() throws Exception {
+	void doesNotSupportCoreJavaType() throws Exception {
 
 		Method method = Controller.class.getMethod("with", List.class);
 		MethodParameter parameter = new MethodParameter(method, 0);

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2015-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,33 +15,41 @@
  */
 package org.springframework.data.projection;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-
 import java.lang.reflect.Method;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+
+import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 
 /**
  * {@link MethodInterceptor} to support accessor methods to store and retrieve values from a {@link Map}.
- * 
+ *
  * @author Oliver Gierke
  * @since 1.10
  */
-@RequiredArgsConstructor
 class MapAccessingMethodInterceptor implements MethodInterceptor {
 
-	private final @NonNull Map<String, Object> map;
+	private final Map<String, Object> map;
+
+	MapAccessingMethodInterceptor(Map<String, Object> map) {
+
+		Assert.notNull(map, "Map must not be null");
+
+		this.map = map;
+	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see org.aopalliance.intercept.MethodInterceptor#invoke(org.aopalliance.intercept.MethodInvocation)
 	 */
+	@Nullable
 	@Override
-	public Object invoke(MethodInvocation invocation) throws Throwable {
+	public Object invoke(@SuppressWarnings("null") MethodInvocation invocation) throws Throwable {
 
 		Method method = invocation.getMethod();
 

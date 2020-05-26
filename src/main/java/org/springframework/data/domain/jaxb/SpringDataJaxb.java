@@ -1,11 +1,11 @@
 /*
- * Copyright 2012 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,13 +35,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.domain.Sort.Order;
-import org.springframework.hateoas.ResourceSupport;
+import org.springframework.hateoas.RepresentationModel;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
  * Helper class containing utility methods to implement JAXB {@link XmlAdapter}s as well as the DTO types to be
  * marshalled by JAXB.
- * 
+ *
  * @author Oliver Gierke
  */
 public abstract class SpringDataJaxb {
@@ -52,7 +53,7 @@ public abstract class SpringDataJaxb {
 
 	/**
 	 * The DTO for {@link Pageable}s/{@link PageRequest}s.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	@XmlRootElement(name = "page-request", namespace = NAMESPACE)
@@ -65,7 +66,7 @@ public abstract class SpringDataJaxb {
 
 	/**
 	 * The DTO for {@link Sort}.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	@XmlRootElement(name = "sort", namespace = NAMESPACE)
@@ -77,32 +78,32 @@ public abstract class SpringDataJaxb {
 
 	/**
 	 * The DTO for {@link Order}.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	@XmlRootElement(name = "order", namespace = NAMESPACE)
 	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class OrderDto {
 
-		@XmlAttribute String property;
-		@XmlAttribute Direction direction;
+		@Nullable @XmlAttribute String property;
+		@Nullable @XmlAttribute Direction direction;
 	}
 
 	/**
 	 * The DTO for {@link Page}.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	@XmlRootElement(name = "page", namespace = NAMESPACE)
 	@XmlAccessorType(XmlAccessType.FIELD)
-	public static class PageDto extends ResourceSupport {
+	public static class PageDto extends RepresentationModel {
 
-		@XmlAnyElement @XmlElementWrapper(name = "content") List<Object> content;
+		@Nullable @XmlAnyElement @XmlElementWrapper(name = "content") List<Object> content;
 	}
 
 	/**
 	 * Unmarshals each element of the given {@link Collection} using the given {@link XmlAdapter}.
-	 * 
+	 *
 	 * @param source
 	 * @param adapter must not be {@literal null}.
 	 * @return
@@ -130,13 +131,13 @@ public abstract class SpringDataJaxb {
 
 	/**
 	 * Marshals each of the elements of the given {@link Iterable} using the given {@link XmlAdapter}.
-	 * 
+	 *
 	 * @param source
 	 * @param adapter must not be {@literal null}.
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T, S> List<S> marshal(Iterable<T> source, XmlAdapter<S, T> adapter) {
+	public static <T, S> List<S> marshal(@Nullable Iterable<T> source, XmlAdapter<S, T> adapter) {
 
 		Assert.notNull(adapter, "Adapter must not be null!");
 

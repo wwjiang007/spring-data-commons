@@ -1,11 +1,11 @@
 /*
- * Copyright 2010-2015 the original author or authors.
+ * Copyright 2010-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,25 +18,35 @@ package org.springframework.data.geo;
 import java.io.Serializable;
 
 import org.springframework.data.domain.Range;
+import org.springframework.data.domain.Range.Bound;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Value object to represent distances in a given metric.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @since 1.8
  */
-public class Distance implements Serializable, Comparable<Distance> {
+public final class Distance implements Serializable, Comparable<Distance> {
 
 	private static final long serialVersionUID = 2460886201934027744L;
 
+	/**
+	 * The distance value in the current {@link Metric}.
+	 */
 	private final double value;
+
+	/**
+	 * The {@link Metric} of the {@link Distance}.
+	 */
 	private final Metric metric;
 
 	/**
 	 * Creates a new {@link Distance} with a neutral metric. This means the provided value needs to be in normalized form.
-	 * 
+	 *
 	 * @param value
 	 */
 	public Distance(double value) {
@@ -45,30 +55,32 @@ public class Distance implements Serializable, Comparable<Distance> {
 
 	/**
 	 * Creates a new {@link Distance} with the given {@link Metric}.
-	 * 
+	 *
 	 * @param value
-	 * @param metric can be {@literal null}.
+	 * @param metric must not be {@literal null}.
 	 */
 	public Distance(double value, Metric metric) {
 
+		Assert.notNull(metric, "Metric must not be null!");
+
 		this.value = value;
-		this.metric = metric == null ? Metrics.NEUTRAL : metric;
+		this.metric = metric;
 	}
 
 	/**
 	 * Creates a {@link Range} between the given {@link Distance}.
-	 * 
+	 *
 	 * @param min can be {@literal null}.
 	 * @param max can be {@literal null}.
 	 * @return will never be {@literal null}.
 	 */
 	public static Range<Distance> between(Distance min, Distance max) {
-		return new Range<>(min, max);
+		return Range.from(Bound.inclusive(min)).to(Bound.inclusive(max));
 	}
 
 	/**
 	 * Creates a new {@link Range} by creating minimum and maximum {@link Distance} from the given values.
-	 * 
+	 *
 	 * @param minValue
 	 * @param minMetric can be {@literal null}.
 	 * @param maxValue
@@ -80,17 +92,8 @@ public class Distance implements Serializable, Comparable<Distance> {
 	}
 
 	/**
-	 * Returns the distance value in the current {@link Metric}.
-	 * 
-	 * @return the value
-	 */
-	public double getValue() {
-		return value;
-	}
-
-	/**
 	 * Returns the normalized value regarding the underlying {@link Metric}.
-	 * 
+	 *
 	 * @return
 	 */
 	public double getNormalizedValue() {
@@ -98,17 +101,8 @@ public class Distance implements Serializable, Comparable<Distance> {
 	}
 
 	/**
-	 * Returns the {@link Metric} of the {@link Distance}.
-	 * 
-	 * @return the metric
-	 */
-	public Metric getMetric() {
-		return metric;
-	}
-
-	/**
 	 * Returns a {@link String} representation of the unit the distance is in.
-	 * 
+	 *
 	 * @return the unit
 	 * @see Metric#getAbbreviation()
 	 */
@@ -119,7 +113,7 @@ public class Distance implements Serializable, Comparable<Distance> {
 	/**
 	 * Adds the given distance to the current one. The resulting {@link Distance} will be in the same metric as the
 	 * current one.
-	 * 
+	 *
 	 * @param other must not be {@literal null}.
 	 * @return
 	 */
@@ -134,7 +128,7 @@ public class Distance implements Serializable, Comparable<Distance> {
 
 	/**
 	 * Adds the given {@link Distance} to the current one and forces the result to be in a given {@link Metric}.
-	 * 
+	 *
 	 * @param other must not be {@literal null}.
 	 * @param metric must not be {@literal null}.
 	 * @return
@@ -153,64 +147,35 @@ public class Distance implements Serializable, Comparable<Distance> {
 	/**
 	 * Returns a new {@link Distance} in the given {@link Metric}. This means that the returned instance will have the
 	 * same normalized value as the original instance.
-	 * 
+	 *
 	 * @param metric must not be {@literal null}.
 	 * @return
 	 */
 	public Distance in(Metric metric) {
 
 		Assert.notNull(metric, "Metric must not be null!");
+
 		return this.metric.equals(metric) ? this : new Distance(getNormalizedValue() * metric.getMultiplier(), metric);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
-	public int compareTo(Distance o) {
+	public int compareTo(@Nullable Distance that) {
 
-		double difference = this.getNormalizedValue() - o.getNormalizedValue();
+		if (that == null) {
+			return 1;
+		}
+
+		double difference = this.getNormalizedValue() - that.getNormalizedValue();
 
 		return difference == 0 ? 0 : difference > 0 ? 1 : -1;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-
-		if (this == obj) {
-			return true;
-		}
-
-		if (!(obj instanceof Distance)) {
-			return false;
-		}
-
-		Distance that = (Distance) obj;
-
-		return this.value == that.value && this.metric.equals(that.metric);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-
-		int result = 17;
-
-		result += 31 * Double.doubleToLongBits(value);
-		result += 31 * metric.hashCode();
-
-		return result;
-	}
-
-	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -224,5 +189,50 @@ public class Distance implements Serializable, Comparable<Distance> {
 		}
 
 		return builder.toString();
+	}
+
+	public double getValue() {
+		return this.value;
+	}
+
+	public Metric getMetric() {
+		return this.metric;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object o) {
+
+		if (this == o) {
+			return true;
+		}
+
+		if (!(o instanceof Distance)) {
+			return false;
+		}
+
+		Distance distance = (Distance) o;
+
+		if (value != distance.value) {
+			return false;
+		}
+		return ObjectUtils.nullSafeEquals(metric, distance.metric);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		int result;
+		long temp;
+		temp = Double.doubleToLongBits(value);
+		result = (int) (temp ^ (temp >>> 32));
+		result = 31 * result + ObjectUtils.nullSafeHashCode(metric);
+		return result;
 	}
 }

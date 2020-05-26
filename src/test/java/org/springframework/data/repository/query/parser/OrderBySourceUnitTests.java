@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2017 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,55 +19,54 @@ import static org.assertj.core.api.Assertions.*;
 
 import java.util.Optional;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 
 /**
  * Unit test for {@link OrderBySource}.
- * 
+ *
  * @author Oliver Gierke
  */
-public class OrderBySourceUnitTests {
+class OrderBySourceUnitTests {
 
 	@Test
-	public void handlesSingleDirectionAndPropertyCorrectly() throws Exception {
+	void handlesSingleDirectionAndPropertyCorrectly() {
 		assertThat(new OrderBySource("UsernameDesc").toSort()).isEqualTo(Sort.by("username").descending());
 	}
 
 	@Test
-	public void handlesCamelCasePropertyCorrecty() throws Exception {
+	void handlesCamelCasePropertyCorrecty() {
 		assertThat(new OrderBySource("LastnameUsernameDesc").toSort()).isEqualTo(Sort.by("lastnameUsername").descending());
 	}
 
 	@Test
-	public void handlesMultipleDirectionsCorrectly() throws Exception {
+	void handlesMultipleDirectionsCorrectly() {
 
 		OrderBySource orderBySource = new OrderBySource("LastnameAscUsernameDesc");
 		assertThat(orderBySource.toSort()).isEqualTo(Sort.by("lastname").ascending().and(Sort.by("username").descending()));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void rejectsMissingProperty() throws Exception {
-
-		new OrderBySource("Desc");
+	@Test
+	void rejectsMissingProperty() {
+		assertThatIllegalArgumentException().isThrownBy(() -> new OrderBySource("Desc"));
 	}
 
 	@Test
-	public void usesNestedPropertyCorrectly() throws Exception {
+	void usesNestedPropertyCorrectly() throws Exception {
 
 		OrderBySource source = new OrderBySource("BarNameDesc", Optional.of(Foo.class));
 		assertThat(source.toSort()).isEqualTo(Sort.by("bar.name").descending());
 	}
 
 	@Test // DATACMNS-641
-	public void defaultsSortOrderToAscendingSort() {
+	void defaultsSortOrderToAscendingSort() {
 
 		OrderBySource source = new OrderBySource("lastname");
 		assertThat(source.toSort()).isEqualTo(Sort.by("lastname"));
 	}
 
 	@Test
-	public void orderBySourceFromEmptyStringResultsInUnsorted() {
+	void orderBySourceFromEmptyStringResultsInUnsorted() {
 		assertThat(new OrderBySource("").toSort()).isEqualTo(Sort.unsorted());
 	}
 

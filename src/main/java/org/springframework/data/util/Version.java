@@ -1,11 +1,11 @@
 /*
- * Copyright 2013-2015 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,12 +18,13 @@ package org.springframework.data.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
  * Value object to represent a Version consisting of major, minor and bugfix part.
- * 
+ *
  * @author Oliver Gierke
  */
 public class Version implements Comparable<Version> {
@@ -37,13 +38,14 @@ public class Version implements Comparable<Version> {
 
 	/**
 	 * Creates a new {@link Version} from the given integer values. At least one value has to be given but a maximum of 4.
-	 * 
+	 *
 	 * @param parts must not be {@literal null} or empty.
 	 */
 	public Version(int... parts) {
 
 		Assert.notNull(parts, "Parts must not be null!");
-		Assert.isTrue(parts.length > 0 && parts.length < 5, String.format("Invalid parts length. 0 < %s < 5", parts.length));
+		Assert.isTrue(parts.length > 0 && parts.length < 5,
+				String.format("Invalid parts length. 0 < %s < 5", parts.length));
 
 		this.major = parts[0];
 		this.minor = parts.length > 1 ? parts[1] : 0;
@@ -58,7 +60,7 @@ public class Version implements Comparable<Version> {
 
 	/**
 	 * Parses the given string representation of a version into a {@link Version} object.
-	 * 
+	 *
 	 * @param version must not be {@literal null} or empty.
 	 * @return
 	 */
@@ -86,8 +88,17 @@ public class Version implements Comparable<Version> {
 	}
 
 	/**
-	 * Returns whether the current {@link Version} is greater (newer) than the given one.
+	 * Returns the Java version of the running JVM.
 	 * 
+	 * @return will never be {@literal null}.
+	 */
+	public static Version javaVersion() {
+		return parse(System.getProperty("java.version"));
+	}
+
+	/**
+	 * Returns whether the current {@link Version} is greater (newer) than the given one.
+	 *
 	 * @param version
 	 * @return
 	 */
@@ -97,7 +108,7 @@ public class Version implements Comparable<Version> {
 
 	/**
 	 * Returns whether the current {@link Version} is greater (newer) or the same as the given one.
-	 * 
+	 *
 	 * @param version
 	 * @return
 	 */
@@ -107,7 +118,7 @@ public class Version implements Comparable<Version> {
 
 	/**
 	 * Returns whether the current {@link Version} is the same as the given one.
-	 * 
+	 *
 	 * @param version
 	 * @return
 	 */
@@ -117,7 +128,7 @@ public class Version implements Comparable<Version> {
 
 	/**
 	 * Returns whether the current {@link Version} is less (older) than the given one.
-	 * 
+	 *
 	 * @param version
 	 * @return
 	 */
@@ -127,7 +138,7 @@ public class Version implements Comparable<Version> {
 
 	/**
 	 * Returns whether the current {@link Version} is less (older) or equal to the current one.
-	 * 
+	 *
 	 * @param version
 	 * @return
 	 */
@@ -139,11 +150,7 @@ public class Version implements Comparable<Version> {
 	 * (non-Javadoc)
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
-	public int compareTo(Version that) {
-
-		if (that == null) {
-			return 1;
-		}
+	public int compareTo(@SuppressWarnings("null") Version that) {
 
 		if (major != that.major) {
 			return major - that.major;
@@ -169,7 +176,7 @@ public class Version implements Comparable<Version> {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 
 		if (this == obj) {
 			return true;

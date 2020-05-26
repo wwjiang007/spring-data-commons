@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,22 +23,23 @@ import java.util.Map;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
 /**
  * Unit tests for {@link SpelEvaluatingMethodInterceptor}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  */
-@RunWith(MockitoJUnitRunner.class)
-public class SpelEvaluatingMethodInterceptorUnitTests {
+@ExtendWith(MockitoExtension.class)
+class SpelEvaluatingMethodInterceptorUnitTests {
 
 	@Mock MethodInterceptor delegate;
 	@Mock MethodInvocation invocation;
@@ -46,7 +47,7 @@ public class SpelEvaluatingMethodInterceptorUnitTests {
 	SpelExpressionParser parser = new SpelExpressionParser();
 
 	@Test // DATAREST-221, DATACMNS-630
-	public void invokesMethodOnTarget() throws Throwable {
+	void invokesMethodOnTarget() throws Throwable {
 
 		when(invocation.getMethod()).thenReturn(Projection.class.getMethod("propertyFromTarget"));
 
@@ -57,7 +58,7 @@ public class SpelEvaluatingMethodInterceptorUnitTests {
 	}
 
 	@Test // DATAREST-221, DATACMNS-630
-	public void invokesMethodOnBean() throws Throwable {
+	void invokesMethodOnBean() throws Throwable {
 
 		when(invocation.getMethod()).thenReturn(Projection.class.getMethod("invokeBean"));
 
@@ -71,7 +72,7 @@ public class SpelEvaluatingMethodInterceptorUnitTests {
 	}
 
 	@Test // DATACMNS-630
-	public void forwardNonAtValueAnnotatedMethodToDelegate() throws Throwable {
+	void forwardNonAtValueAnnotatedMethodToDelegate() throws Throwable {
 
 		when(invocation.getMethod()).thenReturn(Projection.class.getMethod("getName"));
 
@@ -83,15 +84,14 @@ public class SpelEvaluatingMethodInterceptorUnitTests {
 		verify(delegate).invoke(invocation);
 	}
 
-	@Test(expected = IllegalStateException.class) // DATACMNS-630
-	public void rejectsEmptySpelExpression() throws Throwable {
-
-		new SpelEvaluatingMethodInterceptor(delegate, new Target(), new DefaultListableBeanFactory(), parser,
-				InvalidProjection.class);
+	@Test // DATACMNS-630
+	void rejectsEmptySpelExpression() {
+		assertThatIllegalStateException().isThrownBy(() -> new SpelEvaluatingMethodInterceptor(delegate, new Target(),
+				new DefaultListableBeanFactory(), parser, InvalidProjection.class));
 	}
 
 	@Test // DATACMNS-630
-	public void allowsMapAccessViaPropertyExpression() throws Throwable {
+	void allowsMapAccessViaPropertyExpression() throws Throwable {
 
 		Map<String, Object> map = new HashMap<>();
 		map.put("name", "Dave");
@@ -102,6 +102,21 @@ public class SpelEvaluatingMethodInterceptorUnitTests {
 				new DefaultListableBeanFactory(), parser, Projection.class);
 
 		assertThat(interceptor.invoke(invocation)).isEqualTo("Dave");
+	}
+
+	@Test // DATACMNS-1150
+	void forwardsParameterIntoSpElExpressionEvaluation() throws Throwable {
+
+		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+		factory.registerSingleton("someBean", new SomeBean());
+
+		when(invocation.getMethod()).thenReturn(Projection.class.getMethod("invokeBeanWithParameter", Integer.class));
+		when(invocation.getArguments()).thenReturn(new Object[] { 1 });
+
+		MethodInterceptor interceptor = new SpelEvaluatingMethodInterceptor(delegate, new Target(), factory, parser,
+				Projection.class);
+
+		assertThat(interceptor.invoke(invocation)).isEqualTo("property1");
 	}
 
 	interface Projection {
@@ -115,6 +130,9 @@ public class SpelEvaluatingMethodInterceptorUnitTests {
 		String getName();
 
 		String getAddress();
+
+		@Value("#{@someBean.someMethod(target, args[0])}")
+		String invokeBeanWithParameter(Integer parameter);
 	}
 
 	interface InvalidProjection {
@@ -134,6 +152,10 @@ public class SpelEvaluatingMethodInterceptorUnitTests {
 
 		public String getValue() {
 			return "value";
+		}
+
+		public String someMethod(Target target, Integer parameter) {
+			return target.getName() + parameter.toString();
 		}
 	}
 }

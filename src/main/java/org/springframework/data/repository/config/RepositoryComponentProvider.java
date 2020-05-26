@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,8 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.annotation.AnnotationConfigUtils;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.classreading.MetadataReader;
@@ -38,30 +41,30 @@ import org.springframework.util.Assert;
 /**
  * Custom {@link ClassPathScanningCandidateComponentProvider} scanning for interfaces extending the given base
  * interface. Skips interfaces annotated with {@link NoRepositoryBean}.
- * 
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  */
 class RepositoryComponentProvider extends ClassPathScanningCandidateComponentProvider {
 
-	private static final String METHOD_NOT_PUBLIC = "AnnotationConfigUtils.processCommonDefinitionAnnotations(…) is not public! Make sure you're using Spring 3.2.5 or better. The class was loaded from %s.";
-
 	private boolean considerNestedRepositoryInterfaces;
+	private BeanDefinitionRegistry registry;
 
 	/**
 	 * Creates a new {@link RepositoryComponentProvider} using the given {@link TypeFilter} to include components to be
 	 * picked up.
-	 * 
+	 *
 	 * @param includeFilters the {@link TypeFilter}s to select repository interfaces to consider, must not be
 	 *          {@literal null}.
 	 */
-	public RepositoryComponentProvider(Iterable<? extends TypeFilter> includeFilters) {
+	public RepositoryComponentProvider(Iterable<? extends TypeFilter> includeFilters, BeanDefinitionRegistry registry) {
 
 		super(false);
 
-		assertRequiredSpringVersionPresent();
-
 		Assert.notNull(includeFilters, "Include filters must not be null!");
+		Assert.notNull(registry, "BeanDefinitionRegistry must not be null!");
+
+		this.registry = registry;
 
 		if (includeFilters.iterator().hasNext()) {
 			for (TypeFilter filter : includeFilters) {
@@ -79,7 +82,7 @@ class RepositoryComponentProvider extends ClassPathScanningCandidateComponentPro
 	 * Custom extension of {@link #addIncludeFilter(TypeFilter)} to extend the added {@link TypeFilter}. For the
 	 * {@link TypeFilter} handed we'll have two filters registered: one additionally enforcing the
 	 * {@link RepositoryDefinition} annotation, the other one forcing the extension of {@link Repository}.
-	 * 
+	 *
 	 * @see ClassPathScanningCandidateComponentProvider#addIncludeFilter(TypeFilter)
 	 */
 	@Override
@@ -129,6 +132,16 @@ class RepositoryComponentProvider extends ClassPathScanningCandidateComponentPro
 		return candidates;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider#getRegistry()
+	 */
+	@Nonnull
+	@Override
+	protected BeanDefinitionRegistry getRegistry() {
+		return registry;
+	}
+
 	/**
 	 * @return the considerNestedRepositoryInterfaces
 	 */
@@ -139,7 +152,7 @@ class RepositoryComponentProvider extends ClassPathScanningCandidateComponentPro
 	/**
 	 * Controls whether nested inner-class {@link Repository} interface definitions should be considered for automatic
 	 * discovery. This defaults to {@literal false}.
-	 * 
+	 *
 	 * @param considerNestedRepositoryInterfaces
 	 */
 	public void setConsiderNestedRepositoryInterfaces(boolean considerNestedRepositoryInterfaces) {
@@ -147,30 +160,16 @@ class RepositoryComponentProvider extends ClassPathScanningCandidateComponentPro
 	}
 
 	/**
-	 * Makes sure {@link AnnotationConfigUtils#processCommonDefinitionAnnotations(AnnotatedBeanDefinition) is public and
-	 * indicates the offending JAR if not.
-	 */
-	private static void assertRequiredSpringVersionPresent() {
-
-		try {
-			AnnotationConfigUtils.class.getMethod("processCommonDefinitionAnnotations", AnnotatedBeanDefinition.class);
-		} catch (NoSuchMethodException o_O) {
-			throw new IllegalStateException(String.format(METHOD_NOT_PUBLIC, AnnotationConfigUtils.class
-					.getProtectionDomain().getCodeSource().getLocation()), o_O);
-		}
-	}
-
-	/**
 	 * {@link org.springframework.core.type.filter.TypeFilter} that only matches interfaces. Thus setting this up makes
 	 * only sense providing an interface type as {@code targetType}.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	private static class InterfaceTypeFilter extends AssignableTypeFilter {
 
 		/**
 		 * Creates a new {@link InterfaceTypeFilter}.
-		 * 
+		 *
 		 * @param targetType
 		 */
 		public InterfaceTypeFilter(Class<?> targetType) {
@@ -182,7 +181,8 @@ class RepositoryComponentProvider extends ClassPathScanningCandidateComponentPro
 		 * @see org.springframework.core.type.filter.AbstractTypeHierarchyTraversingFilter#match(org.springframework.core.type.classreading.MetadataReader, org.springframework.core.type.classreading.MetadataReaderFactory)
 		 */
 		@Override
-		public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
+		public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory)
+				throws IOException {
 
 			return metadataReader.getClassMetadata().isInterface() && super.match(metadataReader, metadataReaderFactory);
 		}
@@ -190,7 +190,7 @@ class RepositoryComponentProvider extends ClassPathScanningCandidateComponentPro
 
 	/**
 	 * Helper class to create a {@link TypeFilter} that matches if all the delegates match.
-	 * 
+	 *
 	 * @author Oliver Gierke
 	 */
 	private static class AllTypeFilter implements TypeFilter {
@@ -199,7 +199,7 @@ class RepositoryComponentProvider extends ClassPathScanningCandidateComponentPro
 
 		/**
 		 * Creates a new {@link AllTypeFilter} to match if all the given delegates match.
-		 * 
+		 *
 		 * @param delegates must not be {@literal null}.
 		 */
 		public AllTypeFilter(List<TypeFilter> delegates) {
@@ -208,11 +208,12 @@ class RepositoryComponentProvider extends ClassPathScanningCandidateComponentPro
 			this.delegates = delegates;
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.core.type.filter.TypeFilter#match(org.springframework.core.type.classreading.MetadataReader, org.springframework.core.type.classreading.MetadataReaderFactory)
 		 */
-		public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
+		public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory)
+				throws IOException {
 
 			for (TypeFilter filter : delegates) {
 				if (!filter.match(metadataReader, metadataReaderFactory)) {

@@ -1,10 +1,10 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2020 the original author or authors.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,14 +14,17 @@
  */
 package org.springframework.data.auditing.config;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.lang.annotation.Annotation;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.core.type.AnnotationMetadata;
@@ -30,24 +33,44 @@ import org.springframework.data.auditing.EnableAuditing;
 
 /**
  * Unit tests for {@link AuditingBeanDefinitionRegistrarSupport}.
- * 
+ *
  * @author Ranie Jade Ramiso
  * @author Thomas Darimont
  * @author Oliver Gierke
+ * @author Francisco Soler
  */
-@RunWith(MockitoJUnitRunner.class)
-public class AuditingBeanDefinitionRegistrarSupportUnitTests {
+@ExtendWith(MockitoExtension.class)
+class AuditingBeanDefinitionRegistrarSupportUnitTests {
 
 	@Mock BeanDefinitionRegistry registry;
 
 	@Test // DATCMNS-389
-	public void testRegisterBeanDefinitions() {
+	void testRegisterBeanDefinitions() {
 
 		AuditingBeanDefinitionRegistrarSupport registrar = new DummyAuditingBeanDefinitionRegistrarSupport();
 		AnnotationMetadata metadata = new StandardAnnotationMetadata(SampleConfig.class);
 
 		registrar.registerBeanDefinitions(metadata, registry);
 		verify(registry, times(1)).registerBeanDefinition(anyString(), any(BeanDefinition.class));
+	}
+
+	@Test // DATACMNS-1453
+	void rejectsNullAnnotationMetadata() {
+
+		AuditingBeanDefinitionRegistrarSupport registrar = new DummyAuditingBeanDefinitionRegistrarSupport();
+
+		assertThatExceptionOfType(IllegalArgumentException.class) //
+				.isThrownBy(() -> registrar.registerBeanDefinitions(null, registry));
+	}
+
+	@Test // DATACMNS-1453
+	void rejectsNullRegistry() {
+
+		AuditingBeanDefinitionRegistrarSupport registrar = new DummyAuditingBeanDefinitionRegistrarSupport();
+		AnnotationMetadata metadata = new StandardAnnotationMetadata(SampleConfig.class);
+
+		assertThatExceptionOfType(IllegalArgumentException.class) //
+				.isThrownBy(() -> registrar.registerBeanDefinitions(metadata, null));
 	}
 
 	static class SampleConfig {}
@@ -85,7 +108,7 @@ public class AuditingBeanDefinitionRegistrarSupportUnitTests {
 			};
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.data.auditing.config.AuditingBeanDefinitionRegistrarSupport#getAuditingHandlerBeanName()
 		 */

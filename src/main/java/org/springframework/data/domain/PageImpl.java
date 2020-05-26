@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-2017 the original author or authors.
+ * Copyright 2008-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,32 +18,33 @@ package org.springframework.data.domain;
 import java.util.List;
 import java.util.function.Function;
 
+import org.springframework.lang.Nullable;
+
 /**
  * Basic {@code Page} implementation.
- * 
+ *
  * @param <T> the type of which the page consists.
  * @author Oliver Gierke
+ * @author Mark Paluch
  */
 public class PageImpl<T> extends Chunk<T> implements Page<T> {
 
 	private static final long serialVersionUID = 867755909294344406L;
 
 	private final long total;
-	private final Pageable pageable;
 
 	/**
 	 * Constructor of {@code PageImpl}.
-	 * 
+	 *
 	 * @param content the content of this page, must not be {@literal null}.
-	 * @param pageable the paging information, can be {@literal null}.
+	 * @param pageable the paging information, must not be {@literal null}.
 	 * @param total the total amount of items available. The total might be adapted considering the length of the content
-	 *          given, if it is going to be the content of the last page. This is in place to mitigate inconsistencies
+	 *          given, if it is going to be the content of the last page. This is in place to mitigate inconsistencies.
 	 */
 	public PageImpl(List<T> content, Pageable pageable, long total) {
 
 		super(content, pageable);
 
-		this.pageable = pageable;
 		this.total = pageable.toOptional().filter(it -> !content.isEmpty())//
 				.filter(it -> it.getOffset() + it.getPageSize() > total)//
 				.map(it -> it.getOffset() + content.size())//
@@ -53,7 +54,7 @@ public class PageImpl<T> extends Chunk<T> implements Page<T> {
 	/**
 	 * Creates a new {@link PageImpl} with the given content. This will result in the created {@link Page} being identical
 	 * to the entire {@link List}.
-	 * 
+	 *
 	 * @param content must not be {@literal null}.
 	 */
 	public PageImpl(List<T> content) {
@@ -78,7 +79,7 @@ public class PageImpl<T> extends Chunk<T> implements Page<T> {
 		return total;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.Slice#hasNext()
 	 */
@@ -87,7 +88,7 @@ public class PageImpl<T> extends Chunk<T> implements Page<T> {
 		return getNumber() + 1 < getTotalPages();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.Slice#isLast()
 	 */
@@ -96,13 +97,13 @@ public class PageImpl<T> extends Chunk<T> implements Page<T> {
 		return !hasNext();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.domain.Slice#transform(org.springframework.core.convert.converter.Converter)
 	 */
 	@Override
 	public <U> Page<U> map(Function<? super T, ? extends U> converter) {
-		return new PageImpl<>(getConvertedContent(converter), pageable, total);
+		return new PageImpl<>(getConvertedContent(converter), getPageable(), total);
 	}
 
 	/*
@@ -127,7 +128,7 @@ public class PageImpl<T> extends Chunk<T> implements Page<T> {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 
 		if (this == obj) {
 			return true;

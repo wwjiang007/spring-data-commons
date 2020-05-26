@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,8 @@
 package org.springframework.data.repository.query;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,78 +31,81 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.repository.query.spi.EvaluationContextExtension;
-import org.springframework.data.repository.query.spi.EvaluationContextExtensionSupport;
-import org.springframework.data.repository.query.spi.Function;
+import org.springframework.data.spel.ExtensionAwareEvaluationContextProvider;
+import org.springframework.data.spel.spi.EvaluationContextExtension;
+import org.springframework.data.spel.spi.Function;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
 /**
- * Unit tests {@link ExtensionAwareEvaluationContextProvider}.
- * 
+ * Unit tests {@link ExtensionAwareQueryMethodEvaluationContextProvider}.
+ *
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @author Jens Schauder
  */
-public class ExtensionAwareEvaluationContextProviderUnitTests {
+class ExtensionAwareEvaluationContextProviderUnitTests {
 
 	Method method;
-	EvaluationContextProvider provider;
+	QueryMethodEvaluationContextProvider provider;
 
-	@Before
-	public void setUp() throws Exception {
+	@BeforeEach
+	void setUp() throws Exception {
 
 		this.method = SampleRepo.class.getMethod("findByFirstname", String.class);
-		this.provider = new ExtensionAwareEvaluationContextProvider(Collections.emptyList());
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(Collections.emptyList());
 	}
 
 	@Test // DATACMNS-533
-	public void usesPropertyDefinedByExtension() {
+	void usesPropertyDefinedByExtension() {
 
-		this.provider = new ExtensionAwareEvaluationContextProvider(
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(
 				Collections.singletonList(new DummyExtension("_first", "first")));
 
 		assertThat(evaluateExpression("key")).isEqualTo("first");
 	}
 
 	@Test // DATACMNS-533
-	public void secondExtensionOverridesFirstOne() {
+	void secondExtensionOverridesFirstOne() {
 
 		List<EvaluationContextExtension> extensions = new ArrayList<>();
 		extensions.add(new DummyExtension("_first", "first"));
 		extensions.add(new DummyExtension("_second", "second"));
 
-		this.provider = new ExtensionAwareEvaluationContextProvider(extensions);
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(extensions);
 
 		assertThat(evaluateExpression("key")).isEqualTo("second");
 	}
 
 	@Test // DATACMNS-533
-	public void allowsDirectAccessToExtensionViaKey() {
+	void allowsDirectAccessToExtensionViaKey() {
 
 		List<EvaluationContextExtension> extensions = new ArrayList<>();
 		extensions.add(new DummyExtension("_first", "first"));
 		extensions.add(new DummyExtension("_second", "second"));
 
-		this.provider = new ExtensionAwareEvaluationContextProvider(extensions);
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(extensions);
 		assertThat(evaluateExpression("_first.key")).isEqualTo("first");
 	}
 
 	@Test // DATACMNS-533
-	public void exposesParametersAsVariables() {
+	void exposesParametersAsVariables() {
 		assertThat(evaluateExpression("#firstname")).isEqualTo("parameterValue");
 	}
 
 	@Test // DATACMNS-533
-	public void exposesMethodDefinedByExtension() {
+	void exposesMethodDefinedByExtension() {
 
-		this.provider = new ExtensionAwareEvaluationContextProvider(
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(
 				Collections.singletonList(new DummyExtension("_first", "first")));
 
 		assertThat(evaluateExpression("aliasedMethod()")).isEqualTo("methodResult");
@@ -110,9 +115,9 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-533
-	public void exposesPropertiesDefinedByExtension() {
+	void exposesPropertiesDefinedByExtension() {
 
-		this.provider = new ExtensionAwareEvaluationContextProvider(
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(
 				Collections.singletonList(new DummyExtension("_first", "first")));
 
 		assertThat(evaluateExpression("DUMMY_KEY")).isEqualTo("dummy");
@@ -120,7 +125,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-533
-	public void exposesPageableParameter() throws Exception {
+	void exposesPageableParameter() throws Exception {
 
 		this.method = SampleRepo.class.getMethod("findByFirstname", String.class, Pageable.class);
 		PageRequest pageable = PageRequest.of(2, 3, Sort.by(Direction.DESC, "lastname"));
@@ -132,7 +137,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-533
-	public void exposesSortParameter() throws Exception {
+	void exposesSortParameter() throws Exception {
 
 		this.method = SampleRepo.class.getMethod("findByFirstname", String.class, Sort.class);
 		Sort sort = Sort.by(Direction.DESC, "lastname");
@@ -141,7 +146,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-533
-	public void exposesSpecialParameterEvenIfItsNull() throws Exception {
+	void exposesSpecialParameterEvenIfItsNull() throws Exception {
 
 		this.method = SampleRepo.class.getMethod("findByFirstname", String.class, Sort.class);
 
@@ -149,9 +154,9 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-533
-	public void shouldBeAbleToAccessCustomRootObjectPropertiesAndFunctions() {
+	void shouldBeAbleToAccessCustomRootObjectPropertiesAndFunctions() {
 
-		this.provider = new ExtensionAwareEvaluationContextProvider(Collections.singletonList( //
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(Collections.singletonList( //
 				new DummyExtension("_first", "first") {
 					@Override
 					public CustomExtensionRootObject1 getRootObject() {
@@ -171,9 +176,9 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-533
-	public void shouldBeAbleToAccessCustomRootObjectPropertiesAndFunctionsInMultipleExtensions() {
+	void shouldBeAbleToAccessCustomRootObjectPropertiesAndFunctionsInMultipleExtensions() {
 
-		this.provider = new ExtensionAwareEvaluationContextProvider(Arrays.asList( //
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(Arrays.asList( //
 				new DummyExtension("_first", "first") {
 					@Override
 					public CustomExtensionRootObject1 getRootObject() {
@@ -197,11 +202,11 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-533
-	public void shouldBeAbleToAccessCustomRootObjectPropertiesAndFunctionsFromDynamicTargetSource() {
+	void shouldBeAbleToAccessCustomRootObjectPropertiesAndFunctionsFromDynamicTargetSource() {
 
 		final AtomicInteger counter = new AtomicInteger();
 
-		this.provider = new ExtensionAwareEvaluationContextProvider(Collections.singletonList( //
+		this.provider = new ExtensionAwareQueryMethodEvaluationContextProvider(Collections.singletonList( //
 				new DummyExtension("_first", "first") {
 
 					@Override
@@ -222,7 +227,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-1026
-	public void overloadedMethodsGetResolved() throws Exception {
+	void overloadedMethodsGetResolved() throws Exception {
 
 		provider = createContextProviderWithOverloads();
 
@@ -238,7 +243,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-1026
-	public void methodFromRootObjectOverwritesMethodFromExtension() throws Exception {
+	void methodFromRootObjectOverwritesMethodFromExtension() throws Exception {
 
 		provider = createContextProviderWithOverloads();
 
@@ -246,7 +251,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-1026
-	public void aliasedMethodOverwritesMethodFromRootObject() throws Exception {
+	void aliasedMethodOverwritesMethodFromRootObject() throws Exception {
 
 		provider = createContextProviderWithOverloads();
 
@@ -254,7 +259,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-1026
-	public void exactMatchIsPreferred() throws Exception {
+	void exactMatchIsPreferred() throws Exception {
 
 		provider = createContextProviderWithOverloads();
 
@@ -262,7 +267,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@Test // DATACMNS-1026
-	public void throwsExceptionWhenStillAmbiguous() throws Exception {
+	void throwsExceptionWhenStillAmbiguous() throws Exception {
 
 		provider = createContextProviderWithOverloads();
 
@@ -272,9 +277,44 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 				.withMessageContaining("(java.lang.Integer)");
 	}
 
-	private static ExtensionAwareEvaluationContextProvider createContextProviderWithOverloads() {
+	@Test // DATACMNS-1518
+	void invokesMethodWithVarArgs() {
 
-		return new ExtensionAwareEvaluationContextProvider(Collections.singletonList( //
+		provider = createContextProviderWithOverloads();
+
+		assertThat(evaluateExpression("methodWithVarArgs('one', 'two')")).isEqualTo("varargs");
+	}
+
+	@Test // DATACMNS-1534
+	void contextProviderShouldLazilyLookUpExtensions() {
+
+		ListableBeanFactory beanFactory = Mockito.mock(ListableBeanFactory.class);
+
+		ExtensionAwareEvaluationContextProvider contextProvider = new ExtensionAwareEvaluationContextProvider(beanFactory);
+
+		verify(beanFactory, never()).getBeansOfType(eq(EvaluationContextExtension.class), anyBoolean(), anyBoolean());
+
+		contextProvider.getEvaluationContext(null);
+
+		verify(beanFactory).getBeansOfType(eq(EvaluationContextExtension.class), anyBoolean(), anyBoolean());
+	}
+
+	@Test // DATACMNS-1534
+	void contextProviderShouldLookupExtensionsOnlyOnce() {
+
+		ListableBeanFactory beanFactory = Mockito.mock(ListableBeanFactory.class);
+
+		ExtensionAwareEvaluationContextProvider contextProvider = new ExtensionAwareEvaluationContextProvider(beanFactory);
+
+		contextProvider.getEvaluationContext(null);
+		contextProvider.getEvaluationContext(null);
+
+		verify(beanFactory).getBeansOfType(eq(EvaluationContextExtension.class), anyBoolean(), anyBoolean());
+	}
+
+	private static ExtensionAwareQueryMethodEvaluationContextProvider createContextProviderWithOverloads() {
+
+		return new ExtensionAwareQueryMethodEvaluationContextProvider(Collections.singletonList( //
 				new DummyExtension("_first", "first") {
 					@Override
 					public Object getRootObject() {
@@ -284,7 +324,7 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 	}
 
 	@RequiredArgsConstructor
-	public static class DummyExtension extends EvaluationContextExtensionSupport {
+	public static class DummyExtension implements org.springframework.data.spel.spi.EvaluationContextExtension {
 
 		public static String DUMMY_KEY = "dummy";
 
@@ -299,28 +339,28 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 			return key;
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.data.repository.query.EvaluationContextExtensionAdapter#getProperties()
 		 */
 		@Override
 		public Map<String, Object> getProperties() {
 
-			Map<String, Object> properties = new HashMap<>(super.getProperties());
+			Map<String, Object> properties = new HashMap<>();
 
 			properties.put("key", value);
 
 			return properties;
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.data.repository.query.spi.EvaluationContextExtensionSupport#getFunctions()
 		 */
 		@Override
 		public Map<String, Function> getFunctions() {
 
-			Map<String, Function> functions = new HashMap<>(super.getFunctions());
+			Map<String, Function> functions = new HashMap<>();
 
 			try {
 				functions.put("aliasedMethod", new Function(getClass().getMethod("extensionMethod")));
@@ -429,6 +469,10 @@ public class ExtensionAwareEvaluationContextProviderUnitTests {
 
 		public String ambiguousOverloaded(Serializable o) {
 			return "serializable";
+		}
+
+		public String methodWithVarArgs(String... args) {
+			return "varargs";
 		}
 	}
 }
