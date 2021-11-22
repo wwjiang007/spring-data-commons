@@ -40,8 +40,11 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
 
 /**
+ * Basic {@link TypeDiscoverer} that contains basic functionality to discover property types.
+ *
+ * @author Oliver Gierke
  * @author Christoph Strobl
- * @since 2021/11
+ * @author Mark Paluch
  */
 public class TypeDiscoverer<S> implements TypeInformation<S> {
 
@@ -135,7 +138,6 @@ public class TypeDiscoverer<S> implements TypeInformation<S> {
 
 			if(it.getReadMethod() != null) {
 				return new TypeDiscoverer(ResolvableType.forMethodReturnType(it.getReadMethod(), rawType));
-//				return ClassTypeInformation.fromReturnTypeOf(it.getReadMethod());
 			}
 			if(it.getWriteMethod() != null) {
 				return new TypeDiscoverer(ResolvableType.forMethodParameter(it.getWriteMethod(), 0, rawType));
@@ -222,20 +224,6 @@ public class TypeDiscoverer<S> implements TypeInformation<S> {
 			}
 
 			return mapValueType.resolve() != null ? new TypeDiscoverer<>(mapValueType) :null;
-
-//			return Arrays.stream(resolvableType.getInterfaces()).filter(ResolvableType::hasGenerics)
-//					.findFirst()
-//					.map(it -> it.getGeneric(0))
-//					.filter(it -> !ResolvableType.NONE.equals(it))
-//					.map(NewTypeDiscoverer::new)
-//					.orElse(null);
-
-//			if(type.getComponentType().equals(ResolvableType.NONE)) {
-//				if(!type.hasGenerics()) {
-//					return null;
-//				}
-//			}
-//			return mapValueType != null ? new NewTypeDiscoverer(mapValueType) : new ClassTypeInformation<>(Object.class);
 		}
 
 		if (isNullableWrapper()) {
@@ -377,8 +365,6 @@ public class TypeDiscoverer<S> implements TypeInformation<S> {
 			candidates.add(genericSuperclass);
 		}
 
-		// todo try raw type interfaces //
-
 		candidates.addAll(Arrays.asList(resolvableType.getInterfaces()));
 
 		for (var candidate : candidates) {
@@ -393,12 +379,7 @@ public class TypeDiscoverer<S> implements TypeInformation<S> {
 							return new TypeDiscoverer<>(ResolvableType.forRawClass(superType));
 						}
 					}
-//					return new NewTypeDiscoverer<>(ResolvableType.forClassWithGenerics(candidate.toClass(), classes));
 				}
-//				return new NewTypeDiscoverer(candidate);
-//				if(ObjectUtils.isEmpty(superType.getTypeParameters())) {
-//					new NewTypeDiscoverer(ResolvableType.forRawClass(superType));
-//				}
 				return new TypeDiscoverer(ResolvableType.forClass(superType, getType()));
 			} else {
 				var sup = candidate.getSuperType();
