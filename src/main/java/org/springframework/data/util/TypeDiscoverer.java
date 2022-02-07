@@ -456,7 +456,7 @@ public class TypeDiscoverer<S> implements TypeInformation<S> {
 
 		TypeDiscoverer<?> that = (TypeDiscoverer<?>) o;
 
-		if(!ObjectUtils.nullSafeEquals(resolvableType.getType(), that.resolvableType.getType())) {
+		if(!ObjectUtils.nullSafeEquals(getType(), that.getType())) {
 			return false;
 		}
 
