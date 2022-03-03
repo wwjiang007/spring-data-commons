@@ -15,6 +15,9 @@
  */
 package org.springframework.data.repository.core.support;
 
+import io.micrometer.core.instrument.observation.Observation;
+import io.micrometer.core.instrument.observation.ObservationRegistry;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,7 +31,6 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
 import org.springframework.beans.BeanUtils;
@@ -42,6 +44,8 @@ import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.core.log.LogMessage;
 import org.springframework.core.metrics.ApplicationStartup;
 import org.springframework.core.metrics.StartupStep;
+import org.springframework.data.observability.DefaultQueryDerivationTagsProvider;
+import org.springframework.data.observability.QueryDerivationTagsProvider;
 import org.springframework.data.projection.DefaultMethodInvokingMethodInterceptor;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
@@ -80,7 +84,8 @@ import org.springframework.util.ObjectUtils;
  * @author Jens Schauder
  * @author John Blum
  */
-public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, BeanFactoryAware {
+public abstract class RepositoryFactorySupport
+		implements BeanClassLoaderAware, BeanFactoryAware, Observation.TagsProviderAware<QueryDerivationTagsProvider> {
 
 	final static GenericConversionService CONVERSION_SERVICE = new DefaultConversionService();
 	private static final Log logger = LogFactory.getLog(RepositoryFactorySupport.class);
@@ -102,6 +107,8 @@ public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, 
 	private QueryMethodEvaluationContextProvider evaluationContextProvider;
 	private BeanFactory beanFactory;
 	private Lazy<ProjectionFactory> projectionFactory;
+	private ObservationRegistry registry;
+	private QueryDerivationTagsProvider tagsProvider;
 
 	private final QueryCollectingQueryCreationListener collectingListener = new QueryCollectingQueryCreationListener();
 
@@ -119,6 +126,7 @@ public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, 
 		this.queryPostProcessors.add(collectingListener);
 		this.methodInvocationListeners = new ArrayList<>();
 		this.projectionFactory = createProjectionFactory();
+		this.tagsProvider = new DefaultQueryDerivationTagsProvider();
 	}
 
 	/**
@@ -137,6 +145,24 @@ public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, 
 	 */
 	public void setNamedQueries(NamedQueries namedQueries) {
 		this.namedQueries = namedQueries == null ? PropertiesBasedNamedQueries.EMPTY : namedQueries;
+	}
+
+	/**
+	 * Look up the factory's {@link ObservationRegistry}.
+	 * 
+	 * @return registry the observation registry used by Micrometer.
+	 */
+	public ObservationRegistry getRegistry() {
+		return registry;
+	}
+
+	/**
+	 * Set the {@link ObservationRegistry} for Micrometer tracing.
+	 * 
+	 * @param registry
+	 */
+	public void setRegistry(ObservationRegistry registry) {
+		this.registry = registry;
 	}
 
 	@Override
@@ -279,8 +305,7 @@ public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, 
 
 		repositoryBaseClass.ifPresent(it -> repositoryInit.tag("baseClass", it.getName()));
 
-		var repositoryMetadataStep = onEvent(applicationStartup, "spring.data.repository.metadata",
-				repositoryInterface);
+		var repositoryMetadataStep = onEvent(applicationStartup, "spring.data.repository.metadata", repositoryInterface);
 		var metadata = getRepositoryMetadata(repositoryInterface);
 		repositoryMetadataStep.end();
 
@@ -310,8 +335,7 @@ public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, 
 
 		repositoryCompositionStep.end();
 
-		var repositoryTargetStep = onEvent(applicationStartup, "spring.data.repository.target",
-				repositoryInterface);
+		var repositoryTargetStep = onEvent(applicationStartup, "spring.data.repository.target", repositoryInterface);
 		var target = getTargetRepository(information);
 
 		repositoryTargetStep.tag("target", target.getClass().getName());
@@ -353,7 +377,7 @@ public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, 
 		Optional<QueryLookupStrategy> queryLookupStrategy = getQueryLookupStrategy(queryLookupStrategyKey,
 				evaluationContextProvider);
 		result.addAdvice(new QueryExecutorMethodInterceptor(information, getProjectionFactory(), queryLookupStrategy,
-				namedQueries, queryPostProcessors, methodInvocationListeners));
+				namedQueries, queryPostProcessors, methodInvocationListeners, registry, tagsProvider));
 
 		result.addAdvice(
 				new ImplementationMethodExecutionInterceptor(information, compositionToUse, methodInvocationListeners));
@@ -364,8 +388,7 @@ public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, 
 
 		if (logger.isDebugEnabled()) {
 			logger
-					.debug(LogMessage.format("Finished creation of repository instance for %s.",
-				repositoryInterface.getName()));
+					.debug(LogMessage.format("Finished creation of repository instance for %s.", repositoryInterface.getName()));
 		}
 
 		return repository;
@@ -807,5 +830,10 @@ public abstract class RepositoryFactorySupport implements BeanClassLoaderAware, 
 
 			return false;
 		}
+	}
+
+	@Override
+	public void setTagsProvider(QueryDerivationTagsProvider tagsProvider) {
+		this.tagsProvider = tagsProvider;
 	}
 }

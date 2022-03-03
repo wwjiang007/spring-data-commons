@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
+import org.springframework.data.observability.DefaultQueryDerivationTagsProvider;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.query.QueryLookupStrategy;
@@ -48,16 +48,17 @@ class QueryExecutorMethodInterceptorUnitTests {
 
 		when(information.hasQueryMethods()).thenReturn(true);
 
-		assertThatIllegalStateException()
-				.isThrownBy(() -> new QueryExecutorMethodInterceptor(information, new SpelAwareProxyProjectionFactory(),
-						Optional.empty(), PropertiesBasedNamedQueries.EMPTY, Collections.emptyList(), Collections.emptyList()));
+		assertThatIllegalStateException().isThrownBy(() -> new QueryExecutorMethodInterceptor(information,
+				new SpelAwareProxyProjectionFactory(), Optional.empty(), PropertiesBasedNamedQueries.EMPTY,
+				Collections.emptyList(), Collections.emptyList(), null, new DefaultQueryDerivationTagsProvider()));
 	}
 
 	@Test // DATACMNS-1508
 	void skipsQueryLookupsIfQueryLookupStrategyIsNotPresent() {
 
 		new QueryExecutorMethodInterceptor(information, new SpelAwareProxyProjectionFactory(), Optional.empty(),
-				PropertiesBasedNamedQueries.EMPTY, Collections.emptyList(), Collections.emptyList());
+				PropertiesBasedNamedQueries.EMPTY, Collections.emptyList(), Collections.emptyList(), null,
+				new DefaultQueryDerivationTagsProvider());
 
 		verify(strategy, times(0)).resolveQuery(any(), any(), any(), any());
 	}

@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.BeanFactory;
@@ -73,6 +74,7 @@ public class DummyRepositoryFactory extends RepositoryFactorySupport {
 		var beanFactory = Mockito.mock(BeanFactory.class);
 		when(beanFactory.getBean(ApplicationStartup.class)).thenReturn(applicationStartup);
 		setBeanFactory(beanFactory);
+		setRegistry(new SimpleMeterRegistry());
 	}
 
 	@Override

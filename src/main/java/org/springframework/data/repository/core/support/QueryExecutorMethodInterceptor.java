@@ -15,6 +15,9 @@
  */
 package org.springframework.data.repository.core.support;
 
+import io.micrometer.core.instrument.observation.Observation;
+import io.micrometer.core.instrument.observation.ObservationRegistry;
+
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +27,9 @@ import java.util.Optional;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.core.ResolvableType;
+import org.springframework.data.observability.QueryDerivationContext;
+import org.springframework.data.observability.QueryDerivationObservation;
+import org.springframework.data.observability.QueryDerivationTagsProvider;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.core.RepositoryInformation;
@@ -57,6 +63,8 @@ class QueryExecutorMethodInterceptor implements MethodInterceptor {
 	private final NamedQueries namedQueries;
 	private final List<QueryCreationListener<?>> queryPostProcessors;
 	private final RepositoryInvocationMulticaster invocationMulticaster;
+	private final ObservationRegistry observationRegistry;
+	private QueryDerivationTagsProvider tagsProvider;
 
 	/**
 	 * Creates a new {@link QueryExecutorMethodInterceptor}. Builds a model of {@link QueryMethod}s to be invoked on
@@ -65,11 +73,14 @@ class QueryExecutorMethodInterceptor implements MethodInterceptor {
 	public QueryExecutorMethodInterceptor(RepositoryInformation repositoryInformation,
 			ProjectionFactory projectionFactory, Optional<QueryLookupStrategy> queryLookupStrategy, NamedQueries namedQueries,
 			List<QueryCreationListener<?>> queryPostProcessors,
-			List<RepositoryMethodInvocationListener> methodInvocationListeners) {
+			List<RepositoryMethodInvocationListener> methodInvocationListeners, ObservationRegistry observationRegistry,
+			QueryDerivationTagsProvider tagsProvider) {
 
 		this.repositoryInformation = repositoryInformation;
 		this.namedQueries = namedQueries;
 		this.queryPostProcessors = queryPostProcessors;
+		this.observationRegistry = observationRegistry;
+		this.tagsProvider = tagsProvider;
 		this.invocationMulticaster = methodInvocationListeners.isEmpty() ? NoOpRepositoryInvocationMulticaster.INSTANCE
 				: new DefaultRepositoryInvocationMulticaster(methodInvocationListeners);
 
@@ -77,8 +88,8 @@ class QueryExecutorMethodInterceptor implements MethodInterceptor {
 
 		if (!queryLookupStrategy.isPresent() && repositoryInformation.hasQueryMethods()) {
 
-			throw new IllegalStateException("You have defined query methods in the repository"
-					+ " but do not have any query lookup strategy defined."
+			throw new IllegalStateException("You have defined query methods in the repository" //
+					+ " but do not have any query lookup strategy defined." //
 					+ " The infrastructure apparently does not support query methods!");
 		}
 
@@ -98,12 +109,32 @@ class QueryExecutorMethodInterceptor implements MethodInterceptor {
 
 	private Pair<Method, RepositoryQuery> lookupQuery(Method method, RepositoryInformation information,
 			QueryLookupStrategy strategy, ProjectionFactory projectionFactory) {
-		try {
-			return Pair.of(method, strategy.resolveQuery(method, information, projectionFactory, namedQueries));
+
+		QueryDerivationContext context = new QueryDerivationContext(strategy, method, information);
+
+		Observation observation = QueryDerivationObservation.QUERY_DERIVATION_OBSERVATION //
+				.observation(this.observationRegistry, context) //
+				.contextualName(QueryDerivationObservation.QUERY_DERIVATION_OBSERVATION.getContextualName()) //
+				.tagsProvider(this.tagsProvider) //
+				.start();
+
+		try (Observation.Scope scope = observation.openScope()) {
+
+			Pair<Method, RepositoryQuery> queryPair = Pair.of(method,
+					strategy.resolveQuery(method, information, projectionFactory, namedQueries));
+
+			context.setQuery(queryPair.getSecond());
+
+			return queryPair;
+
 		} catch (QueryCreationException e) {
+			observation.error(e);
 			throw e;
 		} catch (RuntimeException e) {
+			observation.error(e);
 			throw QueryCreationException.create(e.getMessage(), e, information.getRepositoryInterface(), method);
+		} finally {
+			observation.stop();
 		}
 	}
 
@@ -112,8 +143,7 @@ class QueryExecutorMethodInterceptor implements MethodInterceptor {
 
 		for (QueryCreationListener listener : queryPostProcessors) {
 
-			var typeArgument = ResolvableType.forClass(QueryCreationListener.class, listener.getClass())
-					.getGeneric(0);
+			var typeArgument = ResolvableType.forClass(QueryCreationListener.class, listener.getClass()).getGeneric(0);
 
 			if (typeArgument != null && typeArgument.isAssignableFrom(ResolvableType.forClass(query.getClass()))) {
 				listener.onCreation(query);

@@ -15,6 +15,7 @@
  */
 package org.springframework.data.repository.kotlin
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -42,7 +43,7 @@ import reactor.core.publisher.Mono
  *
  * @author Mark Paluch
  */
-class CoroutineCrudRepositoryUnitTests {
+class CoroutineCrudRetpositoryUnitTests {
 
 	val backingRepository = mockk<ReactiveCrudRepository<User, String>>()
 	lateinit var factory: DummyReactiveRepositoryFactory

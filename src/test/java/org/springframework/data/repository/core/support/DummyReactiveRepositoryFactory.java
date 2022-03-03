@@ -20,6 +20,7 @@ import static org.mockito.Mockito.*;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.mockito.Mockito;
 
 import org.springframework.data.projection.ProjectionFactory;
@@ -49,6 +50,7 @@ public class DummyReactiveRepositoryFactory extends ReactiveRepositoryFactorySup
 	public DummyReactiveRepositoryFactory(Object repository) {
 
 		this.repository = repository;
+		this.setRegistry(new SimpleMeterRegistry());
 
 		when(strategy.resolveQuery(Mockito.any(Method.class), Mockito.any(RepositoryMetadata.class),
 				Mockito.any(ProjectionFactory.class), Mockito.any(NamedQueries.class))).thenReturn(queryOne);

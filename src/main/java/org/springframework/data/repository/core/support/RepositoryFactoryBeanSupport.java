@@ -15,6 +15,9 @@
  */
 package org.springframework.data.repository.core.support;
 
+import io.micrometer.core.instrument.observation.ObservationRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -73,6 +76,7 @@ public abstract class RepositoryFactoryBeanSupport<T extends Repository<S, ID>, 
 	private Optional<QueryMethodEvaluationContextProvider> evaluationContextProvider = Optional.empty();
 	private List<RepositoryFactoryCustomizer> repositoryFactoryCustomizers = new ArrayList<>();
 	private ApplicationEventPublisher publisher;
+	private ObservationRegistry observationRegistry;
 
 	private Lazy<T> repository;
 
@@ -153,6 +157,15 @@ public abstract class RepositoryFactoryBeanSupport<T extends Repository<S, ID>, 
 	 */
 	public void setEvaluationContextProvider(QueryMethodEvaluationContextProvider evaluationContextProvider) {
 		this.evaluationContextProvider = Optional.of(evaluationContextProvider);
+	}
+
+	/**
+	 * Sets the {@link ObservationRegistry} to be used by Micrometer when tracing operations.
+	 * 
+	 * @param observationRegistry must not be {@literal null}.
+	 */
+	public void setObservationRegistry(ObservationRegistry observationRegistry) {
+		this.observationRegistry = observationRegistry;
 	}
 
 	/**
@@ -274,6 +287,14 @@ public abstract class RepositoryFactoryBeanSupport<T extends Repository<S, ID>, 
 				.append(customImplementationFragment);
 
 		this.repositoryMetadata = this.factory.getRepositoryMetadata(repositoryInterface);
+
+		if (this.observationRegistry != null) {
+			if (this.factory.getRegistry() == null) {
+				this.factory.setRegistry(this.observationRegistry);
+			}
+		} else {
+			this.factory.setRegistry(new SimpleMeterRegistry());
+		}
 
 		this.repository = Lazy.of(() -> this.factory.getRepository(repositoryInterface, repositoryFragmentsToUse));
 
