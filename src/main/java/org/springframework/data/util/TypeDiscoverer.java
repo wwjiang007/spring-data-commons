@@ -167,12 +167,18 @@ public class TypeDiscoverer<S> implements TypeInformation<S> {
 	@Override
 	public boolean isCollectionLike() {
 
-		Class<?> rawType = getType();
+		Class<S> type = getType();
 
-		return rawType.isArray() //
-				|| Iterable.class.equals(rawType) //
-				|| Collection.class.isAssignableFrom(rawType) //
-				|| Streamable.class.isAssignableFrom(rawType);
+		for (Class<?> collectionType : COLLECTION_TYPES) {
+			if (collectionType.isAssignableFrom(type)) {
+				return true;
+			}
+		}
+
+		return type.isArray() //
+				|| Iterable.class.equals(type) //
+				|| Collection.class.isAssignableFrom(type) //
+				|| Streamable.class.isAssignableFrom(type);
 	}
 
 	@Nullable

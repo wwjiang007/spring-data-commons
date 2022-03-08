@@ -313,7 +313,7 @@ public class TypeDiscovererUnitTests {
 	@Test // #2517
 	void returnsComponentAndValueTypesForVavrMapExtensions() {
 
-		var discoverer = new TypeDiscoverer<>(CustomVavrMap.class, EMPTY_MAP);
+		var discoverer = new TypeDiscoverer<>(CustomVavrMap.class);
 
 		assertThat(discoverer.getMapValueType().getType()).isEqualTo(Locale.class);
 		assertThat(discoverer.getComponentType().getType()).isEqualTo(String.class);
